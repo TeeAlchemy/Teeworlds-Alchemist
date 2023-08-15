@@ -1,4 +1,3 @@
-
 Import("configure.lua")
 
 --- Setup Config -------
@@ -15,7 +14,7 @@ function Script(name)
 	if family == "windows" then
 		return str_replace(name, "/", "\\")
 	end
-	return "python " .. name
+	return "python3 " .. name
 end
 
 function CHash(output, ...)
@@ -46,6 +45,7 @@ function DuplicateDirectoryStructure(orgpath, srcpath, dstpath)
 		DuplicateDirectoryStructure(orgpath, v, dstpath)
 	end
 end
+
 DuplicateDirectoryStructure("src", "src", "objs")
 ]]
 
@@ -128,8 +128,6 @@ if family == "windows" then
 			table.insert(icu_depends, CopyToDirectory(".", "other/icu/gcc/lib64/icuuc53.dll"))
 		end
 	end
-	table.insert(server_sql_depends, CopyToDirectory(".", "other/mysql/vc2005libs/mysqlcppconn.dll"))
-	table.insert(server_sql_depends, CopyToDirectory(".", "other/mysql/vc2005libs/libmysql.dll"))
 
 	if config.compiler.driver == "cl" then
 		server_link_other = {ResCompile("other/icons/teeworlds_srv_cl.rc")}
@@ -222,7 +220,8 @@ function build(settings)
 
 	-- build the small libraries
 	json = Compile(settings, "src/engine/external/json-parser/json.c")
-	
+	md5 = Compile(settings, Collect("src/engine/external/md5/*.c"))
+
 	-- build game components
 	engine_settings = settings:Copy()
 	server_settings = engine_settings:Copy()
@@ -232,6 +231,10 @@ function build(settings)
 		if platform == "macosx" then
 			launcher_settings.link.frameworks:Add("Cocoa")
 		end
+		server_settings.link.libs:Add("ssl")
+		server_settings.link.libs:Add("curl")
+		server_settings.link.libs:Add("crypto")
+		server_settings.link.libs:Add("dl")
 
 	elseif family == "windows" then
 		-- Add ICU because its a HAVE to
@@ -256,13 +259,12 @@ function build(settings)
 		end
 	end
 	
-	engine = Compile(engine_settings, Collect("src/engine/shared/*.cpp", "src/base/*.c"))
+	engine = Compile(engine_settings, Collect("src/engine/shared/*.cpp", "src/base/*.cpp"))
 	server = Compile(server_settings, Collect("src/engine/server/*.cpp"))
-	teeuniverses = Compile(server_settings, Collect("src/teeuniverses/*.cpp", "src/teeuniverses/components/*.cpp", "src/teeuniverses/system/*.cpp"))
-
 	game_shared = Compile(settings, Collect("src/game/*.cpp"), nethash, network_source)
 	game_server = Compile(settings, CollectRecursive("src/game/server/*.cpp"), server_content_source)
-
+	teeuniverses = Compile(server_settings, Collect("src/teeuniverses/*.cpp", "src/teeuniverses/components/*.cpp", "src/teeuniverses/system/*.cpp"))
+	
 	server_osxlaunch = {}
 	if platform == "macosx" then
 		server_osxlaunch = Compile(launcher_settings, "src/osxlaunch/server.m")
@@ -270,7 +272,7 @@ function build(settings)
 
 	-- build server
 	server_exe = Link(server_settings, "teeworlds_srv", engine, server,
-		game_shared, game_server, zlib, server_link_other, teeuniverses, json)
+		game_shared, game_server, zlib, md5, sqlite3, server_link_other, json, teeuniverses)
 
 	serverlaunch = {}
 	if platform == "macosx" then
@@ -283,6 +285,7 @@ function build(settings)
 	all = PseudoTarget(settings.config_name, c, s, v, m, t)
 	return all
 end
+
 
 
 debug_settings = NewSettings()
@@ -368,7 +371,7 @@ if platform == "macosx" then
 			PseudoTarget("debug", ppc_d, x86_d, x86_64_d)
 			PseudoTarget("server_release", "server_release_ppc", "server_release_x86", "server_release_x86_64")
 			PseudoTarget("server_debug", "server_debug_ppc", "server_debug_x86", "server_debug_x86_64")
-		else
+				else
 			PseudoTarget("release", ppc_r)
 			PseudoTarget("debug", ppc_d)
 			PseudoTarget("server_release", "server_release_ppc")
@@ -385,6 +388,7 @@ if platform == "macosx" then
 			PseudoTarget("debug", x86_d, x86_64_d)
 			PseudoTarget("server_release", "server_release_x86", "server_release_x86_64")
 			PseudoTarget("server_debug", "server_debug_x86", "server_debug_x86_64")
+			
 		end
 	end
 else

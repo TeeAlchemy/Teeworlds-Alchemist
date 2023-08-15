@@ -9,6 +9,8 @@
 #include <game/mapitems.h>
 #include "datafile.h"
 
+#include <base/hash.h>
+
 class CMap : public IEngineMap
 {
 	CDataFileReader m_DataFile;
@@ -40,6 +42,11 @@ public:
 	virtual unsigned Crc()
 	{
 		return m_DataFile.Crc();
+	}
+
+	virtual SHA256_DIGEST Sha256()
+	{
+		return m_DataFile.Sha256();
 	}
 
 };

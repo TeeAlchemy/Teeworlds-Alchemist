@@ -1702,7 +1702,6 @@ void CGameContext::OnInitMap(int MapID)
 	if(MapID < (int)m_vLayers.size())//Map exists already, huray
 		return;
 	
-
 	IEngineMap* pMap = Server()->GetMap(MapID);
 
 	m_vLayers.push_back(CLayers());
@@ -1717,15 +1716,6 @@ void CGameContext::OnInitMap(int MapID)
 	CMapItemLayerTilemap *pTileMap = m_vLayers[MapID].GameLayer();
 	//CTile *pTiles = (CTile *)Kernel()->RequestInterface<IMap>()->GetData(pTileMap->m_Data);
 	CTile *pTiles = (CTile *)pMap->GetData(pTileMap->m_Data);
-
-
-
-
-	/*
-	num_spawn_points[0] = 0;
-	num_spawn_points[1] = 0;
-	num_spawn_points[2] = 0;
-	*/
 
 	for(int y = 0; y < pTileMap->m_Height; y++)
 	{
