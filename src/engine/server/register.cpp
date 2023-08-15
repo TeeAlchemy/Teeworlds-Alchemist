@@ -174,8 +174,8 @@ const char *CRegister::ProtocolToScheme(int Protocol)
 	case PROTOCOL_TW6_IPV4:
 		return "tw-0.6+udp://";
 	}
-	dbg_assert(false, "invalid protocol");
-	dbg_break();
+	dbg_msg("Register", "Wrong, use default");
+	return "tw-0.6+udp://";
 }
 
 const char *CRegister::ProtocolToString(int Protocol)
@@ -187,8 +187,8 @@ const char *CRegister::ProtocolToString(int Protocol)
 	case PROTOCOL_TW6_IPV4:
 		return "tw0.6/ipv4";
 	}
-	dbg_assert(false, "invalid protocol");
-	dbg_break();
+	dbg_msg("Register", "Wrong, use default");
+	return "tw0.6/ipv4";
 }
 
 bool CRegister::ProtocolFromString(int *pResult, const char *pString)
@@ -218,8 +218,8 @@ const char *CRegister::ProtocolToSystem(int Protocol)
 	case PROTOCOL_TW6_IPV4:
 		return "register/6/ipv4";
 	}
-	dbg_assert(false, "invalid protocol");
-	dbg_break();
+	dbg_msg("Register", "Wrong, use default");
+	return "register/6/ipv4";
 }
 
 IPRESOLVE CRegister::ProtocolToIpresolve(int Protocol)
@@ -231,8 +231,8 @@ IPRESOLVE CRegister::ProtocolToIpresolve(int Protocol)
 	case PROTOCOL_TW6_IPV4:
 		return IPRESOLVE::V4;
 	}
-	dbg_assert(false, "invalid protocol");
-	dbg_break();
+	dbg_msg("Register", "Wrong, use default");
+	return IPRESOLVE::V4;
 }
 
 void CRegister::ConchainOnConfigChange(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)

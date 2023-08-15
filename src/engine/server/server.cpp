@@ -1004,10 +1004,10 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 			int Last = 0;
 
 			// drop faulty map data requests
-			if (Chunk < 0 || Offset > m_vMapData[MapID].m_CurrentMapSize)
+			if (Chunk < 0 || (int)Offset > m_vMapData[MapID].m_CurrentMapSize)
 				return;
 
-			if (Offset + ChunkSize >= m_vMapData[MapID].m_CurrentMapSize)
+			if ((int)(Offset + ChunkSize) >= m_vMapData[MapID].m_CurrentMapSize)
 			{
 				ChunkSize = m_vMapData[MapID].m_CurrentMapSize - Offset;
 				if (ChunkSize < 0)
@@ -1746,7 +1746,6 @@ void CServer::PumpNetwork(bool PacketWaiting)
 	}
 	{
 		unsigned char aBuffer[NET_MAX_PAYLOAD];
-		int Flags;
 		mem_zero(&Packet, sizeof(Packet));
 		Packet.m_pData = aBuffer;
 	}
@@ -1869,9 +1868,6 @@ int CServer::Run()
 		return false;
 	}
 
-	char m_aName[64];
-	char m_aPath[512];
-
 	// extract data
 	const json_value &rStart = (*pJsonData)["maps"];
 	if (rStart.type == json_array)
@@ -1969,13 +1965,11 @@ int CServer::Run()
 				{
 					if (m_aClients[c].m_State != CClient::STATE_INGAME)
 						continue;
-					bool ClientHadInput = false;
 					for (auto &Input : m_aClients[c].m_aInputs)
 					{
 						if (Input.m_GameTick == Tick())
 						{
 							GameServer()->OnClientPredictedInput(c, Input.m_aData);
-							ClientHadInput = true;
 							break;
 						}
 					}
@@ -2362,15 +2356,6 @@ int main(int argc, const char **argv) // ignore_convention
 		}
 	}
 #endif
-	bool UseDefaultConfig = false;
-	for (int i = 1; i < argc; i++) // ignore_convention
-	{
-		if (str_comp("-d", argv[i]) == 0 || str_comp("--default", argv[i]) == 0) // ignore_convention
-		{
-			UseDefaultConfig = true;
-			break;
-		}
-	}
 
 	if (secure_random_init() != 0)
 	{

@@ -322,12 +322,12 @@ void CCharacter::FireWeapon()
 
 	case WEAPON_GUN:
 	{
-		CProjectile *pProj = new CProjectile(GameWorld(), WEAPON_GUN,
-											 m_pPlayer->GetCID(),
-											 ProjStartPos,
-											 Direction,
-											 (int)(Server()->TickSpeed() * GameServer()->Tuning()->m_GunLifetime),
-											 1, 0, 0, -1, WEAPON_GUN, GetMapID());
+		new CProjectile(GameWorld(), WEAPON_GUN,
+						m_pPlayer->GetCID(),
+						ProjStartPos,
+						Direction,
+						(int)(Server()->TickSpeed() * GameServer()->Tuning()->m_GunLifetime),
+						1, 0, 0, -1, WEAPON_GUN, GetMapID());
 
 		GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE, -1, GetMapID());
 	}
@@ -344,12 +344,12 @@ void CCharacter::FireWeapon()
 			a += Spreading[i + 2];
 			float v = 1 - (absolute(i) / (float)ShotSpread);
 			float Speed = mix((float)GameServer()->Tuning()->m_ShotgunSpeeddiff, 1.0f, v);
-			CProjectile *pProj = new CProjectile(GameWorld(), WEAPON_SHOTGUN,
-												 m_pPlayer->GetCID(),
-												 ProjStartPos,
-												 vec2(cosf(a), sinf(a)) * Speed,
-												 (int)(Server()->TickSpeed() * GameServer()->Tuning()->m_ShotgunLifetime),
-												 1, 0, 0, -1, WEAPON_SHOTGUN, GetMapID());
+			new CProjectile(GameWorld(), WEAPON_SHOTGUN,
+							m_pPlayer->GetCID(),
+							ProjStartPos,
+							vec2(cosf(a), sinf(a)) * Speed,
+							(int)(Server()->TickSpeed() * GameServer()->Tuning()->m_ShotgunLifetime),
+							1, 0, 0, -1, WEAPON_SHOTGUN, GetMapID());
 		}
 
 		GameServer()->CreateSound(m_Pos, SOUND_SHOTGUN_FIRE, -1, GetMapID());
@@ -358,12 +358,12 @@ void CCharacter::FireWeapon()
 
 	case WEAPON_GRENADE:
 	{
-		CProjectile *pProj = new CProjectile(GameWorld(), WEAPON_GRENADE,
-											 m_pPlayer->GetCID(),
-											 ProjStartPos,
-											 Direction,
-											 (int)(Server()->TickSpeed() * GameServer()->Tuning()->m_GrenadeLifetime),
-											 1, true, 0, SOUND_GRENADE_EXPLODE, WEAPON_GRENADE, GetMapID());
+		new CProjectile(GameWorld(), WEAPON_GRENADE,
+						m_pPlayer->GetCID(),
+						ProjStartPos,
+						Direction,
+						(int)(Server()->TickSpeed() * GameServer()->Tuning()->m_GrenadeLifetime),
+						1, true, 0, SOUND_GRENADE_EXPLODE, WEAPON_GRENADE, GetMapID());
 
 		GameServer()->CreateSound(m_Pos, SOUND_GRENADE_FIRE, -1, GetMapID());
 	}
