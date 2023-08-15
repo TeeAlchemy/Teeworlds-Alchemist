@@ -21,7 +21,6 @@ public:
 	virtual int NumItems() = 0;
 };
 
-
 class IEngineMap : public IMap
 {
 	MACRO_INTERFACE("enginemap", 0)
@@ -33,6 +32,6 @@ public:
 	virtual unsigned Crc() = 0;
 };
 
-//extern IEngineMap *CreateEngineMap();
+// extern IEngineMap *CreateEngineMap();
 
 #endif

@@ -21,23 +21,23 @@
 
 /*
 	Tick
-		Game Context (CGameContext::tick)
-			Game World (GAMEWORLD::tick)
-				Reset world if requested (GAMEWORLD::reset)
-				All entities in the world (ENTITY::tick)
-				All entities in the world (ENTITY::tick_defered)
-				Remove entities marked for deletion (GAMEWORLD::remove_entities)
-			Game Controller (GAMECONTROLLER::tick)
-			All players (CPlayer::tick)
+		Game Context (CGameContext::OnTick)
+			Game World (CGameWorld::Tick)
+				Reset world if requested (CGameWorld::Reset)
+				All entities in the world (CEntity::Tick)
+				All entities in the world (CEntity::TickDeferd)
+				Remove entities marked for deletion (CGameWorld::RemoveEntity)
+			Game Controller (CGameController::Tick)
+			All players (CPlayer::Tick)
 
 
 	Snap
-		Game Context (CGameContext::snap)
-			Game World (GAMEWORLD::snap)
-				All entities in the world (ENTITY::snap)
-			Game Controller (GAMECONTROLLER::snap)
-			Events handler (EVENT_HANDLER::snap)
-			All players (CPlayer::snap)
+		Game Context (CGameContext::OnSnap)
+			Game World (CGameWorld::Snap)
+				All entities in the world (CEntity::Snap)
+			Game Controller (CGameController::Snap)
+			Events handler (CEventHandler::Snap)
+			All players (CPlayer::Snap)
 
 */
 class CGameContext : public IGameServer
@@ -72,15 +72,15 @@ class CGameContext : public IGameServer
 	static void ConClearVotes(IConsole::IResult *pResult, void *pUserData);
 	static void ConVote(IConsole::IResult *pResult, void *pUserData);
 	static void ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
-	
+
 	CGameContext(int Resetting);
 	void Construct(int Resetting);
 
 	bool m_Resetting;
-	
+
 	int m_ConsoleOutputHandle_ChatPrint;
 	int m_ConsoleOutput_Target;
-	
+
 public:
 	IServer *Server() const { return m_pServer; }
 	class IConsole *Console() { return m_pConsole; }
@@ -94,7 +94,7 @@ public:
 	CEventHandler m_Events;
 	CPlayer *m_apPlayers[MAX_CLIENTS];
 
-	IGameController *m_pController;
+	CGameController *m_pController;
 	CGameWorld m_World;
 
 	// helper functions
@@ -120,7 +120,7 @@ public:
 	int m_VoteEnforce;
 	enum
 	{
-		VOTE_ENFORCE_UNKNOWN=0,
+		VOTE_ENFORCE_UNKNOWN = 0,
 		VOTE_ENFORCE_NO,
 		VOTE_ENFORCE_YES,
 	};
@@ -135,15 +135,14 @@ public:
 	void CreatePlayerSpawn(vec2 Pos, int MapID);
 	void CreateDeath(vec2 Pos, int Who, int MapID);
 	void CreateSound(vec2 Pos, int Sound, int Mask, int MapID);
-	void CreateSoundGlobal(int Sound, int Target=-1);
-
+	void CreateSoundGlobal(int Sound, int Target = -1);
 
 	enum
 	{
-		CHAT_ALL=-2,
-		CHAT_SPEC=-1,
-		CHAT_RED=0,
-		CHAT_BLUE=1
+		CHAT_ALL = -2,
+		CHAT_SPEC = -1,
+		CHAT_RED = 0,
+		CHAT_BLUE = 1
 	};
 
 	// network
@@ -154,10 +153,7 @@ public:
 	void SendBroadcast(const char *pText, int ClientID);
 	void SetClientLanguage(int ClientID, const char *pLanguage);
 
-
-
 	//
-	void CheckPureTuning();
 	void SendTuningParams(int ClientID);
 
 	//
@@ -188,15 +184,15 @@ public:
 	virtual bool IsClientReady(int ClientID);
 	virtual bool IsClientPlayer(int ClientID);
 
-	virtual void OnSetAuthed(int ClientID,int Level);
-	
+	virtual void OnSetAuthed(int ClientID, int Level);
+
 	virtual const char *GameType();
 	virtual const char *Version();
 	virtual const char *NetVersion();
 };
 
 inline int CmaskAll() { return -1; }
-inline int CmaskOne(int ClientID) { return 1<<ClientID; }
-inline int CmaskAllExceptOne(int ClientID) { return 0x7fffffff^CmaskOne(ClientID); }
-inline bool CmaskIsSet(int Mask, int ClientID) { return (Mask&CmaskOne(ClientID)) != 0; }
+inline int CmaskOne(int ClientID) { return 1 << ClientID; }
+inline int CmaskAllExceptOne(int ClientID) { return 0x7fffffff ^ CmaskOne(ClientID); }
+inline bool CmaskIsSet(int Mask, int ClientID) { return (Mask & CmaskOne(ClientID)) != 0; }
 #endif

@@ -9,28 +9,28 @@
 // Format: ESDDDDDD EDDDDDDD EDD... Extended, Data, Sign
 unsigned char *CVariableInt::Pack(unsigned char *pDst, int i, int DstSize)
 {
-	if(DstSize <= 0)
+	if (DstSize <= 0)
 		return 0;
 
 	DstSize--;
 	*pDst = 0;
-	if(i < 0)
+	if (i < 0)
 	{
 		*pDst |= 0x40; // set sign bit
 		i = ~i;
 	}
 
 	*pDst |= i & 0x3F; // pack 6bit into dst
-	i >>= 6; // discard 6 bits
-	while(i)
+	i >>= 6;		   // discard 6 bits
+	while (i)
 	{
-		if(DstSize <= 0)
+		if (DstSize <= 0)
 			return 0;
 		*pDst |= 0x80; // set extend bit
 		DstSize--;
 		pDst++;
 		*pDst = i & 0x7F; // pack 7bit
-		i >>= 7; // discard 7 bits
+		i >>= 7;		  // discard 7 bits
 	}
 
 	pDst++;
@@ -39,7 +39,7 @@ unsigned char *CVariableInt::Pack(unsigned char *pDst, int i, int DstSize)
 
 const unsigned char *CVariableInt::Unpack(const unsigned char *pSrc, int *pInOut, int SrcSize)
 {
-	if(SrcSize <= 0)
+	if (SrcSize <= 0)
 		return 0;
 
 	const int Sign = (*pSrc >> 6) & 1;
@@ -49,11 +49,11 @@ const unsigned char *CVariableInt::Unpack(const unsigned char *pSrc, int *pInOut
 	const static int s_aMasks[] = {0x7F, 0x7F, 0x7F, 0x0F};
 	const static int s_aShifts[] = {6, 6 + 7, 6 + 7 + 7, 6 + 7 + 7 + 7};
 
-	for(unsigned i = 0; i < std::size_t(s_aMasks); i++)
+	for (unsigned i = 0; i < std::size_t(s_aMasks); i++)
 	{
-		if(!(*pSrc & 0x80))
+		if (!(*pSrc & 0x80))
 			break;
-		if(SrcSize <= 0)
+		if (SrcSize <= 0)
 			return 0;
 		SrcSize--;
 		pSrc++;
@@ -73,12 +73,12 @@ long CVariableInt::Decompress(const void *pSrc_, int SrcSize, void *pDst_, int D
 	const unsigned char *pSrcEnd = pSrc + SrcSize;
 	int *pDst = (int *)pDst_;
 	const int *pDstEnd = pDst + DstSize / sizeof(int);
-	while(pSrc < pSrcEnd)
+	while (pSrc < pSrcEnd)
 	{
-		if(pDst >= pDstEnd)
+		if (pDst >= pDstEnd)
 			return -1;
 		pSrc = CVariableInt::Unpack(pSrc, pDst, pSrcEnd - pSrc);
-		if(!pSrc)
+		if (!pSrc)
 			return -1;
 		pDst++;
 	}
@@ -93,10 +93,10 @@ long CVariableInt::Compress(const void *pSrc_, int SrcSize, void *pDst_, int Dst
 	unsigned char *pDst = (unsigned char *)pDst_;
 	const unsigned char *pDstEnd = pDst + DstSize;
 	SrcSize /= sizeof(int);
-	while(SrcSize)
+	while (SrcSize)
 	{
 		pDst = CVariableInt::Pack(pDst, *pSrc, pDstEnd - pDst);
-		if(!pDst)
+		if (!pDst)
 			return -1;
 		SrcSize--;
 		pSrc++;

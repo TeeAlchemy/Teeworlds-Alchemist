@@ -37,7 +37,7 @@ bool StunMessageParse(const unsigned char *pMessage, size_t MessageSize, const C
 {
 	*pSuccess = false;
 	mem_zero(pAddr, sizeof(*pAddr));
-	if(MessageSize < 20)
+	if (MessageSize < 20)
 	{
 		return true;
 	}
@@ -51,7 +51,7 @@ bool StunMessageParse(const unsigned char *pMessage, size_t MessageSize, const C
 	Parsed = Parsed && pMessage[6] == 0xA4 && pMessage[7] == 0x42;
 	// Transaction ID
 	Parsed = Parsed && mem_comp(pMessage + 8, pData->m_aSecret, sizeof(pData->m_aSecret)) == 0;
-	if(!Parsed)
+	if (!Parsed)
 	{
 		return true;
 	}
@@ -61,7 +61,7 @@ bool StunMessageParse(const unsigned char *pMessage, size_t MessageSize, const C
 	MessageSize = 20 + MessageLength;
 	size_t Offset = 20;
 	bool FoundAddr = false;
-	while(true)
+	while (true)
 	{
 		// STUN attribute format (from RFC 5389, section 15, figure 4):
 		//
@@ -72,21 +72,21 @@ bool StunMessageParse(const unsigned char *pMessage, size_t MessageSize, const C
 		//      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 		//      |                         Value (variable)                ....
 		//      +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-		if(MessageSize == Offset)
+		if (MessageSize == Offset)
 		{
 			break;
 		}
-		else if(MessageSize < Offset + 4)
+		else if (MessageSize < Offset + 4)
 		{
 			return true;
 		}
 		uint16_t Type = (pMessage[Offset] << 8) | pMessage[Offset + 1];
 		uint16_t Length = (pMessage[Offset + 2] << 8) | pMessage[Offset + 3];
-		if(MessageSize < Offset + 4 + Length)
+		if (MessageSize < Offset + 4 + Length)
 		{
 			return true;
 		}
-		if(*pSuccess && Type == 0x0020) // XOR-MAPPED-ADDRESS
+		if (*pSuccess && Type == 0x0020) // XOR-MAPPED-ADDRESS
 		{
 			// STUN XOR-MAPPED-ADDRESS attribute format (from RFC 5389, section 15,
 			// figure 6):
@@ -99,7 +99,7 @@ bool StunMessageParse(const unsigned char *pMessage, size_t MessageSize, const C
 			//     |                X-Address (Variable)
 			//     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
-			if(Length < 4)
+			if (Length < 4)
 			{
 				return true;
 			}
@@ -107,13 +107,13 @@ bool StunMessageParse(const unsigned char *pMessage, size_t MessageSize, const C
 			uint8_t Family = pMessage[Offset + 4 + 1];
 			uint16_t Port = (pMessage[Offset + 4 + 2] << 8) | pMessage[Offset + 4 + 3];
 			Port ^= 0x2112;
-			if(Family == 0x01) // IPv4
+			if (Family == 0x01) // IPv4
 			{
-				if(Length != 8)
+				if (Length != 8)
 				{
 					return true;
 				}
-				if(!FoundAddr)
+				if (!FoundAddr)
 				{
 					pAddr->type = NETTYPE_IPV4;
 					mem_copy(pAddr->ip, pMessage + Offset + 4 + 4, 4);
@@ -125,13 +125,13 @@ bool StunMessageParse(const unsigned char *pMessage, size_t MessageSize, const C
 					FoundAddr = true;
 				}
 			}
-			else if(Family == 0x02) // IPv6
+			else if (Family == 0x02) // IPv6
 			{
-				if(Length != 20)
+				if (Length != 20)
 				{
 					return true;
 				}
-				if(!FoundAddr)
+				if (!FoundAddr)
 				{
 					pAddr->type = NETTYPE_IPV6;
 					mem_copy(pAddr->ip, pMessage + Offset + 4 + 4, 16);
@@ -139,7 +139,7 @@ bool StunMessageParse(const unsigned char *pMessage, size_t MessageSize, const C
 					pAddr->ip[1] ^= 0x12;
 					pAddr->ip[2] ^= 0xA4;
 					pAddr->ip[3] ^= 0x42;
-					for(size_t i = 0; i < sizeof(pData->m_aSecret); i++)
+					for (size_t i = 0; i < sizeof(pData->m_aSecret); i++)
 					{
 						pAddr->ip[4 + i] ^= pData->m_aSecret[i];
 					}
@@ -149,7 +149,7 @@ bool StunMessageParse(const unsigned char *pMessage, size_t MessageSize, const C
 			}
 		}
 		// comprehension-required
-		else if(Type <= 0x7fff)
+		else if (Type <= 0x7fff)
 		{
 			return true;
 		}

@@ -26,8 +26,7 @@ class CDataFileReader
 	int GetInternalItemType(int ExternalType);
 
 public:
-	CDataFileReader() :
-		m_pDataFile(nullptr) {}
+	CDataFileReader() : m_pDataFile(nullptr) {}
 	~CDataFileReader() { Close(); }
 
 	bool IsOpen() const { return m_pDataFile != nullptr; }

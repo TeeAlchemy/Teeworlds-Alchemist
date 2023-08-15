@@ -22,7 +22,7 @@ static bool gs_Initialized = false;
 
 static int GetLockIndex(int Data)
 {
-	if(!(0 <= Data && Data < CURL_LOCK_DATA_LAST))
+	if (!(0 <= Data && Data < CURL_LOCK_DATA_LAST))
 	{
 		Data = CURL_LOCK_DATA_LAST;
 	}
@@ -47,7 +47,7 @@ static void CurlUnlock(CURL *pHandle, curl_lock_data Data, void *pUser) RELEASE(
 int CurlDebug(CURL *pHandle, curl_infotype Type, char *pData, size_t DataSize, void *pUser)
 {
 	char TypeChar;
-	switch(Type)
+	switch (Type)
 	{
 	case CURLINFO_TEXT:
 		TypeChar = '*';
@@ -61,7 +61,7 @@ int CurlDebug(CURL *pHandle, curl_infotype Type, char *pData, size_t DataSize, v
 	default:
 		return 0;
 	}
-	while(const char *pLineEnd = (const char *)memchr(pData, '\n', DataSize))
+	while (const char *pLineEnd = (const char *)memchr(pData, '\n', DataSize))
 	{
 		int LineLength = pLineEnd - pData;
 		dbg_msg("curl", "%c %.*s", TypeChar, LineLength, pData);
@@ -73,12 +73,12 @@ int CurlDebug(CURL *pHandle, curl_infotype Type, char *pData, size_t DataSize, v
 
 bool HttpInit(IStorage *pStorage)
 {
-	if(curl_global_init(CURL_GLOBAL_DEFAULT))
+	if (curl_global_init(CURL_GLOBAL_DEFAULT))
 	{
 		return true;
 	}
 	gs_pShare = curl_share_init();
-	if(!gs_pShare)
+	if (!gs_pShare)
 	{
 		return true;
 	}
@@ -88,7 +88,7 @@ bool HttpInit(IStorage *pStorage)
 		dbg_msg("http", "libcurl version %s (compiled = " LIBCURL_VERSION ")", pVersion->version);
 	}
 
-	for(auto &Lock : gs_aLocks)
+	for (auto &Lock : gs_aLocks)
 	{
 		Lock = lock_create();
 	}
@@ -131,7 +131,7 @@ CHttpRequest::CHttpRequest(const char *pUrl)
 CHttpRequest::~CHttpRequest()
 {
 	m_ResponseLength = 0;
-	if(!m_WriteToFile)
+	if (!m_WriteToFile)
 	{
 		m_BufferSize = 0;
 		free(m_pBuffer);
@@ -139,7 +139,7 @@ CHttpRequest::~CHttpRequest()
 	}
 	curl_slist_free_all((curl_slist *)m_pHeaders);
 	m_pHeaders = nullptr;
-	if(m_pBody)
+	if (m_pBody)
 	{
 		m_BodyLength = 0;
 		free(m_pBody);
@@ -151,7 +151,7 @@ void CHttpRequest::Run()
 {
 	dbg_assert(gs_Initialized, "must initialize HTTP before running HTTP requests");
 	int FinalState;
-	if(!BeforeInit())
+	if (!BeforeInit())
 	{
 		FinalState = HTTP_ERROR;
 	}
@@ -167,16 +167,16 @@ void CHttpRequest::Run()
 
 bool CHttpRequest::BeforeInit()
 {
-	if(m_WriteToFile)
+	if (m_WriteToFile)
 	{
-		if(fs_makedir_rec_for(m_aDestAbsolute) < 0)
+		if (fs_makedir_rec_for(m_aDestAbsolute) < 0)
 		{
 			dbg_msg("http", "i/o error, cannot create folder for: %s", m_aDest);
 			return false;
 		}
 
 		m_File = io_open(m_aDestAbsolute, IOFLAG_WRITE);
-		if(!m_File)
+		if (!m_File)
 		{
 			dbg_msg("http", "i/o error, cannot open file: %s", m_aDest);
 			return false;
@@ -188,18 +188,18 @@ bool CHttpRequest::BeforeInit()
 int CHttpRequest::RunImpl(CURL *pUser)
 {
 	CURL *pHandle = (CURL *)pUser;
-	if(!pHandle)
+	if (!pHandle)
 	{
 		return HTTP_ERROR;
 	}
 
-	if(g_Config.m_DbgCurl)
+	if (g_Config.m_DbgCurl)
 	{
 		curl_easy_setopt(pHandle, CURLOPT_VERBOSE, 1L);
 		curl_easy_setopt(pHandle, CURLOPT_DEBUGFUNCTION, CurlDebug);
 	}
 	long Protocols = CURLPROTO_HTTPS;
-	if(g_Config.m_HttpAllowInsecure)
+	if (g_Config.m_HttpAllowInsecure)
 	{
 		Protocols |= CURLPROTO_HTTP;
 	}
@@ -210,7 +210,7 @@ int CHttpRequest::RunImpl(CURL *pUser)
 	curl_easy_setopt(pHandle, CURLOPT_TIMEOUT_MS, m_Timeout.TimeoutMs);
 	curl_easy_setopt(pHandle, CURLOPT_LOW_SPEED_LIMIT, m_Timeout.LowSpeedLimit);
 	curl_easy_setopt(pHandle, CURLOPT_LOW_SPEED_TIME, m_Timeout.LowSpeedTime);
-	if(m_MaxResponseSize >= 0)
+	if (m_MaxResponseSize >= 0)
 	{
 		curl_easy_setopt(pHandle, CURLOPT_MAXFILESIZE_LARGE, (curl_off_t)m_MaxResponseSize);
 	}
@@ -222,7 +222,8 @@ int CHttpRequest::RunImpl(CURL *pUser)
 	curl_easy_setopt(pHandle, CURLOPT_FAILONERROR, 1L);
 	curl_easy_setopt(pHandle, CURLOPT_URL, m_aUrl);
 	curl_easy_setopt(pHandle, CURLOPT_NOSIGNAL, 1L);
-	const char *pInfo = "Teeslash" " 0.6.4 (" CONF_PLATFORM_STRING "; " CONF_ARCH_STRING ")";
+	const char *pInfo = "Teeslash"
+						" 0.6.4 (" CONF_PLATFORM_STRING "; " CONF_ARCH_STRING ")";
 	curl_easy_setopt(pHandle, CURLOPT_USERAGENT, pInfo);
 	curl_easy_setopt(pHandle, CURLOPT_ACCEPT_ENCODING, ""); // Use any compression algorithm supported by libcurl.
 
@@ -231,13 +232,14 @@ int CHttpRequest::RunImpl(CURL *pUser)
 	curl_easy_setopt(pHandle, CURLOPT_NOPROGRESS, 0L);
 	curl_easy_setopt(pHandle, CURLOPT_PROGRESSDATA, this);
 	curl_easy_setopt(pHandle, CURLOPT_PROGRESSFUNCTION, ProgressCallback);
-	curl_easy_setopt(pHandle, CURLOPT_IPRESOLVE, m_IpResolve == IPRESOLVE::V4 ? CURL_IPRESOLVE_V4 : m_IpResolve == IPRESOLVE::V6 ? CURL_IPRESOLVE_V6 : CURL_IPRESOLVE_WHATEVER);
-	if(g_Config.m_Bindaddr[0] != '\0')
+	curl_easy_setopt(pHandle, CURLOPT_IPRESOLVE, m_IpResolve == IPRESOLVE::V4 ? CURL_IPRESOLVE_V4 : m_IpResolve == IPRESOLVE::V6 ? CURL_IPRESOLVE_V6
+																																 : CURL_IPRESOLVE_WHATEVER);
+	if (g_Config.m_Bindaddr[0] != '\0')
 	{
 		curl_easy_setopt(pHandle, CURLOPT_INTERFACE, g_Config.m_Bindaddr);
 	}
 
-	if(curl_version_info(CURLVERSION_NOW)->version_num < 0x074400)
+	if (curl_version_info(CURLVERSION_NOW)->version_num < 0x074400)
 	{
 		// Causes crashes, see https://github.com/ddnet/ddnet/issues/4342.
 		// No longer a problem in curl 7.68 and above, and 0x44 = 68.
@@ -248,7 +250,7 @@ int CHttpRequest::RunImpl(CURL *pUser)
 	curl_easy_setopt(pHandle, CURLOPT_CAINFO, "data/cacert.pem");
 #endif
 
-	switch(m_Type)
+	switch (m_Type)
 	{
 	case REQUEST::GET:
 		break;
@@ -257,7 +259,7 @@ int CHttpRequest::RunImpl(CURL *pUser)
 		break;
 	case REQUEST::POST:
 	case REQUEST::POST_JSON:
-		if(m_Type == REQUEST::POST_JSON)
+		if (m_Type == REQUEST::POST_JSON)
 		{
 			Header("Content-Type: application/json");
 		}
@@ -272,19 +274,19 @@ int CHttpRequest::RunImpl(CURL *pUser)
 
 	curl_easy_setopt(pHandle, CURLOPT_HTTPHEADER, m_pHeaders);
 
-	if(g_Config.m_DbgCurl || m_LogProgress >= HTTPLOG::ALL)
+	if (g_Config.m_DbgCurl || m_LogProgress >= HTTPLOG::ALL)
 		dbg_msg("http", "fetching %s", m_aUrl);
 	m_State = HTTP_RUNNING;
 	int Ret = curl_easy_perform(pHandle);
-	if(Ret != CURLE_OK)
+	if (Ret != CURLE_OK)
 	{
-		if(g_Config.m_DbgCurl || m_LogProgress >= HTTPLOG::FAILURE)
+		if (g_Config.m_DbgCurl || m_LogProgress >= HTTPLOG::FAILURE)
 			dbg_msg("http", "%s failed. libcurl error (%d): %s", m_aUrl, (int)Ret, aErr);
 		return (Ret == CURLE_ABORTED_BY_CALLBACK) ? HTTP_ABORTED : HTTP_ERROR;
 	}
 	else
 	{
-		if(g_Config.m_DbgCurl || m_LogProgress >= HTTPLOG::ALL)
+		if (g_Config.m_DbgCurl || m_LogProgress >= HTTPLOG::ALL)
 			dbg_msg("http", "task done %s", m_aUrl);
 		return HTTP_DONE;
 	}
@@ -294,22 +296,22 @@ size_t CHttpRequest::OnData(char *pData, size_t DataSize)
 {
 	// Need to check for the maximum response size here as curl can only
 	// guarantee it if the server sets a Content-Length header.
-	if(m_MaxResponseSize >= 0 && m_ResponseLength + DataSize > (uint64_t)m_MaxResponseSize)
+	if (m_MaxResponseSize >= 0 && m_ResponseLength + DataSize > (uint64_t)m_MaxResponseSize)
 	{
 		return 0;
 	}
-	if(!m_WriteToFile)
+	if (!m_WriteToFile)
 	{
-		if(DataSize == 0)
+		if (DataSize == 0)
 		{
 			return DataSize;
 		}
 		size_t NewBufferSize = maximum((size_t)1024, m_BufferSize);
-		while(m_ResponseLength + DataSize > NewBufferSize)
+		while (m_ResponseLength + DataSize > NewBufferSize)
 		{
 			NewBufferSize *= 2;
 		}
-		if(NewBufferSize != m_BufferSize)
+		if (NewBufferSize != m_BufferSize)
 		{
 			m_pBuffer = (unsigned char *)realloc(m_pBuffer, NewBufferSize);
 			m_BufferSize = NewBufferSize;
@@ -342,15 +344,15 @@ int CHttpRequest::ProgressCallback(void *pUser, double DlTotal, double DlCurr, d
 
 int CHttpRequest::OnCompletion(int State)
 {
-	if(m_WriteToFile)
+	if (m_WriteToFile)
 	{
-		if(m_File && io_close(m_File) != 0)
+		if (m_File && io_close(m_File) != 0)
 		{
 			dbg_msg("http", "i/o error, cannot close file: %s", m_aDest);
 			State = HTTP_ERROR;
 		}
 
-		if(State == HTTP_ERROR || State == HTTP_ABORTED)
+		if (State == HTTP_ERROR || State == HTTP_ABORTED)
 		{
 			fs_remove(m_aDestAbsolute);
 		}
@@ -363,7 +365,6 @@ void CHttpRequest::WriteToFile(IStorage *pStorage, const char *pDest, int Storag
 	m_WriteToFile = true;
 	str_copy(m_aDest, pDest, sizeof(m_aDest));
 	pStorage->GetCompletePath(StorageType, m_aDest, m_aDestAbsolute, sizeof(m_aDestAbsolute));
-	
 }
 
 void CHttpRequest::Header(const char *pNameColonValue)
@@ -373,7 +374,7 @@ void CHttpRequest::Header(const char *pNameColonValue)
 
 void CHttpRequest::Result(unsigned char **ppResult, size_t *pResultLength) const
 {
-	if(m_WriteToFile || State() != HTTP_DONE)
+	if (m_WriteToFile || State() != HTTP_DONE)
 	{
 		*ppResult = nullptr;
 		*pResultLength = 0;
@@ -388,7 +389,7 @@ json_value *CHttpRequest::ResultJson() const
 	unsigned char *pResult;
 	size_t ResultLength;
 	Result(&pResult, &ResultLength);
-	if(!pResult)
+	if (!pResult)
 	{
 		return nullptr;
 	}

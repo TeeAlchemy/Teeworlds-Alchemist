@@ -44,13 +44,13 @@ public:
 
 	virtual int RefreshAddresses(int Nettype)
 	{
-		if(m_State != STATE_INIT && m_State != STATE_READY)
+		if (m_State != STATE_INIT && m_State != STATE_READY)
 			return -1;
 
 		dbg_msg("engine/mastersrv", "refreshing master server addresses");
 
 		// add lookup jobs
-		for(int i = 0; i < MAX_MASTERSERVERS; i++)
+		for (int i = 0; i < MAX_MASTERSERVERS; i++)
 		{
 			*m_apLookup[i] = CHostLookup(m_aMasterServers[i].m_aHostname, Nettype);
 			m_pEngine->AddJob(m_apLookup[i]);
@@ -64,11 +64,11 @@ public:
 	virtual void Update()
 	{
 		// check if we need to update
-		if(m_State != STATE_UPDATE)
+		if (m_State != STATE_UPDATE)
 			return;
 		m_State = STATE_READY;
 
-		for(int i = 0; i < MAX_MASTERSERVERS; i++)
+		for (int i = 0; i < MAX_MASTERSERVERS; i++)
 		{
 			if (m_apLookup[i]->Status() != IJob::STATE_DONE)
 				m_State = STATE_UPDATE;
@@ -85,7 +85,7 @@ public:
 			}
 		}
 
-		if(m_State == STATE_READY)
+		if (m_State == STATE_READY)
 		{
 			dbg_msg("engine/mastersrv", "saving addresses");
 			Save();
@@ -130,41 +130,41 @@ public:
 
 	virtual int Load()
 	{
-		if(!m_pStorage)
+		if (!m_pStorage)
 			return -1;
 
 		// try to open file
 		IOHANDLE File = m_pStorage->OpenFile("masters.cfg", IOFLAG_READ, IStorage::TYPE_SAVE);
-		if(!File)
+		if (!File)
 			return -1;
 
 		CLineReader LineReader;
 		LineReader.Init(File);
-		while(1)
+		while (1)
 		{
 			CMasterInfo Info = {{0}};
 			const char *pLine = LineReader.Get();
-			if(!pLine)
+			if (!pLine)
 				break;
 
 			// parse line
 			char aAddrStr[NETADDR_MAXSTRSIZE];
-			if(sscanf(pLine, "%127s %47s", Info.m_aHostname, aAddrStr) == 2 && net_addr_from_str(&Info.m_Addr, aAddrStr) == 0)
+			if (sscanf(pLine, "%127s %47s", Info.m_aHostname, aAddrStr) == 2 && net_addr_from_str(&Info.m_Addr, aAddrStr) == 0)
 			{
 				Info.m_Addr.port = MASTERSERVER_PORT;
 				bool Added = false;
-				for(int i = 0; i < MAX_MASTERSERVERS; ++i)
-					if(str_comp(m_aMasterServers[i].m_aHostname, Info.m_aHostname) == 0)
+				for (int i = 0; i < MAX_MASTERSERVERS; ++i)
+					if (str_comp(m_aMasterServers[i].m_aHostname, Info.m_aHostname) == 0)
 					{
 						m_aMasterServers[i] = Info;
 						Added = true;
 						break;
 					}
 
-				if(!Added)
+				if (!Added)
 				{
-					for(int i = 0; i < MAX_MASTERSERVERS; ++i)
-						if(m_aMasterServers[i].m_Addr.type == NETTYPE_INVALID)
+					for (int i = 0; i < MAX_MASTERSERVERS; ++i)
+						if (m_aMasterServers[i].m_Addr.type == NETTYPE_INVALID)
 						{
 							m_aMasterServers[i] = Info;
 							Added = true;
@@ -172,7 +172,7 @@ public:
 						}
 				}
 
-				if(!Added)
+				if (!Added)
 					break;
 			}
 		}
@@ -183,18 +183,18 @@ public:
 
 	virtual int Save()
 	{
-		if(!m_pStorage)
+		if (!m_pStorage)
 			return -1;
 
 		// try to open file
 		IOHANDLE File = m_pStorage->OpenFile("masters.cfg", IOFLAG_WRITE, IStorage::TYPE_SAVE);
-		if(!File)
+		if (!File)
 			return -1;
 
-		for(int i = 0; i < MAX_MASTERSERVERS; i++)
+		for (int i = 0; i < MAX_MASTERSERVERS; i++)
 		{
 			char aAddrStr[NETADDR_MAXSTRSIZE];
-			if(m_aMasterServers[i].m_Addr.type != NETTYPE_INVALID)
+			if (m_aMasterServers[i].m_Addr.type != NETTYPE_INVALID)
 				net_addr_str(&m_aMasterServers[i].m_Addr, aAddrStr, sizeof(aAddrStr), true);
 			else
 				aAddrStr[0] = 0;

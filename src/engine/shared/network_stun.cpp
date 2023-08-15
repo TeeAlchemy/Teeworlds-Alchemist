@@ -4,7 +4,7 @@
 
 static int IndexFromNetType(int NetType)
 {
-	switch(NetType)
+	switch (NetType)
 	{
 	case NETTYPE_IPV6:
 		return 0;
@@ -16,7 +16,7 @@ static int IndexFromNetType(int NetType)
 
 static const char *IndexToSystem(int Index)
 {
-	switch(Index)
+	switch (Index)
 	{
 	case 0:
 		return "stun/6";
@@ -32,9 +32,8 @@ static int RetryWaitSeconds(int NumUnsuccessfulTries)
 	return (1 << clamp(NumUnsuccessfulTries, 0, 9));
 }
 
-CStun::CProtocol::CProtocol(int Index, NETSOCKET Socket) :
-	m_Index(Index),
-	m_Socket(Socket)
+CStun::CProtocol::CProtocol(int Index, NETSOCKET Socket) : m_Index(Index),
+														   m_Socket(Socket)
 {
 	mem_zero(&m_StunServer, sizeof(NETADDR));
 	// Initialize `m_Stun` with random data.
@@ -44,7 +43,7 @@ CStun::CProtocol::CProtocol(int Index, NETSOCKET Socket) :
 
 void CStun::CProtocol::FeedStunServer(NETADDR StunServer)
 {
-	if(m_HaveStunServer && net_addr_comp(&m_StunServer, &StunServer) == 0)
+	if (m_HaveStunServer && net_addr_comp(&m_StunServer, &StunServer) == 0)
 	{
 		return;
 	}
@@ -62,7 +61,7 @@ void CStun::CProtocol::Refresh()
 void CStun::CProtocol::Update()
 {
 	int64_t Now = time_get();
-	if(m_NextTry == -1 || Now < m_NextTry || !m_HaveStunServer)
+	if (m_NextTry == -1 || Now < m_NextTry || !m_HaveStunServer)
 	{
 		return;
 	}
@@ -70,7 +69,7 @@ void CStun::CProtocol::Update()
 	m_NumUnsuccessfulTries += 1;
 	unsigned char aBuf[32];
 	int Size = StunMessagePrepare(aBuf, sizeof(aBuf), &m_Stun);
-	if(net_udp_send(m_Socket, &m_StunServer, aBuf, Size) == -1)
+	if (net_udp_send(m_Socket, &m_StunServer, aBuf, Size) == -1)
 	{
 		dbg_msg(IndexToSystem(m_Index), "couldn't send stun request");
 		return;
@@ -79,18 +78,18 @@ void CStun::CProtocol::Update()
 
 bool CStun::CProtocol::OnPacket(NETADDR Addr, unsigned char *pData, int DataSize)
 {
-	if(m_NextTry < 0 || !m_HaveStunServer)
+	if (m_NextTry < 0 || !m_HaveStunServer)
 	{
 		return false;
 	}
 	bool Success;
 	NETADDR StunAddr;
-	if(StunMessageParse(pData, DataSize, &m_Stun, &Success, &StunAddr))
+	if (StunMessageParse(pData, DataSize, &m_Stun, &Success, &StunAddr))
 	{
 		return false;
 	}
 	m_LastResponse = time_get();
-	if(!Success)
+	if (!Success)
 	{
 		m_HaveAddr = false;
 		dbg_msg(IndexToSystem(m_Index), "got error response");
@@ -109,22 +108,22 @@ bool CStun::CProtocol::OnPacket(NETADDR Addr, unsigned char *pData, int DataSize
 
 CONNECTIVITY CStun::CProtocol::GetConnectivity(NETADDR *pGlobalAddr)
 {
-	if(!m_HaveStunServer)
+	if (!m_HaveStunServer)
 	{
 		return CONNECTIVITY::UNKNOWN;
 	}
 	int64_t Now = time_get();
 	int64_t Freq = time_freq();
 	bool HaveTriedALittle = m_NumUnsuccessfulTries >= 5 && (m_LastResponse == -1 || Now - m_LastResponse >= 30 * Freq);
-	if(m_LastResponse == -1 && !HaveTriedALittle)
+	if (m_LastResponse == -1 && !HaveTriedALittle)
 	{
 		return CONNECTIVITY::CHECKING;
 	}
-	else if(HaveTriedALittle)
+	else if (HaveTriedALittle)
 	{
 		return CONNECTIVITY::UNREACHABLE;
 	}
-	else if(!m_HaveAddr)
+	else if (!m_HaveAddr)
 	{
 		return CONNECTIVITY::REACHABLE;
 	}
@@ -135,15 +134,14 @@ CONNECTIVITY CStun::CProtocol::GetConnectivity(NETADDR *pGlobalAddr)
 	}
 }
 
-CStun::CStun(NETSOCKET Socket) :
-	m_aProtocols{CProtocol(0, Socket), CProtocol(1, Socket)}
+CStun::CStun(NETSOCKET Socket) : m_aProtocols{CProtocol(0, Socket), CProtocol(1, Socket)}
 {
 }
 
 void CStun::FeedStunServer(NETADDR StunServer)
 {
 	int Index = IndexFromNetType(StunServer.type);
-	if(Index < 0)
+	if (Index < 0)
 	{
 		return;
 	}
@@ -152,7 +150,7 @@ void CStun::FeedStunServer(NETADDR StunServer)
 
 void CStun::Refresh()
 {
-	for(auto &Protocol : m_aProtocols)
+	for (auto &Protocol : m_aProtocols)
 	{
 		Protocol.Refresh();
 	}
@@ -160,7 +158,7 @@ void CStun::Refresh()
 
 void CStun::Update()
 {
-	for(auto &Protocol : m_aProtocols)
+	for (auto &Protocol : m_aProtocols)
 	{
 		Protocol.Update();
 	}
@@ -169,7 +167,7 @@ void CStun::Update()
 bool CStun::OnPacket(NETADDR Addr, unsigned char *pData, int DataSize)
 {
 	int Index = IndexFromNetType(Addr.type);
-	if(Index < 0)
+	if (Index < 0)
 	{
 		return false;
 	}

@@ -32,161 +32,156 @@
 #define _JSON_H
 
 #ifndef json_char
-   #define json_char char
+#define json_char char
 #endif
 
 #ifdef __cplusplus
 
-   #include <string.h>
+#include <string.h>
 
-   extern "C"
-   {
+extern "C"
+{
 
 #endif
 
-typedef struct
-{
-   unsigned long max_memory;
-   int settings;
+   typedef struct
+   {
+      unsigned long max_memory;
+      int settings;
 
-} json_settings;
+   } json_settings;
 
 #define json_relaxed_commas 1
 
-typedef enum
-{
-   json_none,
-   json_object,
-   json_array,
-   json_integer,
-   json_double,
-   json_string,
-   json_boolean,
-   json_null
-
-} json_type;
-
-extern const struct _json_value json_value_none;
-
-typedef struct _json_value
-{
-   struct _json_value * parent;
-
-   json_type type;
-
-   union
+   typedef enum
    {
-      int boolean;
-      long integer;
-      double dbl;
+      json_none,
+      json_object,
+      json_array,
+      json_integer,
+      json_double,
+      json_string,
+      json_boolean,
+      json_null
 
-      struct
+   } json_type;
+
+   extern const struct _json_value json_value_none;
+
+   typedef struct _json_value
+   {
+      struct _json_value *parent;
+
+      json_type type;
+
+      union
       {
-         unsigned int length;
-         json_char * ptr; /* null terminated */
-
-      } string;
-
-      struct
-      {
-         unsigned int length;
+         int boolean;
+         long integer;
+         double dbl;
 
          struct
          {
-            json_char * name;
-            struct _json_value * value;
+            unsigned int length;
+            json_char *ptr; /* null terminated */
 
-         } * values;
+         } string;
 
-      } object;
-
-      struct
-      {
-         unsigned int length;
-         struct _json_value ** values;
-
-      } array;
-
-   } u;
-
-   union
-   {
-      struct _json_value * next_alloc;
-      void * object_mem;
-
-   } _reserved;
-
-
-   /* Some C++ operator sugar */
-
-   #ifdef __cplusplus
-
-      public:
-
-         inline _json_value ()
-         {  memset (this, 0, sizeof (_json_value));
-         }
-
-         inline const struct _json_value &operator [] (int index) const
+         struct
          {
-            if (type != json_array || index < 0
-                     || ((unsigned int) index) >= u.array.length)
+            unsigned int length;
+
+            struct
             {
-               return json_value_none;
-            }
+               json_char *name;
+               struct _json_value *value;
 
-            return *u.array.values [index];
-         }
+            } *values;
 
-         inline const struct _json_value &operator [] (const char * index) const
-         { 
-            if (type != json_object)
-               return json_value_none;
+         } object;
 
-            for (unsigned int i = 0; i < u.object.length; ++ i)
-               if (!strcmp (u.object.values [i].name, index))
-                  return *u.object.values [i].value;
+         struct
+         {
+            unsigned int length;
+            struct _json_value **values;
 
+         } array;
+
+      } u;
+
+      union
+      {
+         struct _json_value *next_alloc;
+         void *object_mem;
+
+      } _reserved;
+
+      /* Some C++ operator sugar */
+
+#ifdef __cplusplus
+
+   public:
+      inline _json_value()
+      {
+         memset(this, 0, sizeof(_json_value));
+      }
+
+      inline const struct _json_value &operator[](int index) const
+      {
+         if (type != json_array || index < 0 || ((unsigned int)index) >= u.array.length)
+         {
             return json_value_none;
          }
 
-         inline operator const char * () const
-         {  
-            switch (type)
-            {
-               case json_string:
-                  return u.string.ptr;
+         return *u.array.values[index];
+      }
 
-               default:
-                  return "";
-            };
-         }
+      inline const struct _json_value &operator[](const char *index) const
+      {
+         if (type != json_object)
+            return json_value_none;
 
-         inline operator long () const
-         {  return u.integer;
-         }
+         for (unsigned int i = 0; i < u.object.length; ++i)
+            if (!strcmp(u.object.values[i].name, index))
+               return *u.object.values[i].value;
 
-         inline operator bool () const
-         {  return u.boolean != 0;
-         }
+         return json_value_none;
+      }
 
-   #endif
+      inline operator const char *() const
+      {
+         switch (type)
+         {
+         case json_string:
+            return u.string.ptr;
 
-} json_value;
+         default:
+            return "";
+         };
+      }
 
-json_value * json_parse
-   (const json_char * json);
+      inline operator long() const
+      {
+         return u.integer;
+      }
 
-json_value * json_parse_ex
-   (json_settings * settings, const json_char * json, char * error);
+      inline operator bool() const
+      {
+         return u.boolean != 0;
+      }
 
-void json_value_free (json_value *);
+#endif
 
+   } json_value;
+
+   json_value *json_parse(const json_char *json);
+
+   json_value *json_parse_ex(json_settings *settings, const json_char *json, char *error);
+
+   void json_value_free(json_value *);
 
 #ifdef __cplusplus
-   } /* extern "C" */
+} /* extern "C" */
 #endif
 
 #endif
-
-

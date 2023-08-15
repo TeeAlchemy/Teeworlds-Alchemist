@@ -4,13 +4,11 @@
 
 #include <base/lock_scope.h>
 
-IJob::IJob() :
-	m_Status(STATE_PENDING)
+IJob::IJob() : m_Status(STATE_PENDING)
 {
 }
 
-IJob::IJob(const IJob &Other) :
-	m_Status(STATE_PENDING)
+IJob::IJob(const IJob &Other) : m_Status(STATE_PENDING)
 {
 }
 
@@ -40,7 +38,7 @@ CJobPool::CJobPool()
 
 CJobPool::~CJobPool()
 {
-	if(!m_Shutdown)
+	if (!m_Shutdown)
 	{
 		Destroy();
 	}
@@ -50,7 +48,7 @@ void CJobPool::WorkerThread(void *pUser)
 {
 	CJobPool *pPool = (CJobPool *)pUser;
 
-	while(!pPool->m_Shutdown)
+	while (!pPool->m_Shutdown)
 	{
 		std::shared_ptr<IJob> pJob = 0;
 
@@ -58,17 +56,17 @@ void CJobPool::WorkerThread(void *pUser)
 		semaphore_wait(&pPool->m_Semaphore);
 		{
 			CLockScope ls(pPool->m_Lock);
-			if(pPool->m_pFirstJob)
+			if (pPool->m_pFirstJob)
 			{
 				pJob = pPool->m_pFirstJob;
 				pPool->m_pFirstJob = pPool->m_pFirstJob->m_pNext;
-				if(!pPool->m_pFirstJob)
+				if (!pPool->m_pFirstJob)
 					pPool->m_pLastJob = 0;
 			}
 		}
 
 		// do the job if we have one
-		if(pJob)
+		if (pJob)
 		{
 			RunBlocking(pJob.get());
 		}
@@ -79,18 +77,18 @@ void CJobPool::Init(int NumThreads)
 {
 	// start threads
 	m_NumThreads = NumThreads > MAX_THREADS ? MAX_THREADS : NumThreads;
-	for(int i = 0; i < NumThreads; i++)
+	for (int i = 0; i < NumThreads; i++)
 		m_apThreads[i] = thread_init(WorkerThread, this);
 }
 
 void CJobPool::Destroy()
 {
 	m_Shutdown = true;
-	for(int i = 0; i < m_NumThreads; i++)
+	for (int i = 0; i < m_NumThreads; i++)
 		semaphore_signal(&m_Semaphore);
-	for(int i = 0; i < m_NumThreads; i++)
+	for (int i = 0; i < m_NumThreads; i++)
 	{
-		if(m_apThreads[i])
+		if (m_apThreads[i])
 			thread_wait(m_apThreads[i]);
 	}
 	lock_destroy(m_Lock);
@@ -102,10 +100,10 @@ void CJobPool::Add(std::shared_ptr<IJob> pJob)
 	{
 		CLockScope ls(m_Lock);
 		// add job to queue
-		if(m_pLastJob)
+		if (m_pLastJob)
 			m_pLastJob->m_pNext = pJob;
 		m_pLastJob = std::move(pJob);
-		if(!m_pFirstJob)
+		if (!m_pFirstJob)
 			m_pFirstJob = m_pLastJob;
 	}
 

@@ -35,7 +35,7 @@ protected:
 	bool NetMatch(const CNetRange *pRange, const NETADDR *pAddr, int Start, int Length) const
 	{
 		return pRange->m_LB.type == pAddr->type && (Start == 0 || mem_comp(&pRange->m_LB.ip[0], &pAddr->ip[0], Start) == 0) &&
-		       mem_comp(&pRange->m_LB.ip[Start], &pAddr->ip[Start], Length - Start) <= 0 && mem_comp(&pRange->m_UB.ip[Start], &pAddr->ip[Start], Length - Start) >= 0;
+			   mem_comp(&pRange->m_LB.ip[Start], &pAddr->ip[Start], Length - Start) <= 0 && mem_comp(&pRange->m_UB.ip[Start], &pAddr->ip[Start], Length - Start) >= 0;
 	}
 
 	bool NetMatch(const CNetRange *pRange, const NETADDR *pAddr) const
@@ -87,7 +87,7 @@ protected:
 		char m_aReason[REASON_LENGTH];
 	};
 
-	template<class T>
+	template <class T>
 	struct CBan
 	{
 		T m_Data;
@@ -103,7 +103,7 @@ protected:
 		CBan *m_pPrev;
 	};
 
-	template<class T, int HashCount>
+	template <class T, int HashCount>
 	class CBanPool
 	{
 	public:
@@ -121,9 +121,9 @@ protected:
 		CBan<CDataType> *First(const CNetHash *pNetHash) const { return m_aapHashList[pNetHash->m_HashIndex][pNetHash->m_Hash]; }
 		CBan<CDataType> *Find(const CDataType *pData, const CNetHash *pNetHash) const
 		{
-			for(CBan<CDataType> *pBan = m_aapHashList[pNetHash->m_HashIndex][pNetHash->m_Hash]; pBan; pBan = pBan->m_pHashNext)
+			for (CBan<CDataType> *pBan = m_aapHashList[pNetHash->m_HashIndex][pNetHash->m_Hash]; pBan; pBan = pBan->m_pHashNext)
 			{
-				if(NetComp(&pBan->m_Data, pData) == 0)
+				if (NetComp(&pBan->m_Data, pData) == 0)
 					return pBan;
 			}
 
@@ -149,11 +149,11 @@ protected:
 	typedef CBan<NETADDR> CBanAddr;
 	typedef CBan<CNetRange> CBanRange;
 
-	template<class T>
+	template <class T>
 	void MakeBanInfo(const CBan<T> *pBan, char *pBuf, unsigned BuffSize, int Type) const;
-	template<class T>
+	template <class T>
 	int Ban(T *pBanPool, const typename T::CDataType *pData, int Seconds, const char *pReason);
-	template<class T>
+	template <class T>
 	int Unban(T *pBanPool, const typename T::CDataType *pData);
 
 	class IConsole *m_pConsole;
@@ -195,24 +195,24 @@ public:
 	static void ConBansSave(class IConsole::IResult *pResult, void *pUser);
 };
 
-template<class T>
+template <class T>
 void CNetBan::MakeBanInfo(const CBan<T> *pBan, char *pBuf, unsigned BuffSize, int Type) const
 {
-	if(pBan == 0 || pBuf == 0)
+	if (pBan == 0 || pBuf == 0)
 	{
-		if(BuffSize > 0)
+		if (BuffSize > 0)
 			pBuf[0] = 0;
 		return;
 	}
 
 	// build type based part
 	char aBuf[256];
-	if(Type == MSGTYPE_PLAYER)
+	if (Type == MSGTYPE_PLAYER)
 		str_copy(aBuf, "You have been banned", sizeof(aBuf));
 	else
 	{
 		char aTemp[256];
-		switch(Type)
+		switch (Type)
 		{
 		case MSGTYPE_LIST:
 			str_format(aBuf, sizeof(aBuf), "%s banned", NetToString(&pBan->m_Data, aTemp, sizeof(aTemp)));
@@ -229,10 +229,10 @@ void CNetBan::MakeBanInfo(const CBan<T> *pBan, char *pBuf, unsigned BuffSize, in
 	}
 
 	// add info part
-	if(pBan->m_Info.m_Expires != CBanInfo::EXPIRES_NEVER)
+	if (pBan->m_Info.m_Expires != CBanInfo::EXPIRES_NEVER)
 	{
 		int Mins = ((pBan->m_Info.m_Expires - time_timestamp()) + 59) / 60;
-		if(Mins <= 1)
+		if (Mins <= 1)
 			str_format(pBuf, BuffSize, "%s for 1 minute (%s)", aBuf, pBan->m_Info.m_aReason);
 		else
 			str_format(pBuf, BuffSize, "%s for %d minutes (%s)", aBuf, Mins, pBan->m_Info.m_aReason);

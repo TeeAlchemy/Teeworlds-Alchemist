@@ -6,8 +6,7 @@
 class SCOPED_CAPABILITY CLockScope
 {
 public:
-	CLockScope(LOCK Lock) ACQUIRE(Lock, m_Lock) :
-		m_Lock(Lock)
+	CLockScope(LOCK Lock) ACQUIRE(Lock, m_Lock) : m_Lock(Lock)
 	{
 		lock_wait(m_Lock);
 	}

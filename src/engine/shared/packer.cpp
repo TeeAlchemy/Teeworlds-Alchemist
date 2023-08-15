@@ -14,11 +14,11 @@ void CPacker::Reset()
 
 void CPacker::AddInt(int i)
 {
-	if(m_Error)
+	if (m_Error)
 		return;
 
 	unsigned char *pNext = CVariableInt::Pack(m_pCurrent, i, m_pEnd - m_pCurrent);
-	if(!pNext)
+	if (!pNext)
 	{
 		m_Error = 1;
 		return;
@@ -28,28 +28,28 @@ void CPacker::AddInt(int i)
 
 void CPacker::AddString(const char *pStr, int Limit)
 {
-	if(m_Error)
+	if (m_Error)
 		return;
 
-	if(Limit <= 0)
+	if (Limit <= 0)
 	{
 		Limit = PACKER_BUFFER_SIZE;
 	}
-	while(*pStr && Limit != 0)
+	while (*pStr && Limit != 0)
 	{
 		int Codepoint = str_utf8_decode(&pStr);
-		if(Codepoint == -1)
+		if (Codepoint == -1)
 		{
 			Codepoint = 0xfffd; // Unicode replacement character.
 		}
 		char aGarbage[4];
 		int Length = str_utf8_encode(aGarbage, Codepoint);
-		if(Limit < Length)
+		if (Limit < Length)
 		{
 			break;
 		}
 		// Ensure space for the null termination.
-		if(m_pEnd - m_pCurrent < Length + 1)
+		if (m_pEnd - m_pCurrent < Length + 1)
 		{
 			m_Error = 1;
 			break;
@@ -63,17 +63,17 @@ void CPacker::AddString(const char *pStr, int Limit)
 
 void CPacker::AddRaw(const void *pData, int Size)
 {
-	if(m_Error)
+	if (m_Error)
 		return;
 
-	if(m_pCurrent + Size >= m_pEnd)
+	if (m_pCurrent + Size >= m_pEnd)
 	{
 		m_Error = 1;
 		return;
 	}
 
 	const unsigned char *pSrc = (const unsigned char *)pData;
-	while(Size)
+	while (Size)
 	{
 		*m_pCurrent++ = *pSrc++;
 		Size--;
@@ -90,10 +90,10 @@ void CUnpacker::Reset(const void *pData, int Size)
 
 int CUnpacker::GetInt()
 {
-	if(m_Error)
+	if (m_Error)
 		return 0;
 
-	if(m_pCurrent >= m_pEnd)
+	if (m_pCurrent >= m_pEnd)
 	{
 		m_Error = 1;
 		return 0;
@@ -101,7 +101,7 @@ int CUnpacker::GetInt()
 
 	int i;
 	const unsigned char *pNext = CVariableInt::Unpack(m_pCurrent, &i, m_pEnd - m_pCurrent);
-	if(!pNext)
+	if (!pNext)
 	{
 		m_Error = 1;
 		return 0;
@@ -112,11 +112,11 @@ int CUnpacker::GetInt()
 
 int CUnpacker::GetIntOrDefault(int Default)
 {
-	if(m_Error)
+	if (m_Error)
 	{
 		return 0;
 	}
-	if(m_pCurrent == m_pEnd)
+	if (m_pCurrent == m_pEnd)
 	{
 		return Default;
 	}
@@ -125,10 +125,10 @@ int CUnpacker::GetIntOrDefault(int Default)
 
 int CUnpacker::GetUncompressedInt()
 {
-	if(m_Error)
+	if (m_Error)
 		return 0;
 
-	if(m_pCurrent + 4 > m_pEnd)
+	if (m_pCurrent + 4 > m_pEnd)
 	{
 		m_Error = 1;
 		return 0;
@@ -141,11 +141,11 @@ int CUnpacker::GetUncompressedInt()
 
 int CUnpacker::GetUncompressedIntOrDefault(int Default)
 {
-	if(m_Error)
+	if (m_Error)
 	{
 		return 0;
 	}
-	if(m_pCurrent == m_pEnd)
+	if (m_pCurrent == m_pEnd)
 	{
 		return Default;
 	}
@@ -154,20 +154,20 @@ int CUnpacker::GetUncompressedIntOrDefault(int Default)
 
 const char *CUnpacker::GetString(int SanitizeType)
 {
-	if(m_Error)
+	if (m_Error)
 		return "";
 
-	if(m_pCurrent >= m_pEnd)
+	if (m_pCurrent >= m_pEnd)
 	{
 		m_Error = 1;
 		return "";
 	}
 
 	char *pPtr = (char *)m_pCurrent;
-	while(*m_pCurrent) // skip the string
+	while (*m_pCurrent) // skip the string
 	{
 		m_pCurrent++;
-		if(m_pCurrent == m_pEnd)
+		if (m_pCurrent == m_pEnd)
 		{
 			m_Error = 1;
 			return "";
@@ -176,9 +176,9 @@ const char *CUnpacker::GetString(int SanitizeType)
 	m_pCurrent++;
 
 	// sanitize all strings
-	if(SanitizeType & SANITIZE)
+	if (SanitizeType & SANITIZE)
 		str_sanitize(pPtr);
-	else if(SanitizeType & SANITIZE_CC)
+	else if (SanitizeType & SANITIZE_CC)
 		str_sanitize_cc(pPtr);
 	return SanitizeType & SKIP_START_WHITESPACES ? str_utf8_skip_whitespaces(pPtr) : pPtr;
 }
@@ -186,11 +186,11 @@ const char *CUnpacker::GetString(int SanitizeType)
 const unsigned char *CUnpacker::GetRaw(int Size)
 {
 	const unsigned char *pPtr = m_pCurrent;
-	if(m_Error)
+	if (m_Error)
 		return 0;
 
 	// check for nasty sizes
-	if(Size < 0 || m_pCurrent + Size > m_pEnd)
+	if (Size < 0 || m_pCurrent + Size > m_pEnd)
 	{
 		m_Error = 1;
 		return 0;

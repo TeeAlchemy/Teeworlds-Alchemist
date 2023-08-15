@@ -35,7 +35,7 @@ public:
 	{
 		CEngine *pEngine = static_cast<CEngine *>(pUserData);
 
-		if(pEngine->m_Logging)
+		if (pEngine->m_Logging)
 		{
 			CNetBase::CloseLog();
 			pEngine->m_Logging = false;
@@ -48,7 +48,7 @@ public:
 			str_format(aFilenameSent, sizeof(aFilenameSent), "dumps/network_sent_%s.txt", aBuf);
 			str_format(aFilenameRecv, sizeof(aFilenameRecv), "dumps/network_recv_%s.txt", aBuf);
 			CNetBase::OpenLog(pEngine->m_pStorage->OpenFile(aFilenameSent, IOFLAG_WRITE, IStorage::TYPE_SAVE),
-				pEngine->m_pStorage->OpenFile(aFilenameRecv, IOFLAG_WRITE, IStorage::TYPE_SAVE));
+							  pEngine->m_pStorage->OpenFile(aFilenameRecv, IOFLAG_WRITE, IStorage::TYPE_SAVE));
 			pEngine->m_Logging = true;
 		}
 	}
@@ -59,7 +59,7 @@ public:
 		dbg_logger_debugger();
 
 		str_copy(m_aAppName, pAppname, sizeof(m_aAppName));
-		if(!Test)
+		if (!Test)
 		{
 			dbg_msg("engine", "running on %s-%s-%s", CONF_FAMILY_STRING, CONF_PLATFORM_STRING, CONF_ARCH_STRING);
 #ifdef CONF_ARCH_ENDIAN_LITTLE
@@ -90,7 +90,7 @@ public:
 		m_pConsole = Kernel()->RequestInterface<IConsole>();
 		m_pStorage = Kernel()->RequestInterface<IStorage>();
 
-		if(!m_pConsole || !m_pStorage)
+		if (!m_pConsole || !m_pStorage)
 			return;
 
 		char aFullPath[IO_MAX_PATH_LENGTH];
@@ -100,7 +100,7 @@ public:
 
 	void AddJob(std::shared_ptr<IJob> pJob) override
 	{
-		if(g_Config.m_Debug)
+		if (g_Config.m_Debug)
 			dbg_msg("engine", "job added");
 		m_JobPool.Add(std::move(pJob));
 	}

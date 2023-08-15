@@ -14,10 +14,9 @@
 class CMap : public IEngineMap
 {
 	CDataFileReader m_DataFile;
+
 public:
 	CMap() {}
-
-
 
 	virtual void *GetData(int Index) { return m_DataFile.GetData(Index); }
 	virtual void *GetDataSwapped(int Index) { return m_DataFile.GetDataSwapped(Index); }
@@ -48,9 +47,8 @@ public:
 	{
 		return m_DataFile.Sha256();
 	}
-
 };
 
-//extern IEngineMap *CreateEngineMap() { return new CMap; }
+// extern IEngineMap *CreateEngineMap() { return new CMap; }
 
 #endif

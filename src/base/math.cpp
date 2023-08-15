@@ -20,7 +20,7 @@ int random_int(int Min, int Max)
 	return Distribution(RandomEngine);
 }
 
-int random_distribution(double* pProb, double* pProb2)
+int random_distribution(double *pProb, double *pProb2)
 {
 	std::discrete_distribution<int> Distribution(pProb, pProb2);
 	return Distribution(RandomEngine);

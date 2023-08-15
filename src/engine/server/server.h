@@ -8,17 +8,15 @@
 #include <engine/server.h>
 #include <engine/shared/uuid_manager.h>
 
-
 #include <list>
 #include <memory>
 #include <vector>
-
 
 class CSnapIDPool
 {
 	enum
 	{
-		MAX_IDS = 16*1024,
+		MAX_IDS = 16 * 1024,
 	};
 
 	class CID
@@ -38,7 +36,6 @@ class CSnapIDPool
 	int m_InUsage;
 
 public:
-
 	CSnapIDPool();
 
 	void Reset();
@@ -48,17 +45,17 @@ public:
 	void FreeID(int ID);
 };
 
-
 class CServerBan : public CNetBan
 {
 	class CServer *m_pServer;
 
-	template<class T> int BanExt(T *pBanPool, const typename T::CDataType *pData, int Seconds, const char *pReason);
+	template <class T>
+	int BanExt(T *pBanPool, const typename T::CDataType *pData, int Seconds, const char *pReason);
 
 public:
 	class CServer *Server() const { return m_pServer; }
 
-	void InitServerBan(class IConsole *pConsole, class IStorage *pStorage, class CServer* pServer);
+	void InitServerBan(class IConsole *pConsole, class IStorage *pStorage, class CServer *pServer);
 
 	int BanAddr(const NETADDR *pAddr, int Seconds, const char *pReason) override;
 	int BanRange(const CNetRange *pRange, int Seconds, const char *pReason) override;
@@ -66,13 +63,13 @@ public:
 	static void ConBanExt(class IConsole::IResult *pResult, void *pUser);
 };
 
-
 class CServer : public IServer
 {
 	class IGameServer *m_pGameServer;
 	class IConsole *m_pConsole;
 	class IStorage *m_pStorage;
 	class IRegister *m_pRegister;
+
 public:
 	class IGameServer *GameServer() { return m_pGameServer; }
 	class IConsole *Console() { return m_pConsole; }
@@ -80,17 +77,16 @@ public:
 
 	enum
 	{
-		AUTHED_NO=0,
+		AUTHED_NO = 0,
 		AUTHED_MOD,
 		AUTHED_ADMIN,
 
-		MAX_RCONCMD_SEND=16,
+		MAX_RCONCMD_SEND = 16,
 	};
 
 	class CClient
 	{
 	public:
-
 		enum
 		{
 			STATE_EMPTY = 0,
@@ -99,7 +95,7 @@ public:
 			STATE_READY,
 			STATE_INGAME,
 
-			SNAPRATE_INIT=0,
+			SNAPRATE_INIT = 0,
 			SNAPRATE_FULL,
 			SNAPRATE_RECOVER
 		};
@@ -119,7 +115,6 @@ public:
 		int m_LastAckedSnapshot;
 		int m_LastInputTick;
 		CSnapshotStorage m_Snapshots;
-
 
 		CInput m_LatestInput;
 		CInput m_aInputs[200]; // TODO: handle input better
@@ -142,7 +137,7 @@ public:
 		int m_NextMapID;
 		bool m_ChangeMap;
 		int m_NextMapChunk;
-	
+
 		char m_aLanguage[16];
 	};
 
@@ -155,10 +150,10 @@ public:
 	CEcon m_Econ;
 	CServerBan m_ServerBan;
 
-	std::vector<IEngineMap*> m_vpMap;
+	std::vector<IEngineMap *> m_vpMap;
 
 	int64 m_GameStartTime;
-	//int m_CurrentGameTick;
+	// int m_CurrentGameTick;
 	int m_RunServer;
 	int m_MapReload;
 	bool m_ReloadedWhenEmpty;
@@ -167,11 +162,11 @@ public:
 	int m_PrintCBIndex;
 
 	int64 m_Lastheartbeat;
-	//static NETADDR4 master_server;
+	// static NETADDR4 master_server;
 
 	enum
 	{
-		MAP_DEFAULT_ID=0,
+		MAP_DEFAULT_ID = 0,
 	};
 
 	struct CMapData
@@ -199,20 +194,20 @@ public:
 	void SetClientClan(int ClientID, char const *pClan) override;
 	void SetClientCountry(int ClientID, int Country) override;
 	void SetClientScore(int ClientID, int Score) override;
-	//Multimap
+	// Multimap
 	virtual void SetClientMap(int ClientID, int MapID);
-	virtual void SetClientMap(int ClientID, char* MapName);
+	virtual void SetClientMap(int ClientID, char *MapName);
 
-	virtual IEngineMap* GetMap(int MapID) const override {return m_vpMap[MapID];}
+	virtual IEngineMap *GetMap(int MapID) const override { return m_vpMap[MapID]; }
 
 	void Kick(int ClientID, const char *pReason);
 
 	void DemoRecorder_HandleAutoStart();
 	bool DemoRecorder_IsRecording();
 
-	//int Tick()
+	// int Tick()
 	int64 TickStartTime(int Tick);
-	//int TickSpeed()
+	// int TickSpeed()
 
 	int Init();
 
@@ -252,7 +247,7 @@ public:
 
 	void ProcessClientPacket(CNetChunk *pPacket);
 
-class CCache
+	class CCache
 	{
 	public:
 		class CCacheChunk
@@ -304,9 +299,8 @@ class CCache
 	static void ConchainMaxclientsperipUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainModCommandUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainConsoleOutputLevelUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
-	
-	void RegisterCommands();
 
+	void RegisterCommands();
 
 	int SnapNewID() override;
 	void SnapFreeID(int ID) override;
@@ -314,8 +308,8 @@ class CCache
 	void SnapSetStaticsize(int ItemType, int Size);
 
 public:
-	virtual const char* GetClientLanguage(int ClientID);
-	virtual void SetClientLanguage(int ClientID, const char* pLanguage);
+	virtual const char *GetClientLanguage(int ClientID);
+	virtual void SetClientLanguage(int ClientID, const char *pLanguage);
 };
 
 #endif

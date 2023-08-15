@@ -6,7 +6,7 @@
 #include "message.h"
 #include <string>
 #include <vector>
-	
+
 #include <engine/map.h>
 #include <game/generated/protocol.h>
 #include <engine/shared/protocol.h>
@@ -19,14 +19,15 @@ protected:
 	int m_TickSpeed;
 
 public:
-	class CLocalization* m_pLocalization;
-	
+	class CLocalization *m_pLocalization;
+
 	enum
 	{
-		AUTHED_NO=0,
+		AUTHED_NO = 0,
 		AUTHED_MOD,
 		AUTHED_ADMIN,
 	};
+
 public:
 	/*
 		Structure: CClientInfo
@@ -39,7 +40,7 @@ public:
 		bool m_CustClt;
 	};
 
-	inline class CLocalization* Localization() { return m_pLocalization; }
+	inline class CLocalization *Localization() { return m_pLocalization; }
 
 	int Tick() const { return m_CurrentGameTick; }
 	int TickSpeed() const { return m_TickSpeed; }
@@ -55,15 +56,15 @@ public:
 
 	virtual std::string GetClientIP(int ClientID) const = 0;
 
-	virtual IEngineMap* GetMap(int MapID) const = 0;
+	virtual IEngineMap *GetMap(int MapID) const = 0;
 
 	virtual int SendMsg(CMsgPacker *pMsg, int Flags, int ClientID) = 0;
 
-	template<class T>
+	template <class T>
 	int SendPackMsg(T *pMsg, int Flags, int ClientID)
 	{
 		CMsgPacker Packer(pMsg->MsgID());
-		if(pMsg->Pack(&Packer))
+		if (pMsg->Pack(&Packer))
 			return -1;
 		return SendMsg(&Packer, Flags, ClientID);
 	}
@@ -73,9 +74,9 @@ public:
 	virtual void SetClientCountry(int ClientID, int Country) = 0;
 	virtual void SetClientScore(int ClientID, int Score) = 0;
 
-	//Multimap
+	// Multimap
 	virtual void SetClientMap(int ClientID, int MapID) = 0;
-	virtual void SetClientMap(int ClientID, char* MapName) = 0;
+	virtual void SetClientMap(int ClientID, char *MapName) = 0;
 
 	virtual int SnapNewID() = 0;
 	virtual void SnapFreeID(int ID) = 0;
@@ -85,8 +86,8 @@ public:
 
 	enum
 	{
-		RCON_CID_SERV=-1,
-		RCON_CID_VOTE=-2,
+		RCON_CID_SERV = -1,
+		RCON_CID_VOTE = -2,
 	};
 	virtual void SetRconCID(int ClientID) = 0;
 	virtual bool IsAuthed(int ClientID) = 0;
@@ -95,8 +96,8 @@ public:
 	virtual void DemoRecorder_HandleAutoStart() = 0;
 	virtual bool DemoRecorder_IsRecording() = 0;
 
-	virtual const char* GetClientLanguage(int ClientID) = 0;
-	virtual void SetClientLanguage(int ClientID, const char* pLanguage) = 0;
+	virtual const char *GetClientLanguage(int ClientID) = 0;
+	virtual void SetClientLanguage(int ClientID, const char *pLanguage) = 0;
 
 	virtual void ExpireServerInfo() = 0;
 };

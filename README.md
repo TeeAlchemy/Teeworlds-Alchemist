@@ -25,15 +25,14 @@ Author: AssassinTee, MikiGamer, Kurosio
 
 Features:
 - Teeworlds with multiple maps at once. (AssassinTee, MikiGamer)
-- Load maps by json file. (Kurosio)
+- Load maps from json file. (Kurosio)
 
 tw06mod-localization branch
 ---------------------------
 Author: Necropotame, FlowerFell-Sans
 
 Features:
-- Localization System (In InfClass) (Necropotame)
-- Chat command for change languages (FlowerFell-Sans)
+- Localization System (Necropotame In InfClass)
 
 
 tw06server branch

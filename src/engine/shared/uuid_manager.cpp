@@ -7,8 +7,8 @@
 #include <cstdio>
 
 static const CUuid TEEWORLDS_NAMESPACE = {{// "e05ddaaa-c4e6-4cfb-b642-5d48e80c0029"
-	0xe0, 0x5d, 0xda, 0xaa, 0xc4, 0xe6, 0x4c, 0xfb,
-	0xb6, 0x42, 0x5d, 0x48, 0xe8, 0x0c, 0x00, 0x29}};
+										   0xe0, 0x5d, 0xda, 0xaa, 0xc4, 0xe6, 0x4c, 0xfb,
+										   0xb6, 0x42, 0x5d, 0x48, 0xe8, 0x0c, 0x00, 0x29}};
 
 CUuid RandomUuid()
 {
@@ -33,7 +33,7 @@ CUuid CalculateUuid(const char *pName)
 	MD5_DIGEST Digest = md5_finish(&Md5);
 
 	CUuid Result;
-	for(unsigned i = 0; i < sizeof(Result.m_aData); i++)
+	for (unsigned i = 0; i < sizeof(Result.m_aData); i++)
 	{
 		Result.m_aData[i] = Digest.data[i];
 	}
@@ -49,26 +49,26 @@ void FormatUuid(CUuid Uuid, char *pBuffer, unsigned BufferLength)
 {
 	unsigned char *p = Uuid.m_aData;
 	str_format(pBuffer, BufferLength,
-		"%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-		p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
-		p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
+			   "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+			   p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7],
+			   p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15]);
 }
 
 int ParseUuid(CUuid *pUuid, const char *pBuffer)
 {
-	if(str_length(pBuffer) + 1 != UUID_MAXSTRSIZE)
+	if (str_length(pBuffer) + 1 != UUID_MAXSTRSIZE)
 	{
 		return 2;
 	}
 	char aCopy[UUID_MAXSTRSIZE];
 	str_copy(aCopy, pBuffer, sizeof(aCopy));
 	// 01234567-9012-4567-9012-456789012345
-	if(aCopy[8] != '-' || aCopy[13] != '-' || aCopy[18] != '-' || aCopy[23] != '-')
+	if (aCopy[8] != '-' || aCopy[13] != '-' || aCopy[18] != '-' || aCopy[23] != '-')
 	{
 		return 1;
 	}
 	aCopy[8] = aCopy[13] = aCopy[18] = aCopy[23] = 0;
-	if(static_cast<bool>(str_hex_decode(pUuid->m_aData + 0, 4, aCopy + 0)) ||
+	if (static_cast<bool>(str_hex_decode(pUuid->m_aData + 0, 4, aCopy + 0)) ||
 		str_hex_decode(pUuid->m_aData + 4, 2, aCopy + 9) ||
 		str_hex_decode(pUuid->m_aData + 6, 2, aCopy + 14) ||
 		str_hex_decode(pUuid->m_aData + 8, 2, aCopy + 19) ||
@@ -131,7 +131,7 @@ int CUuidManager::LookupUuid(CUuid Uuid) const
 	Needle.m_Uuid = Uuid;
 	Needle.m_ID = 0;
 	auto Range = std::equal_range(m_vNamesSorted.begin(), m_vNamesSorted.end(), Needle);
-	if(std::distance(Range.first, Range.second) == 1)
+	if (std::distance(Range.first, Range.second) == 1)
 	{
 		return GetID(Range.first->m_ID);
 	}
@@ -152,7 +152,7 @@ int CUuidManager::UnpackUuid(CUnpacker *pUnpacker) const
 int CUuidManager::UnpackUuid(CUnpacker *pUnpacker, CUuid *pOut) const
 {
 	const CUuid *pUuid = (const CUuid *)pUnpacker->GetRaw(sizeof(*pUuid));
-	if(pUuid == NULL)
+	if (pUuid == NULL)
 	{
 		return UUID_INVALID;
 	}
@@ -168,7 +168,7 @@ void CUuidManager::PackUuid(int ID, CPacker *pPacker) const
 
 void CUuidManager::DebugDump() const
 {
-	for(const auto &Name : m_vNames)
+	for (const auto &Name : m_vNames)
 	{
 		char aBuf[UUID_MAXSTRSIZE];
 		FormatUuid(Name.m_Uuid, aBuf, sizeof(aBuf));

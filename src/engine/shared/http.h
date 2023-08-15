@@ -137,7 +137,7 @@ public:
 
 	const char *Dest()
 	{
-		if(m_WriteToFile)
+		if (m_WriteToFile)
 		{
 			return m_aDest;
 		}
