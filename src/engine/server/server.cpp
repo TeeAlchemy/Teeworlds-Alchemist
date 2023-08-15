@@ -42,6 +42,8 @@
 
 #include <engine/external/json-parser/json.h>
 
+#include <alchemy/Alchemy.h>
+
 #if defined(CONF_FAMILY_WINDOWS)
 #define _WIN32_WINNT 0x0501
 #define WIN32_LEAN_AND_MEAN
@@ -2380,6 +2382,9 @@ int main(int argc, const char **argv) // ignore_convention
 		dbg_msg("localization", "could not initialize localization");
 		return -1;
 	}
+
+	pServer->m_pAlchemy = new CAlchemy(pStorage);
+	pServer->m_pAlchemy->LoadAlchemy();
 
 	{
 		bool RegisterFail = false;

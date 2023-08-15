@@ -1,0 +1,17 @@
+{
+    "Alchemy": [
+        {
+            "Potion": "hi",
+            "Usage": "fuck",
+            "Formula": [
+                "sa",
+                "saa"
+            ]
+        },
+        {
+            "Potion": "",
+            "Usage": "",
+            "Formula": []
+        }
+    ]
+}

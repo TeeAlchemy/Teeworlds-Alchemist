@@ -20,7 +20,7 @@ protected:
 
 public:
 	class CLocalization *m_pLocalization;
-
+	class CAlchemy *m_pAlchemy;
 	enum
 	{
 		AUTHED_NO = 0,
@@ -41,6 +41,7 @@ public:
 	};
 
 	inline class CLocalization *Localization() { return m_pLocalization; }
+	inline class CAlchemy *Alchemy() { return m_pAlchemy; }
 
 	int Tick() const { return m_CurrentGameTick; }
 	int TickSpeed() const { return m_TickSpeed; }
