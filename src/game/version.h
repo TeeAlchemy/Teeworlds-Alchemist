@@ -6,7 +6,6 @@
 #include "generated/nethash.cpp"
 #define GAME_VERSION "0.6.4"
 #define GAME_NETVERSION "0.6 626fce9a778df4d4" // the std game version
-static const char GAME_RELEASE_VERSION[8] = "0.6.4";
 
 #define MOD_NAME "Tee Alchemist"
 #define MOD_VERSION "0.1"

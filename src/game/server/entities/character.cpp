@@ -94,7 +94,7 @@ void CCharacter::SetWeapon(int W)
 	m_LastWeapon = m_ActiveWeapon;
 	m_QueuedWeapon = -1;
 	m_ActiveWeapon = W;
-	GameServer()->CreateSound(m_Pos, SOUND_WEAPON_SWITCH, -1, GetMapID());
+	GameServer()->CreateSound(m_Pos, SOUND_WEAPON_SWITCH, GetMapID());
 
 	if (m_ActiveWeapon < 0 || m_ActiveWeapon >= NUM_WEAPONS)
 		m_ActiveWeapon = 0;
@@ -173,7 +173,7 @@ void CCharacter::HandleNinja()
 					continue;
 
 				// Hit a player, give him damage and stuffs...
-				GameServer()->CreateSound(aEnts[i]->m_Pos, SOUND_NINJA_HIT, -1, GetMapID());
+				GameServer()->CreateSound(aEnts[i]->m_Pos, SOUND_NINJA_HIT, GetMapID());
 				// set his velocity to fast upward (for now)
 				if (m_NumObjectsHit < 10)
 					m_apHitObjects[m_NumObjectsHit++] = aEnts[i];
@@ -269,7 +269,7 @@ void CCharacter::FireWeapon()
 		m_ReloadTimer = 125 * Server()->TickSpeed() / 1000;
 		if (m_LastNoAmmoSound + Server()->TickSpeed() <= Server()->Tick())
 		{
-			GameServer()->CreateSound(m_Pos, SOUND_WEAPON_NOAMMO, -1, GetMapID());
+			GameServer()->CreateSound(m_Pos, SOUND_WEAPON_NOAMMO, GetMapID());
 			m_LastNoAmmoSound = Server()->Tick();
 		}
 		return;
@@ -283,7 +283,7 @@ void CCharacter::FireWeapon()
 	{
 		// reset objects Hit
 		m_NumObjectsHit = 0;
-		GameServer()->CreateSound(m_Pos, SOUND_HAMMER_FIRE, -1, GetMapID());
+		GameServer()->CreateSound(m_Pos, SOUND_HAMMER_FIRE, GetMapID());
 
 		CCharacter *apEnts[MAX_CLIENTS];
 		int Hits = 0;
@@ -329,7 +329,7 @@ void CCharacter::FireWeapon()
 						(int)(Server()->TickSpeed() * GameServer()->Tuning()->m_GunLifetime),
 						1, 0, 0, -1, WEAPON_GUN, GetMapID());
 
-		GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE, -1, GetMapID());
+		GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE, GetMapID());
 	}
 	break;
 
@@ -352,7 +352,7 @@ void CCharacter::FireWeapon()
 							1, 0, 0, -1, WEAPON_SHOTGUN, GetMapID());
 		}
 
-		GameServer()->CreateSound(m_Pos, SOUND_SHOTGUN_FIRE, -1, GetMapID());
+		GameServer()->CreateSound(m_Pos, SOUND_SHOTGUN_FIRE, GetMapID());
 	}
 	break;
 
@@ -365,14 +365,14 @@ void CCharacter::FireWeapon()
 						(int)(Server()->TickSpeed() * GameServer()->Tuning()->m_GrenadeLifetime),
 						1, true, 0, SOUND_GRENADE_EXPLODE, WEAPON_GRENADE, GetMapID());
 
-		GameServer()->CreateSound(m_Pos, SOUND_GRENADE_FIRE, -1, GetMapID());
+		GameServer()->CreateSound(m_Pos, SOUND_GRENADE_FIRE, GetMapID());
 	}
 	break;
 
 	case WEAPON_RIFLE:
 	{
 		new CLaser(GameWorld(), m_Pos, Direction, GameServer()->Tuning()->m_LaserReach, m_pPlayer->GetCID(), GetMapID());
-		GameServer()->CreateSound(m_Pos, SOUND_RIFLE_FIRE, -1, GetMapID());
+		GameServer()->CreateSound(m_Pos, SOUND_RIFLE_FIRE, GetMapID());
 	}
 	break;
 
@@ -385,7 +385,7 @@ void CCharacter::FireWeapon()
 		m_Ninja.m_CurrentMoveTime = g_pData->m_Weapons.m_Ninja.m_Movetime * Server()->TickSpeed() / 1000;
 		m_Ninja.m_OldVelAmount = length(m_Core.m_Vel);
 
-		GameServer()->CreateSound(m_Pos, SOUND_NINJA_FIRE, -1, GetMapID());
+		GameServer()->CreateSound(m_Pos, SOUND_NINJA_FIRE, GetMapID());
 	}
 	break;
 	}
@@ -460,7 +460,7 @@ void CCharacter::GiveNinja()
 		m_LastWeapon = m_ActiveWeapon;
 	m_ActiveWeapon = WEAPON_NINJA;
 
-	GameServer()->CreateSound(m_Pos, SOUND_PICKUP_NINJA, -1, GetMapID());
+	GameServer()->CreateSound(m_Pos, SOUND_PICKUP_NINJA, GetMapID());
 }
 
 void CCharacter::SetEmote(int Emote, int Tick)
@@ -518,10 +518,7 @@ void CCharacter::Tick()
 {
 	if (m_pPlayer->m_ForceBalanced)
 	{
-		char Buf[128];
-		str_format(Buf, sizeof(Buf), "You were moved to %s due to team balancing", GameServer()->m_pController->GetTeamName(m_pPlayer->GetTeam()));
-		GameServer()->SendBroadcast(Buf, m_pPlayer->GetCID());
-
+		GameServer()->SendBroadcast(m_pPlayer->GetCID(), _("You were moved to {str:Team} due to team balancing"), "Team", GameServer()->m_pController->GetTeamName(m_pPlayer->GetTeam()));
 		m_pPlayer->m_ForceBalanced = false;
 	}
 
@@ -598,14 +595,14 @@ void CCharacter::TickDefered()
 	int Mask = CmaskAllExceptOne(m_pPlayer->GetCID());
 
 	if (Events & COREEVENT_GROUND_JUMP)
-		GameServer()->CreateSound(m_Pos, SOUND_PLAYER_JUMP, Mask, GetMapID());
+		GameServer()->CreateSound(m_Pos, SOUND_PLAYER_JUMP, GetMapID(), Mask);
 
 	if (Events & COREEVENT_HOOK_ATTACH_PLAYER)
-		GameServer()->CreateSound(m_Pos, SOUND_HOOK_ATTACH_PLAYER, CmaskAll(), GetMapID());
+		GameServer()->CreateSound(m_Pos, SOUND_HOOK_ATTACH_PLAYER, GetMapID(), CmaskAll());
 	if (Events & COREEVENT_HOOK_ATTACH_GROUND)
-		GameServer()->CreateSound(m_Pos, SOUND_HOOK_ATTACH_GROUND, Mask, GetMapID());
+		GameServer()->CreateSound(m_Pos, SOUND_HOOK_ATTACH_GROUND, GetMapID(), Mask);
 	if (Events & COREEVENT_HOOK_HIT_NOHOOK)
-		GameServer()->CreateSound(m_Pos, SOUND_HOOK_NOATTACH, Mask, GetMapID());
+		GameServer()->CreateSound(m_Pos, SOUND_HOOK_NOATTACH, GetMapID(), Mask);
 
 	if (m_pPlayer->GetTeam() == TEAM_SPECTATORS)
 	{
@@ -683,7 +680,7 @@ void CCharacter::Die(int Killer, int Weapon)
 	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, -1);
 
 	// a nice sound
-	GameServer()->CreateSound(m_Pos, SOUND_PLAYER_DIE, -1, GetMapID());
+	GameServer()->CreateSound(m_Pos, SOUND_PLAYER_DIE, GetMapID());
 
 	// this is for auto respawn after 3 secs
 	m_pPlayer->m_DieTick = Server()->Tick();
@@ -755,7 +752,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 			if (GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->GetTeam() == TEAM_SPECTATORS && GameServer()->m_apPlayers[i]->m_SpectatorID == From)
 				Mask |= CmaskOne(i);
 		}
-		GameServer()->CreateSound(GameServer()->m_apPlayers[From]->m_ViewPos, SOUND_HIT, Mask, GetMapID());
+		GameServer()->CreateSound(GameServer()->m_apPlayers[From]->m_ViewPos, SOUND_HIT, GetMapID(), Mask);
 	}
 
 	// check for death
@@ -778,9 +775,9 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 	}
 
 	if (Dmg > 2)
-		GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_LONG, -1, GetMapID());
+		GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_LONG, GetMapID());
 	else
-		GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_SHORT, -1, GetMapID());
+		GameServer()->CreateSound(m_Pos, SOUND_PLAYER_PAIN_SHORT, GetMapID());
 
 	m_EmoteType = EMOTE_PAIN;
 	m_EmoteStop = Server()->Tick() + 500 * Server()->TickSpeed() / 1000;

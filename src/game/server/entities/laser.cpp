@@ -65,7 +65,7 @@ void CLaser::DoBounce()
 			if (m_Bounces > GameServer()->Tuning()->m_LaserBounceNum)
 				m_Energy = -1;
 
-			GameServer()->CreateSound(m_Pos, SOUND_RIFLE_BOUNCE, -1, GetMapID());
+			GameServer()->CreateSound(m_Pos, SOUND_RIFLE_BOUNCE, GetMapID());
 		}
 	}
 	else

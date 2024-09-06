@@ -133,14 +133,14 @@ public:
 	CVoteOptionServer *m_pVoteOptionLast;
 
 	// helper functions
-	void CreateDamageInd(vec2 Pos, float AngleMod, int Amount, CClientMask Mask = CClientMask().set(), int MapID = -1);
-	void CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, CClientMask Mask = CClientMask().set(), int MapID = -1);
-	void CreateHammerHit(vec2 Pos, CClientMask Mask = CClientMask().set(), int MapID = -1);
-	void CreatePlayerSpawn(vec2 Pos, CClientMask Mask = CClientMask().set(), int MapID = -1);
-	void CreateDeath(vec2 Pos, int Who, CClientMask Mask = CClientMask().set(), int MapID = -1);
-	void CreateSound(vec2 Pos, int Sound, CClientMask Mask = CClientMask().set(), int MapID = -1);
+	void CreateDamageInd(vec2 Pos, float AngleMod, int Amount, int MapID, CClientMask Mask = CClientMask().set());
+	void CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int MapID, CClientMask Mask = CClientMask().set());
+	void CreateHammerHit(vec2 Pos, int MapID, CClientMask Mask = CClientMask().set());
+	void CreatePlayerSpawn(vec2 Pos, int MapID, CClientMask Mask = CClientMask().set());
+	void CreateDeath(vec2 Pos, int Who, int MapID, CClientMask Mask = CClientMask().set());
+	void CreateSound(vec2 Pos, int Sound, int MapID, CClientMask Mask = CClientMask().set());
 	void CreateSoundGlobal(int Sound, int Target = -1);
-	void CreateExtraEffect(vec2 Pos, int Effect, CClientMask Mask = CClientMask().set(), int MapID = -1);
+	void CreateExtraEffect(vec2 Pos, int Effect, int MapID, CClientMask Mask = CClientMask().set());
 	
 	enum
 	{
@@ -151,12 +151,12 @@ public:
 	};
 
 	// network
-	void SendChatTarget(int To, const char *pText, ...);
-	void SendMotd(int To, const char *pText, ...);
+	void SendChatTarget(int ClientID, const char *pText, ...);
+	void SendMotd(int ClientID, const char *pText, ...);
 	void SendChat(int ClientID, int Team, const char *pText);
 	void SendEmoticon(int ClientID, int Emoticon);
 	void SendWeaponPickup(int ClientID, int Weapon);
-	void SendBroadcast(const char *pText, int ClientID);
+	void SendBroadcast(int ClientID, const char *pText, ...);
 	void SetClientLanguage(int ClientID, const char *pLanguage);
 
 	//

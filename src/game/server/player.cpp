@@ -166,10 +166,9 @@ void CPlayer::OnDisconnect(const char *pReason)
 	{
 		char aBuf[512];
 		if (pReason && *pReason)
-			str_format(aBuf, sizeof(aBuf), "'%s' has left the game (%s)", Server()->ClientName(m_ClientID), pReason);
+			GameServer()->SendChatTarget(-1, _("'{str:Name}' has left the game ({str:Reason})"), "Name", Server()->ClientName(m_ClientID), "Reason", pReason);
 		else
-			str_format(aBuf, sizeof(aBuf), "'%s' has left the game", Server()->ClientName(m_ClientID));
-		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
+			GameServer()->SendChatTarget(-1, _("'{str:Name}' has left the game"), "Name", Server()->ClientName(m_ClientID));
 
 		str_format(aBuf, sizeof(aBuf), "leave player='%d:%s'", m_ClientID, Server()->ClientName(m_ClientID));
 		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "game", aBuf);
@@ -251,12 +250,8 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 	if (m_Team == Team)
 		return;
 
-	char aBuf[512];
 	if (DoChatMsg)
-	{
-		str_format(aBuf, sizeof(aBuf), "'%s' joined the %s", Server()->ClientName(m_ClientID), GameServer()->m_pController->GetTeamName(Team));
-		GameServer()->SendChat(-1, CGameContext::CHAT_ALL, aBuf);
-	}
+		GameServer()->SendChatTarget(-1, _("'{str:Name}' joined the {str:Team}"), "Name", Server()->ClientName(m_ClientID), "Team", GameServer()->m_pController->GetTeamName(Team));
 
 	KillCharacter();
 
@@ -265,6 +260,8 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 	m_SpectatorID = SPEC_FREEVIEW;
 	// we got to wait 0.5 secs before respawning
 	m_RespawnTick = Server()->Tick() + Server()->TickSpeed() / 2;
+
+	char aBuf[512];
 	str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' m_Team=%d", m_ClientID, Server()->ClientName(m_ClientID), m_Team);
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 
