@@ -24,8 +24,10 @@ public:
         void Run();
 
     public:
-        CJob_ChatGLM(std::unique_ptr<CHttpRequest> &&pHttp, CGameContext *pGameServer) : m_pHttp(std::move(pHttp)), m_pGameServer(pGameServer)
+        CJob_ChatGLM(std::unique_ptr<CHttpRequest> &&pHttp, CGameContext *pGameServer)
         {
+            m_pHttp = std::move(pHttp);
+            m_pGameServer = pGameServer;
         }
         virtual ~CJob_ChatGLM() = default;
     };
