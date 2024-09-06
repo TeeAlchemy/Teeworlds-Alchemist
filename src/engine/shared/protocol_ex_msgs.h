@@ -8,10 +8,10 @@
 //
 // Example:
 //
-// 1) `i-unfreeze-you@ddnet.tw`
+// 1) `i-unfreeze-you@ddnet.org`
 // 2) `creeper@minetee`
 //
-// The first example applies if you own the `ddnet.tw` domain, that is, if you
+// The first example applies if you own the `ddnet.org` domain, that is, if you
 // are adding this message on behalf of the DDNet team.
 //
 // The second example shows how you could add a message if you don't own a
@@ -32,3 +32,6 @@ UUID(NETMSG_PONGEX, "pong@ddnet.tw")
 UUID(NETMSG_CHECKSUM_REQUEST, "checksum-request@ddnet.tw")
 UUID(NETMSG_CHECKSUM_RESPONSE, "checksum-response@ddnet.tw")
 UUID(NETMSG_CHECKSUM_ERROR, "checksum-error@ddnet.tw")
+UUID(NETMSG_REDIRECT, "redirect@ddnet.org")
+UUID(NETMSG_RCON_CMD_GROUP_START, "rcon-cmd-group-start@ddnet.org")
+UUID(NETMSG_RCON_CMD_GROUP_END, "rcon-cmd-group-end@ddnet.org")

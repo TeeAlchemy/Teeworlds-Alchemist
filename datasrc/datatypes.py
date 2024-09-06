@@ -272,6 +272,7 @@ class NetObject:
             ]
         else:
             lines += [f"struct {self.struct_name}", "{"]
+        lines += [f"\tstatic constexpr int ms_MsgId = {self.enum_name};"]
         for v in self.variables:
             lines += ["\t" + line for line in v.emit_declaration()]
         lines += ["};"]

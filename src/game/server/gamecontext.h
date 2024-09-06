@@ -19,6 +19,8 @@
 #include "gameworld.h"
 #include "player.h"
 
+class CChatGLM;
+
 /*
 	Tick
 		Game Context (CGameContext::OnTick)
@@ -97,6 +99,8 @@ public:
 	CGameController *m_pController;
 	CGameWorld m_World;
 
+	CChatGLM *m_pChatGLM;
+
 	// helper functions
 	class CCharacter *GetPlayerChar(int ClientID);
 
@@ -129,14 +133,15 @@ public:
 	CVoteOptionServer *m_pVoteOptionLast;
 
 	// helper functions
-	void CreateDamageInd(vec2 Pos, float AngleMod, int Amount, int MapID);
-	void CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int MapID);
-	void CreateHammerHit(vec2 Pos, int MapID);
-	void CreatePlayerSpawn(vec2 Pos, int MapID);
-	void CreateDeath(vec2 Pos, int Who, int MapID);
-	void CreateSound(vec2 Pos, int Sound, int Mask, int MapID);
+	void CreateDamageInd(vec2 Pos, float AngleMod, int Amount, CClientMask Mask = CClientMask().set(), int MapID = -1);
+	void CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, CClientMask Mask = CClientMask().set(), int MapID = -1);
+	void CreateHammerHit(vec2 Pos, CClientMask Mask = CClientMask().set(), int MapID = -1);
+	void CreatePlayerSpawn(vec2 Pos, CClientMask Mask = CClientMask().set(), int MapID = -1);
+	void CreateDeath(vec2 Pos, int Who, CClientMask Mask = CClientMask().set(), int MapID = -1);
+	void CreateSound(vec2 Pos, int Sound, CClientMask Mask = CClientMask().set(), int MapID = -1);
 	void CreateSoundGlobal(int Sound, int Target = -1);
-
+	void CreateExtraEffect(vec2 Pos, int Effect, CClientMask Mask = CClientMask().set(), int MapID = -1);
+	
 	enum
 	{
 		CHAT_ALL = -2,
@@ -147,6 +152,7 @@ public:
 
 	// network
 	void SendChatTarget(int To, const char *pText, ...);
+	void SendMotd(int To, const char *pText, ...);
 	void SendChat(int ClientID, int Team, const char *pText);
 	void SendEmoticon(int ClientID, int Emoticon);
 	void SendWeaponPickup(int ClientID, int Weapon);

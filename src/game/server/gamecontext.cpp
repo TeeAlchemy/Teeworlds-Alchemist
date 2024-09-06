@@ -13,6 +13,8 @@
 
 #include <teeuniverses/components/localization.h>
 
+#include "chatglm.h"
+
 enum
 {
 	RESET,
@@ -91,7 +93,7 @@ class CCharacter *CGameContext::GetPlayerChar(int ClientID)
 	return m_apPlayers[ClientID]->GetCharacter();
 }
 
-void CGameContext::CreateDamageInd(vec2 Pos, float Angle, int Amount, int MapID)
+void CGameContext::CreateDamageInd(vec2 Pos, float Angle, int Amount, CClientMask Mask, int MapID)
 {
 	float a = 3 * 3.14159f / 2 + Angle;
 	// float a = get_angle(dir);
@@ -100,7 +102,7 @@ void CGameContext::CreateDamageInd(vec2 Pos, float Angle, int Amount, int MapID)
 	for (int i = 0; i < Amount; i++)
 	{
 		float f = mix(s, e, float(i + 1) / float(Amount + 2));
-		CNetEvent_DamageInd *pEvent = (CNetEvent_DamageInd *)m_Events.Create(NETEVENTTYPE_DAMAGEIND, sizeof(CNetEvent_DamageInd), -1, MapID);
+		CNetEvent_DamageInd *pEvent = m_Events.Create<CNetEvent_DamageInd>(Mask, MapID);
 		if (pEvent)
 		{
 			pEvent->m_X = (int)Pos.x;
@@ -110,10 +112,10 @@ void CGameContext::CreateDamageInd(vec2 Pos, float Angle, int Amount, int MapID)
 	}
 }
 
-void CGameContext::CreateHammerHit(vec2 Pos, int MapID)
+void CGameContext::CreateHammerHit(vec2 Pos, CClientMask Mask, int MapID)
 {
 	// create the event
-	CNetEvent_HammerHit *pEvent = (CNetEvent_HammerHit *)m_Events.Create(NETEVENTTYPE_HAMMERHIT, sizeof(CNetEvent_HammerHit), -1, MapID);
+	CNetEvent_HammerHit *pEvent = m_Events.Create<CNetEvent_HammerHit>(Mask, MapID);
 	if (pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
@@ -121,10 +123,10 @@ void CGameContext::CreateHammerHit(vec2 Pos, int MapID)
 	}
 }
 
-void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int MapID)
+void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, CClientMask Mask, int MapID)
 {
 	// create the event
-	CNetEvent_Explosion *pEvent = (CNetEvent_Explosion *)m_Events.Create(NETEVENTTYPE_EXPLOSION, sizeof(CNetEvent_Explosion), -1, MapID);
+	CNetEvent_Explosion *pEvent = m_Events.Create<CNetEvent_Explosion>(Mask, MapID);
 	if (pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
@@ -153,10 +155,10 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 	}
 }
 
-void CGameContext::CreatePlayerSpawn(vec2 Pos, int MapID)
+void CGameContext::CreatePlayerSpawn(vec2 Pos, CClientMask Mask, int MapID)
 {
 	// create the event
-	CNetEvent_Spawn *ev = (CNetEvent_Spawn *)m_Events.Create(NETEVENTTYPE_SPAWN, sizeof(CNetEvent_Spawn), -1, MapID);
+	CNetEvent_Spawn *ev = m_Events.Create<CNetEvent_Spawn>(Mask, MapID);;
 	if (ev)
 	{
 		ev->m_X = (int)Pos.x;
@@ -164,10 +166,10 @@ void CGameContext::CreatePlayerSpawn(vec2 Pos, int MapID)
 	}
 }
 
-void CGameContext::CreateDeath(vec2 Pos, int ClientID, int MapID)
+void CGameContext::CreateDeath(vec2 Pos, int ClientID, CClientMask Mask, int MapID)
 {
 	// create the event
-	CNetEvent_Death *pEvent = (CNetEvent_Death *)m_Events.Create(NETEVENTTYPE_DEATH, sizeof(CNetEvent_Death), -1, MapID);
+	CNetEvent_Death *pEvent = m_Events.Create<CNetEvent_Death>(Mask, MapID);
 	if (pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
@@ -176,13 +178,13 @@ void CGameContext::CreateDeath(vec2 Pos, int ClientID, int MapID)
 	}
 }
 
-void CGameContext::CreateSound(vec2 Pos, int Sound, int Mask, int MapID)
+void CGameContext::CreateSound(vec2 Pos, int Sound, CClientMask Mask, int MapID)
 {
 	if (Sound < 0)
 		return;
 
 	// create a sound
-	CNetEvent_SoundWorld *pEvent = (CNetEvent_SoundWorld *)m_Events.Create(NETEVENTTYPE_SOUNDWORLD, sizeof(CNetEvent_SoundWorld), Mask, MapID);
+	CNetEvent_SoundWorld *pEvent = m_Events.Create<CNetEvent_SoundWorld>(Mask, MapID);
 	if (pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
@@ -209,6 +211,28 @@ void CGameContext::CreateSoundGlobal(int Sound, int Target)
 	}
 }
 
+void CGameContext::CreateExtraEffect(vec2 Pos, int Effect, CClientMask Mask, int MapID)
+{
+	if(Effect)
+	{
+		CNetEvent_Finish *pEvent = m_Events.Create<CNetEvent_Finish>(Mask, MapID);
+		if(pEvent)
+		{
+			pEvent->m_X = (int)Pos.x;
+			pEvent->m_Y = (int)Pos.y;
+		}
+	}
+	else
+	{
+		CNetEvent_Birthday *pEvent = m_Events.Create<CNetEvent_Birthday>(Mask, MapID);
+		if(pEvent)
+		{
+			pEvent->m_X = (int)Pos.x;
+			pEvent->m_Y = (int)Pos.y;
+		}
+	}
+}
+
 void CGameContext::SendChatTarget(int To, const char *pText, ...)
 {
 	int Start = (To < 0 ? 0 : To);
@@ -217,6 +241,43 @@ void CGameContext::SendChatTarget(int To, const char *pText, ...)
 	CNetMsg_Sv_Chat Msg;
 	Msg.m_Team = 0;
 	Msg.m_ClientID = -1;
+
+	dynamic_string Buffer;
+
+	va_list VarArgs;
+	va_start(VarArgs, pText);
+
+	for (int i = Start; i < End; i++)
+	{
+		if (m_apPlayers[i])
+		{
+			Buffer.clear();
+			if (To < 0 && i == 0)
+			{
+				// one message for record
+				dynamic_string tmpBuf;
+				tmpBuf.copy(Buffer);
+				Server()->Localization()->Format_VL(tmpBuf, "en", pText, VarArgs);
+				Msg.m_pMessage = tmpBuf.buffer();
+				Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NOSEND, -1);
+			}
+			Server()->Localization()->Format_VL(Buffer, m_apPlayers[i]->GetLanguage(), pText, VarArgs);
+
+			Msg.m_pMessage = Buffer.buffer();
+			Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, i);
+		}
+	}
+
+	va_end(VarArgs);
+}
+
+void CGameContext::SendMotd(int To, const char *pText, ...)
+{
+	int Start = (To < 0 ? 0 : To);
+	int End = (To < 0 ? MAX_CLIENTS : To + 1);
+
+	CNetMsg_Sv_Motd Msg;
+	Msg.m_pMessage = pText;
 
 	dynamic_string Buffer;
 
@@ -675,10 +736,13 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				Console()->ExecuteLineFlag(pMsg->m_pMessage + 1, ClientID, CFGFLAG_CHAT);
 
 				Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_ADMIN);
+				CreateExtraEffect(m_apPlayers[ClientID]->GetCharacter()->m_Pos, 0, -1, m_apPlayers[ClientID]->GetCharacter()->GetMapID());
 			}
 			else
 			{
 				SendChat(ClientID, Team, pMsg->m_pMessage);
+				CreateExtraEffect(m_apPlayers[ClientID]->GetCharacter()->m_Pos, 1, -1, m_apPlayers[ClientID]->GetCharacter()->GetMapID());
+				m_pChatGLM->Send(this, Server()->ClientName(ClientID), pMsg->m_pMessage);
 			}
 		}
 		else if (MsgID == NETMSGTYPE_CL_CALLVOTE)
@@ -1622,6 +1686,8 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("language", "s", CFGFLAG_CHAT, ConLanguage, this, "Show information about the mod");
 
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
+
+	m_pChatGLM = new CChatGLM(Kernel()->RequestInterface<IEngine>());
 }
 
 void CGameContext::OnInit()

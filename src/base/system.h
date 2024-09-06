@@ -18,6 +18,7 @@
 
 #include <chrono>
 
+#include "types.h"
 #ifdef __cplusplus
 extern "C"
 {
@@ -195,11 +196,8 @@ extern "C"
 		IOSEEK_START = 0,
 		IOSEEK_CUR = 1,
 		IOSEEK_END = 2,
-
-		IO_MAX_PATH_LENGTH = 512,
 	};
 
-	typedef struct IOINTERNAL *IOHANDLE;
 
 	/*
 		Function: io_open
@@ -578,17 +576,6 @@ typedef long long int64;
 	void net_buffer_reinit(NETSOCKET_BUFFER *buffer);
 	void net_buffer_simple(NETSOCKET_BUFFER *buffer, char **buf, int *size);
 
-	enum
-	{
-		NETADDR_MAXSTRSIZE = 1 + (8 * 4 + 7) + 1 + 1 + 5 + 1, // [XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX]:XXXXX
-
-		NETTYPE_INVALID = 0,
-		NETTYPE_IPV4 = 1,
-		NETTYPE_IPV6 = 2,
-		NETTYPE_LINK_BROADCAST = 4,
-		NETTYPE_ALL = NETTYPE_IPV4 | NETTYPE_IPV6
-	};
-
 	struct NETSOCKET_INTERNAL
 	{
 		int type;
@@ -600,16 +587,6 @@ typedef long long int64;
 	static const NETSOCKET_INTERNAL invalid_socket = {NETTYPE_INVALID, -1, -1, -1};
 
 	typedef struct NETSOCKET_INTERNAL *NETSOCKET;
-
-	typedef struct NETADDR
-	{
-		unsigned int type;
-		unsigned char ip[16];
-		unsigned short port;
-
-		bool operator==(const NETADDR &other) const;
-		bool operator!=(const NETADDR &other) const { return !(*this == other); }
-	} NETADDR;
 
 	/*
 		Function: net_init

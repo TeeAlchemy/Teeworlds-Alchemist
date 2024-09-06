@@ -7,6 +7,7 @@ from datatypes import (
     NetArray,
     NetBool,
     NetEvent,
+    NetEventEx,
     NetIntAny,
     NetIntRange,
     NetMessage,
@@ -80,7 +81,7 @@ GameInfoFlags = [
     "ENTITIES_FNG",
     "ENTITIES_VANILLA",
     "DONT_MASK_ENTITIES",
-    "ENTITIES_BW"
+    "ENTITIES_BW",
     # Full, use GameInfoFlags2 for more flags
 ]
 GameInfoFlags2 = [
@@ -459,6 +460,11 @@ Objects = [
             NetIntAny("m_Angle"),
         ],
     ),
+
+    NetEventEx("Birthday:Common", "birthday@netevent.ddnet.org", []),
+
+	NetEventEx("Finish:Common", "finish@netevent.ddnet.org", []),
+
     NetObjectEx(
         "MyOwnEvent",
         "my-own-event@heinrich5991.de",
@@ -736,6 +742,71 @@ Messages = [
         [
             NetIntAny("m_ServerTimeBest"),
             NetIntAny("m_PlayerTimeBest"),
+        ],
+    ),
+
+    NetMessageEx(
+        "Sv_KillMsgTeam",
+        "killmsgteam@netmsg.ddnet.tw",
+        [
+            NetIntRange("m_Team", 0, "MAX_CLIENTS-1"),
+            NetIntRange("m_First", -1, "MAX_CLIENTS-1"),
+        ],
+    ),
+    NetMessageEx(
+        "Sv_YourVote",
+        "yourvote@netmsg.ddnet.org",
+        [
+            NetIntRange("m_Voted", -1, 1),
+        ],
+    ),
+    NetMessageEx(
+        "Sv_RaceFinish",
+        "racefinish@netmsg.ddnet.org",
+        [
+            NetIntRange("m_ClientId", 0, "MAX_CLIENTS-1"),
+            NetIntAny("m_Time"),
+            NetIntAny("m_Diff"),
+            NetBool("m_RecordPersonal"),
+            NetBool("m_RecordServer", default=False),
+        ],
+    ),
+    NetMessageEx(
+        "Sv_CommandInfo",
+        "commandinfo@netmsg.ddnet.org",
+        [
+            NetStringStrict("m_pName"),
+            NetStringStrict("m_pArgsFormat"),
+            NetStringStrict("m_pHelpText"),
+        ],
+    ),
+    NetMessageEx(
+        "Sv_CommandInfoRemove",
+        "commandinfo-remove@netmsg.ddnet.org",
+        [NetStringStrict("m_pName")],
+    ),
+    NetMessageEx(
+        "Sv_VoteOptionGroupStart", "sv-vote-option-group-start@netmsg.ddnet.org", []
+    ),
+    NetMessageEx(
+        "Sv_VoteOptionGroupEnd", "sv-vote-option-group-end@netmsg.ddnet.org", []
+    ),
+    NetMessageEx(
+        "Sv_CommandInfoGroupStart", "sv-commandinfo-group-start@netmsg.ddnet.org", []
+    ),
+    NetMessageEx(
+        "Sv_CommandInfoGroupEnd", "sv-commandinfo-group-end@netmsg.ddnet.org", []
+    ),
+    NetMessageEx(
+        "Sv_ChangeInfoCooldown",
+        "change-info-cooldown@netmsg.ddnet.org",
+        [NetTick("m_WaitUntil")],
+    ),
+    NetMessageEx(
+        "Sv_MapSoundGlobal",
+        "map-sound-global@netmsg.ddnet.org",
+        [
+            NetIntAny("m_SoundId"),
         ],
     ),
 ]

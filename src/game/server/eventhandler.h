@@ -3,17 +3,23 @@
 #ifndef GAME_SERVER_EVENTHANDLER_H
 #define GAME_SERVER_EVENTHANDLER_H
 
-//
+#include <cstdint>
+
+#include <engine/shared/protocol.h>
+
 class CEventHandler
 {
-	static const int MAX_EVENTS = 128;
-	static const int MAX_DATASIZE = 128 * 64;
+	enum
+	{
+		MAX_EVENTS = 128,
+		MAX_DATASIZE = 128 * 64,
+	};
 
 	int m_aTypes[MAX_EVENTS]; // TODO: remove some of these arrays
 	int m_aOffsets[MAX_EVENTS];
 	int m_aSizes[MAX_EVENTS];
 	int m_aMapID[MAX_EVENTS];
-	int m_aClientMasks[MAX_EVENTS];
+	CClientMask m_aClientMasks[MAX_EVENTS];
 	char m_aData[MAX_DATASIZE];
 
 	class CGameContext *m_pGameServer;
@@ -26,7 +32,14 @@ public:
 	void SetGameServer(CGameContext *pGameServer);
 
 	CEventHandler();
-	void *Create(int Type, int Size, int Mask = -1, int MapID = -1);
+	void *Create(int Type, int Size, CClientMask Mask = CClientMask().set(), int MapID = -1);
+
+	template<typename T>
+	T *Create(CClientMask Mask = CClientMask().set(), int MapID = -1)
+	{
+		return static_cast<T *>(Create(T::ms_MsgId, sizeof(T), Mask, MapID));
+	}
+
 	void Clear();
 	void Snap(int SnappingClient);
 };
