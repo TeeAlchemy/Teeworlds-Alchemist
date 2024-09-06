@@ -50,6 +50,24 @@
 #include <cstring> //fixes memset error
 #endif
 
+#include <csignal>
+
+volatile sig_atomic_t InterruptSignaled = 0;
+
+bool IsInterrupted()
+{
+	return InterruptSignaled;
+}
+
+void HandleSigIntTerm(int Param)
+{
+	InterruptSignaled = 1;
+
+	// Exit the next time a signal is received
+	signal(SIGINT, SIG_DFL);
+	signal(SIGTERM, SIG_DFL);
+}
+
 static const char *StrLtrim(const char *pStr)
 {
 	while (*pStr && *pStr >= 0 && *pStr <= 32)
@@ -2036,6 +2054,11 @@ int CServer::Run()
 
 				PacketWaiting = x > 0 ? net_socket_read_wait(m_NetServer.Socket(), x) : true;
 			}
+			if(IsInterrupted())
+			{
+				Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "interrupted");
+				break;
+			}
 		}
 	}
 	// disconnect all clients on shutdown
@@ -2056,6 +2079,8 @@ int CServer::Run()
 			mem_free(m_vMapData[i].m_pCurrentMapData);
 	}
 	m_pRegister->OnShutdown();
+
+	Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "Server shutdown.");
 	return 0;
 }
 
@@ -2361,6 +2386,9 @@ int main(int argc, const char **argv) // ignore_convention
 		dbg_msg("secure", "could not initialize secure RNG");
 		return -1;
 	}
+
+	signal(SIGINT, HandleSigIntTerm);
+	signal(SIGTERM, HandleSigIntTerm);
 
 	CServer *pServer = CreateServer();
 	IKernel *pKernel = IKernel::Create();

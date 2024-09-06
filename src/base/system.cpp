@@ -114,7 +114,11 @@ extern "C"
 		char *msg;
 		int i, len;
 
-		str_format(str, sizeof(str), "[%08x][%s]: ", (int)time(0), sys);
+		time_t nowtime;
+		time(&nowtime);
+		tm *pTime = localtime(&nowtime);
+
+		str_format(str, sizeof(str), "[%d-%d-%d %d:%d:%d][%s]: ", 1900 + pTime->tm_year, pTime->tm_mon, pTime->tm_mday, pTime->tm_hour, pTime->tm_min, pTime->tm_sec, sys);
 		len = strlen(str);
 		msg = (char *)str + len;
 
