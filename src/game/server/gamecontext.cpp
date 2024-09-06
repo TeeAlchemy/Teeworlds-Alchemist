@@ -233,6 +233,35 @@ void CGameContext::CreateExtraEffect(vec2 Pos, int Effect, int MapID, CClientMas
 	}
 }
 
+void CGameContext::CreateMapSound(vec2 Pos, int MapSoundID, int MapID, CClientMask Mask)
+{
+	CNetEvent_MapSoundWorld *pEvent = m_Events.Create<CNetEvent_MapSoundWorld>(Mask, MapID);
+	if (pEvent)
+	{
+		pEvent->m_X = (int)Pos.x;
+		pEvent->m_Y = (int)Pos.y;
+		pEvent->m_SoundID = MapSoundID;
+	}
+}
+
+void CGameContext::CreateMapSoundGlobal(int MapSoundID, int Target)
+{
+	if (MapSoundID < 0)
+		return;
+
+	CNetMsg_Sv_MapSoundGlobal	 Msg;
+	Msg.m_SoundID = MapSoundID;
+	if (Target == -2)
+		Server()->SendPackMsg(&Msg, MSGFLAG_NOSEND, -1);
+	else
+	{
+		int Flag = MSGFLAG_VITAL;
+		if (Target != -1)
+			Flag |= MSGFLAG_NORECORD;
+		Server()->SendPackMsg(&Msg, Flag, Target);
+	}
+}
+
 void CGameContext::SendChatTarget(int ClientID, const char *pText, ...)
 {
 	int Start = (ClientID < 0 ? 0 : ClientID);
@@ -803,14 +832,14 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			char aDesc[VOTE_DESC_LENGTH] = {0};
 			char aCmd[VOTE_CMD_LENGTH] = {0};
 			CNetMsg_Cl_CallVote *pMsg = (CNetMsg_Cl_CallVote *)pRawMsg;
-			const char *pReason = pMsg->m_Reason[0] ? pMsg->m_Reason : "No reason given";
+			const char *pReason = pMsg->m_pReason[0] ? pMsg->m_pReason : "No reason given";
 
-			if (str_comp_nocase(pMsg->m_Type, "option") == 0)
+			if (str_comp_nocase(pMsg->m_pType, "option") == 0)
 			{
 				CVoteOptionServer *pOption = m_pVoteOptionFirst;
 				while (pOption)
 				{
-					if (str_comp_nocase(pMsg->m_Value, pOption->m_aDescription) == 0)
+					if (str_comp_nocase(pMsg->m_pValue, pOption->m_aDescription) == 0)
 					{
 						str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s' (%s)", Server()->ClientName(ClientID),
 								   pOption->m_aDescription, pReason);
@@ -824,11 +853,11 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 				if (!pOption)
 				{
-					SendChatTarget(ClientID, _("'{str:Option}' isn't an option on this server"), "Option", pMsg->m_Value);
+					SendChatTarget(ClientID, _("'{str:Option}' isn't an option on this server"), "Option", pMsg->m_pValue);
 					return;
 				}
 			}
-			else if (str_comp_nocase(pMsg->m_Type, "kick") == 0)
+			else if (str_comp_nocase(pMsg->m_pType, "kick") == 0)
 			{
 				if (!g_Config.m_SvVoteKick)
 				{
@@ -850,7 +879,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					}
 				}
 
-				int KickID = str_toint(pMsg->m_Value);
+				int KickID = str_toint(pMsg->m_pValue);
 				if (KickID < 0 || KickID >= MAX_CLIENTS || !m_apPlayers[KickID])
 				{
 					SendChatTarget(ClientID, _("Invalid client id to kick"));
@@ -879,7 +908,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					str_format(aCmd, sizeof(aCmd), "ban %s %d Banned by vote", aAddrStr, g_Config.m_SvVoteKickBantime);
 				}
 			}
-			else if (str_comp_nocase(pMsg->m_Type, "spectate") == 0)
+			else if (str_comp_nocase(pMsg->m_pType, "spectate") == 0)
 			{
 				if (!g_Config.m_SvVoteSpectate)
 				{
@@ -887,7 +916,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					return;
 				}
 
-				int SpectateID = str_toint(pMsg->m_Value);
+				int SpectateID = str_toint(pMsg->m_pValue);
 				if (SpectateID < 0 || SpectateID >= MAX_CLIENTS || !m_apPlayers[SpectateID] || m_apPlayers[SpectateID]->GetTeam() == TEAM_SPECTATORS)
 				{
 					SendChatTarget(ClientID, _("Invalid client id to move"));

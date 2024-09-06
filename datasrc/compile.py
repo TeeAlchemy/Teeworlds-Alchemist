@@ -5,13 +5,16 @@ import network
 from datatypes import EmitDefinition, EmitTypeDeclaration
 
 
-def create_enum_table(names, num):
-    lines = []
-    lines += ["enum", "{"]
-    for name in names:
-        lines += [f"\t{name},"]
-    lines += [f"\t{num}", "};"]
-    return lines
+def create_enum_table(names, num, start = 0):
+	lines = []
+	lines += ["enum", "{"]
+	if len(names) > 0 and start != 0:
+		lines += [f"\t{names[0]} = {start},"]
+		names = names[1:]
+	for name in names:
+		lines += [f"\t{name},"]
+	lines += [f"\t{num}", "};"]
+	return lines
 
 
 def create_flags_table(names):
@@ -50,7 +53,7 @@ def gen_network_header():
 
     for e in network.Enums:
         for line in create_enum_table(
-            [f"{e.name}_{v}" for v in e.values], f"NUM_{e.name}S"
+            [f"{e.name}_{v}" for v in e.values], f"NUM_{e.name}S", e.start
         ):  # pylint: disable=no-member
             print(line)
         print("")

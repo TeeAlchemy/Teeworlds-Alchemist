@@ -141,6 +141,8 @@ public:
 	void CreateSound(vec2 Pos, int Sound, int MapID, CClientMask Mask = CClientMask().set());
 	void CreateSoundGlobal(int Sound, int Target = -1);
 	void CreateExtraEffect(vec2 Pos, int Effect, int MapID, CClientMask Mask = CClientMask().set());
+	void CreateMapSound(vec2 Pos, int MapSoundID, int MapID, CClientMask Mask = CClientMask().set());
+	void CreateMapSoundGlobal(int MapSoundID, int Target = -1);
 	
 	enum
 	{
