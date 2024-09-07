@@ -1845,6 +1845,11 @@ void CGameContext::PrepareClientChangeMap(int ClientID)
 	m_apPlayers[ClientID] = new (ClientID) CPlayer(this, ClientID, TEAM_RED);
 }
 
+int CGameContext::GetClientVersion(int ClientId) const
+{
+	return Server()->GetClientVersion(ClientId);
+}
+
 const char *CGameContext::GameType() { return m_pController && m_pController->m_pGameType ? m_pController->m_pGameType : ""; }
 const char *CGameContext::Version() { return GAME_VERSION; }
 const char *CGameContext::NetVersion() { return GAME_NETVERSION; }

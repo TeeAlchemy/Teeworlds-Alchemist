@@ -90,10 +90,12 @@ public:
 		enum
 		{
 			STATE_EMPTY = 0,
+			STATE_PREAUTH,
 			STATE_AUTH,
 			STATE_CONNECTING,
 			STATE_READY,
 			STATE_INGAME,
+			STATE_REDIRECTED,
 
 			SNAPRATE_INIT = 0,
 			SNAPRATE_FULL,
@@ -139,6 +141,16 @@ public:
 		int m_NextMapChunk;
 
 		char m_aLanguage[16];
+
+		bool m_GotDDNetVersionPacket;
+		bool m_DDNetVersionSettled;
+		int m_DDNetVersion;
+		char m_aDDNetVersionStr[64];
+		CUuid m_ConnectionId;
+		int64_t m_RedirectDropTime;
+
+		double m_Traffic;
+		int64_t m_TrafficSince;
 	};
 
 	CClient m_aClients[MAX_CLIENTS];
@@ -201,6 +213,7 @@ public:
 	virtual IEngineMap *GetMap(int MapID) const override { return m_vpMap[MapID]; }
 
 	void Kick(int ClientID, const char *pReason);
+	void RedirectClient(int ClientId, int Port, bool Verbose = false) override;
 
 	void DemoRecorder_HandleAutoStart();
 	bool DemoRecorder_IsRecording();
@@ -213,7 +226,9 @@ public:
 
 	void SetRconCID(int ClientID);
 	bool IsAuthed(int ClientID);
-	int GetClientInfo(int ClientID, CClientInfo *pInfo);
+
+	bool GetClientInfo(int ClientId, CClientInfo *pInfo) const override;
+	void SetClientDDNetVersion(int ClientId, int DDNetVersion) override;
 	void GetClientAddr(int ClientID, char *pAddrStr, int Size);
 	std::string GetClientIP(int ClientID) const;
 	const char *ClientName(int ClientID);
@@ -223,6 +238,7 @@ public:
 	int ClientMapID(int ClientID) const override;
 	int MaxClients() const;
 
+	int GetClientVersion(int ClientId) const override;
 	int SendMsg(CMsgPacker *pMsg, int Flags, int ClientID) override;
 
 	void DoSnapshot();
@@ -235,7 +251,7 @@ public:
 	void SendRconType(int ClientID, bool UsernameReq);
 	void SendCapabilities(int ClientID);
 	void SendMap(int ClientID, int MapID);
-	void SendMapData(int ClientID, int Chunk);
+	void SendMapData(int ClientID, int MapID, int Chunk);
 	void ChangeClientMap(int ClientID);
 	void SendConnectionReady(int ClientID);
 	void SendRconLine(int ClientID, const char *pLine);

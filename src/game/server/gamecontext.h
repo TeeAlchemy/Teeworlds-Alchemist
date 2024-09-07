@@ -197,6 +197,8 @@ public:
 	virtual const char *GameType();
 	virtual const char *Version();
 	virtual const char *NetVersion();
+
+	int GetClientVersion(int ClientId) const;
 };
 
 inline int CmaskAll() { return -1; }

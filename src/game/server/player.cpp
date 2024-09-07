@@ -300,3 +300,8 @@ void CPlayer::SetLanguage(const char *pLanguage)
 {
 	str_copy(m_aLanguage, pLanguage, sizeof(m_aLanguage));
 }
+
+int CPlayer::GetClientVersion() const
+{
+	return m_pGameServer->GetClientVersion(GetCID());
+}

@@ -79,7 +79,7 @@ void CChatGLM::CJob_ChatGLM::Run()
     json_value *pJson = m_pHttp->ResultJson();
     if (!pJson)
     {
-        m_pGameServer->SendChatTarget(-1, _("很抱歉，我不能回答你这个问题"));
+        m_pGameServer->SendChatTarget(-1, _("Sorry, I can't answer your question."));
         return;
     }
     const json_value &Json = *pJson;
