@@ -55,12 +55,13 @@ void CEcon::ConchainEconOutputLevelUpdate(IConsole::IResult *pResult, void *pUse
 	}
 }
 
-void CEcon::ConLogout(IConsole::IResult *pResult, void *pUserData)
+bool CEcon::ConLogout(IConsole::IResult *pResult, void *pUserData)
 {
 	CEcon *pThis = static_cast<CEcon *>(pUserData);
 
 	if (pThis->m_UserClientID >= 0 && pThis->m_UserClientID < NET_MAX_CONSOLE_CLIENTS && pThis->m_aClients[pThis->m_UserClientID].m_State != CClient::STATE_EMPTY)
 		pThis->m_NetConsole.Drop(pThis->m_UserClientID, "Logout");
+	return true;
 }
 
 void CEcon::Init(IConsole *pConsole, CNetBan *pNetBan)

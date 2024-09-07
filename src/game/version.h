@@ -13,7 +13,7 @@
 #define MOD_VERSION "0.1"
 #define MOD_AUTHORS "ST-Chara"
 #define MOD_CREDITS "ST-Chara"
-#define MOD_THANKS "Kurosio, Necropotame, MikiGamer, AssassinTee, DDNet-Team"
+#define MOD_THANKS "Kurosio, Necropotame, ChatGLM, MikiGamer, AssassinTee, DDNet-Team"
 #define MOD_SOURCES ""
 #endif
 #endif

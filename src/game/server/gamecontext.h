@@ -51,28 +51,29 @@ class CGameContext : public IGameServer
 	CNetObjHandler m_NetObjHandler;
 	CTuningParams m_Tuning;
 
-	static void ConsoleOutputCallback_Chat(const char *pStr, void *pUser);
+	static void ChatConsolePrintCallback(const char *pLine, void *pUser);
 
-	static void ConLanguage(IConsole::IResult *pResult, void *pUserData);
-	static void ConAbout(IConsole::IResult *pResult, void *pUserData);
-	static void ConTuneParam(IConsole::IResult *pResult, void *pUserData);
-	static void ConTuneReset(IConsole::IResult *pResult, void *pUserData);
-	static void ConTuneDump(IConsole::IResult *pResult, void *pUserData);
-	static void ConPause(IConsole::IResult *pResult, void *pUserData);
-	static void ConChangeMap(IConsole::IResult *pResult, void *pUserData);
-	static void ConRestart(IConsole::IResult *pResult, void *pUserData);
-	static void ConBroadcast(IConsole::IResult *pResult, void *pUserData);
-	static void ConSay(IConsole::IResult *pResult, void *pUserData);
-	static void ConSetTeam(IConsole::IResult *pResult, void *pUserData);
-	static void ConSetTeamAll(IConsole::IResult *pResult, void *pUserData);
-	static void ConSwapTeams(IConsole::IResult *pResult, void *pUserData);
-	static void ConShuffleTeams(IConsole::IResult *pResult, void *pUserData);
-	static void ConLockTeams(IConsole::IResult *pResult, void *pUserData);
-	static void ConAddVote(IConsole::IResult *pResult, void *pUserData);
-	static void ConRemoveVote(IConsole::IResult *pResult, void *pUserData);
-	static void ConForceVote(IConsole::IResult *pResult, void *pUserData);
-	static void ConClearVotes(IConsole::IResult *pResult, void *pUserData);
-	static void ConVote(IConsole::IResult *pResult, void *pUserData);
+	static bool ConLanguage(IConsole::IResult *pResult, void *pUserData);
+	static bool ConAbout(IConsole::IResult *pResult, void *pUserData);
+	static bool ConTuneParam(IConsole::IResult *pResult, void *pUserData);
+	static bool ConTuneReset(IConsole::IResult *pResult, void *pUserData);
+	static bool ConTuneDump(IConsole::IResult *pResult, void *pUserData);
+	static bool ConPause(IConsole::IResult *pResult, void *pUserData);
+	static bool ConChangeMap(IConsole::IResult *pResult, void *pUserData);
+	static bool ConRestart(IConsole::IResult *pResult, void *pUserData);
+	static bool ConBroadcast(IConsole::IResult *pResult, void *pUserData);
+	static bool ConSay(IConsole::IResult *pResult, void *pUserData);
+	static bool ConSetTeam(IConsole::IResult *pResult, void *pUserData);
+	static bool ConSetTeamAll(IConsole::IResult *pResult, void *pUserData);
+	static bool ConSwapTeams(IConsole::IResult *pResult, void *pUserData);
+	static bool ConShuffleTeams(IConsole::IResult *pResult, void *pUserData);
+	static bool ConLockTeams(IConsole::IResult *pResult, void *pUserData);
+	static bool ConAddVote(IConsole::IResult *pResult, void *pUserData);
+	static bool ConRemoveVote(IConsole::IResult *pResult, void *pUserData);
+	static bool ConForceVote(IConsole::IResult *pResult, void *pUserData);
+	static bool ConClearVotes(IConsole::IResult *pResult, void *pUserData);
+	static bool ConVote(IConsole::IResult *pResult, void *pUserData);
+	
 	static void ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
 	CGameContext(int Resetting);

@@ -31,7 +31,7 @@ public:
 
 	char m_aAppName[256];
 
-	static void Con_DbgLognetwork(IConsole::IResult *pResult, void *pUserData)
+	static bool Con_DbgLognetwork(IConsole::IResult *pResult, void *pUserData)
 	{
 		CEngine *pEngine = static_cast<CEngine *>(pUserData);
 

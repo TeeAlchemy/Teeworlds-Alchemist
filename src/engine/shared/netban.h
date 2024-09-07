@@ -186,13 +186,13 @@ public:
 	void UnbanAll();
 	bool IsBanned(const NETADDR *pOrigAddr, char *pBuf, unsigned BufferSize) const;
 
-	static void ConBan(class IConsole::IResult *pResult, void *pUser);
-	static void ConBanRange(class IConsole::IResult *pResult, void *pUser);
-	static void ConUnban(class IConsole::IResult *pResult, void *pUser);
-	static void ConUnbanRange(class IConsole::IResult *pResult, void *pUser);
-	static void ConUnbanAll(class IConsole::IResult *pResult, void *pUser);
-	static void ConBans(class IConsole::IResult *pResult, void *pUser);
-	static void ConBansSave(class IConsole::IResult *pResult, void *pUser);
+	static bool ConBan(class IConsole::IResult *pResult, void *pUser);
+	static bool ConBanRange(class IConsole::IResult *pResult, void *pUser);
+	static bool ConUnban(class IConsole::IResult *pResult, void *pUser);
+	static bool ConUnbanRange(class IConsole::IResult *pResult, void *pUser);
+	static bool ConUnbanAll(class IConsole::IResult *pResult, void *pUser);
+	static bool ConBans(class IConsole::IResult *pResult, void *pUser);
+	static bool ConBansSave(class IConsole::IResult *pResult, void *pUser);
 };
 
 template <class T>

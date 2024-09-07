@@ -263,7 +263,7 @@ int CServerBan::BanRange(const CNetRange *pRange, int Seconds, const char *pReas
 	return -1;
 }
 
-void CServerBan::ConBanExt(IConsole::IResult *pResult, void *pUser)
+bool CServerBan::ConBanExt(IConsole::IResult *pResult, void *pUser)
 {
 	CServerBan *pThis = static_cast<CServerBan *>(pUser);
 
@@ -2219,7 +2219,7 @@ int CServer::Run()
 	return 0;
 }
 
-void CServer::ConKick(IConsole::IResult *pResult, void *pUser)
+bool CServer::ConKick(IConsole::IResult *pResult, void *pUser)
 {
 	if (pResult->NumArguments() > 1)
 	{
@@ -2229,9 +2229,11 @@ void CServer::ConKick(IConsole::IResult *pResult, void *pUser)
 	}
 	else
 		((CServer *)pUser)->Kick(pResult->GetInteger(0), "Kicked by console");
+
+	return true;
 }
 
-void CServer::ConStatus(IConsole::IResult *pResult, void *pUser)
+bool CServer::ConStatus(IConsole::IResult *pResult, void *pUser)
 {
 	char aBuf[1024];
 	char aAddrStr[NETADDR_MAXSTRSIZE];
@@ -2254,11 +2256,13 @@ void CServer::ConStatus(IConsole::IResult *pResult, void *pUser)
 			pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "Server", aBuf);
 		}
 	}
+	return true;
 }
 
-void CServer::ConShutdown(IConsole::IResult *pResult, void *pUser)
+bool CServer::ConShutdown(IConsole::IResult *pResult, void *pUser)
 {
 	((CServer *)pUser)->m_RunServer = 0;
+	return true;
 }
 
 void CServer::DemoRecorder_HandleAutoStart()
@@ -2285,7 +2289,7 @@ bool CServer::DemoRecorder_IsRecording()
 	return m_DemoRecorder.IsRecording();
 }
 
-void CServer::ConRecord(IConsole::IResult *pResult, void *pUser)
+bool CServer::ConRecord(IConsole::IResult *pResult, void *pUser)
 {
 	CServer *pServer = (CServer *)pUser;
 	char aFilename[128];
@@ -2299,15 +2303,16 @@ void CServer::ConRecord(IConsole::IResult *pResult, void *pUser)
 		str_format(aFilename, sizeof(aFilename), "demos/demo_%s.demo", aDate);
 	}
 	pServer->m_DemoRecorder.Start(pServer->Storage(), pServer->Console(), aFilename, pServer->GameServer()->NetVersion(), pServer->m_vMapData[MAP_DEFAULT_ID].m_aCurrentMap, pServer->m_vMapData[MAP_DEFAULT_ID].m_CurrentMapCrc, "server");
-	return;
+	return true;
 }
 
-void CServer::ConStopRecord(IConsole::IResult *pResult, void *pUser)
+bool CServer::ConStopRecord(IConsole::IResult *pResult, void *pUser)
 {
 	((CServer *)pUser)->m_DemoRecorder.Stop();
+	return true;
 }
 
-void CServer::ConSetMapByID(IConsole::IResult *pResult, void *pUser)
+bool CServer::ConSetMapByID(IConsole::IResult *pResult, void *pUser)
 {
 	CServer *pServer = (CServer *)pUser;
 
@@ -2321,7 +2326,7 @@ void CServer::ConSetMapByID(IConsole::IResult *pResult, void *pUser)
 		char aBuf[64];
 		str_format(aBuf, sizeof(aBuf), "Reloaded Map with ID %d for client %d", MapID, ClientID);
 		pServer->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "multimap", aBuf);
-		return;
+		return true;
 	}
 	else if (pResult->NumArguments() > 0)
 	{
@@ -2335,12 +2340,12 @@ void CServer::ConSetMapByID(IConsole::IResult *pResult, void *pUser)
 		char aBuf[64];
 		str_format(aBuf, sizeof(aBuf), "Reloaded Map with ID %d for all clients", MapID);
 		pServer->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "multimap", aBuf);
-		return;
+		return true;
 	}
-	return;
+	return false;
 }
 
-void CServer::ConSetMapByName(IConsole::IResult *pResult, void *pUser)
+bool CServer::ConSetMapByName(IConsole::IResult *pResult, void *pUser)
 {
 	CServer *pServer = (CServer *)pUser;
 	char aMapBuf[64];
@@ -2354,7 +2359,7 @@ void CServer::ConSetMapByName(IConsole::IResult *pResult, void *pUser)
 		char aBuf[64];
 		str_format(aBuf, sizeof(aBuf), "Reloaded Map with name %s for client %d", aMapBuf, ClientID);
 		pServer->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "multimap", aBuf);
-		return;
+		return true;
 	}
 	else if (pResult->NumArguments() > 0)
 	{
@@ -2368,12 +2373,12 @@ void CServer::ConSetMapByName(IConsole::IResult *pResult, void *pUser)
 		char aBuf[64];
 		str_format(aBuf, sizeof(aBuf), "Reloaded Map with name %s for all clients", aMapBuf);
 		pServer->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "multimap", aBuf);
-		return;
+		return true;
 	}
-	return;
+	return false;
 }
 
-void CServer::ConLogout(IConsole::IResult *pResult, void *pUser)
+bool CServer::ConLogout(IConsole::IResult *pResult, void *pUser)
 {
 	CServer *pServer = (CServer *)pUser;
 
@@ -2393,6 +2398,7 @@ void CServer::ConLogout(IConsole::IResult *pResult, void *pUser)
 		str_format(aBuf, sizeof(aBuf), "ClientID=%d logged out", pServer->m_RconClientID);
 		pServer->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
 	}
+	return true;
 }
 
 void CServer::ConchainSpecialInfoupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)

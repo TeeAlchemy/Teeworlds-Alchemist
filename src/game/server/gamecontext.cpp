@@ -133,6 +133,8 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 		pEvent->m_Y = (int)Pos.y;
 	}
 
+	CreateExtraEffect(Pos, 0, MapID, Mask);
+
 	if (!NoDamage)
 	{
 		// deal damage
@@ -158,7 +160,8 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 void CGameContext::CreatePlayerSpawn(vec2 Pos, int MapID, CClientMask Mask)
 {
 	// create the event
-	CNetEvent_Spawn *ev = m_Events.Create<CNetEvent_Spawn>(Mask, MapID);;
+	CNetEvent_Spawn *ev = m_Events.Create<CNetEvent_Spawn>(Mask, MapID);
+	;
 	if (ev)
 	{
 		ev->m_X = (int)Pos.x;
@@ -213,10 +216,10 @@ void CGameContext::CreateSoundGlobal(int Sound, int Target)
 
 void CGameContext::CreateExtraEffect(vec2 Pos, int Effect, int MapID, CClientMask Mask)
 {
-	if(Effect)
+	if (Effect)
 	{
 		CNetEvent_Finish *pEvent = m_Events.Create<CNetEvent_Finish>(Mask, MapID);
-		if(pEvent)
+		if (pEvent)
 		{
 			pEvent->m_X = (int)Pos.x;
 			pEvent->m_Y = (int)Pos.y;
@@ -225,7 +228,7 @@ void CGameContext::CreateExtraEffect(vec2 Pos, int Effect, int MapID, CClientMas
 	else
 	{
 		CNetEvent_Birthday *pEvent = m_Events.Create<CNetEvent_Birthday>(Mask, MapID);
-		if(pEvent)
+		if (pEvent)
 		{
 			pEvent->m_X = (int)Pos.x;
 			pEvent->m_Y = (int)Pos.y;
@@ -249,7 +252,7 @@ void CGameContext::CreateMapSoundGlobal(int MapSoundID, int Target)
 	if (MapSoundID < 0)
 		return;
 
-	CNetMsg_Sv_MapSoundGlobal	 Msg;
+	CNetMsg_Sv_MapSoundGlobal Msg;
 	Msg.m_SoundID = MapSoundID;
 	if (Target == -2)
 		Server()->SendPackMsg(&Msg, MSGFLAG_NOSEND, -1);
@@ -789,7 +792,11 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 					Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_USER);
 				}
 
+				m_ConsoleOutput_Target = ClientID;
+
 				Console()->ExecuteLineFlag(pMsg->m_pMessage + 1, ClientID, CFGFLAG_CHAT);
+
+				m_ConsoleOutput_Target = -1;
 
 				Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_ADMIN);
 				CreateExtraEffect(m_apPlayers[ClientID]->GetCharacter()->m_Pos, 0, m_apPlayers[ClientID]->GetCharacter()->GetMapID());
@@ -1189,7 +1196,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 	}
 }
 
-void CGameContext::ConTuneParam(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::ConTuneParam(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	const char *pParamName = pResult->GetString(0);
@@ -1204,18 +1211,21 @@ void CGameContext::ConTuneParam(IConsole::IResult *pResult, void *pUserData)
 	}
 	else
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "tuning", "No such tuning parameter");
+
+	return true;
 }
 
-void CGameContext::ConTuneReset(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::ConTuneReset(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	CTuningParams TuningParams;
 	*pSelf->Tuning() = TuningParams;
 	pSelf->SendTuningParams(-1);
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "tuning", "Tuning reset");
+	return true;
 }
 
-void CGameContext::ConTuneDump(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::ConTuneDump(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	char aBuf[256];
@@ -1226,49 +1236,55 @@ void CGameContext::ConTuneDump(IConsole::IResult *pResult, void *pUserData)
 		str_format(aBuf, sizeof(aBuf), "%s %.2f", pSelf->Tuning()->m_apNames[i], v);
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "tuning", aBuf);
 	}
+	return true;
 }
 
-void CGameContext::ConPause(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::ConPause(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	pSelf->m_pController->TogglePause();
+	return true;
 }
 
-void CGameContext::ConChangeMap(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::ConChangeMap(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	pSelf->m_pController->ChangeMap(pResult->NumArguments() ? pResult->GetString(0) : "");
+	return true;
 }
 
-void CGameContext::ConRestart(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::ConRestart(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	if (pResult->NumArguments())
 		pSelf->m_pController->DoWarmup(pResult->GetInteger(0));
 	else
 		pSelf->m_pController->StartRound();
+	return true;
 }
 
-void CGameContext::ConBroadcast(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::ConBroadcast(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	pSelf->SendBroadcast(-1, pResult->GetString(0));
+	return true;
 }
 
-void CGameContext::ConSay(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::ConSay(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	pSelf->SendChat(-1, CGameContext::CHAT_ALL, pResult->GetString(0));
+	return true;
 }
 
-void CGameContext::ConSetTeam(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::ConSetTeam(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int ClientID = clamp(pResult->GetInteger(0), 0, (int)MAX_CLIENTS - 1);
 	int Team = clamp(pResult->GetInteger(1), -1, 1);
 	int Delay = pResult->NumArguments() > 2 ? pResult->GetInteger(2) : 0;
 	if (!pSelf->m_apPlayers[ClientID])
-		return;
+		return true;
 
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "moved client %d to team %d", ClientID, Team);
@@ -1277,9 +1293,10 @@ void CGameContext::ConSetTeam(IConsole::IResult *pResult, void *pUserData)
 	pSelf->m_apPlayers[ClientID]->m_TeamChangeTick = pSelf->Server()->Tick() + pSelf->Server()->TickSpeed() * Delay * 60;
 	pSelf->m_apPlayers[ClientID]->SetTeam(Team);
 	(void)pSelf->m_pController->CheckTeamBalance();
+	return true;
 }
 
-void CGameContext::ConSetTeamAll(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::ConSetTeamAll(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int Team = clamp(pResult->GetInteger(0), -1, 1);
@@ -1291,19 +1308,21 @@ void CGameContext::ConSetTeamAll(IConsole::IResult *pResult, void *pUserData)
 			pSelf->m_apPlayers[i]->SetTeam(Team, false);
 
 	(void)pSelf->m_pController->CheckTeamBalance();
+	return true;
 }
 
-void CGameContext::ConSwapTeams(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::ConSwapTeams(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	pSelf->SwapTeams();
+	return true;
 }
 
-void CGameContext::ConShuffleTeams(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::ConShuffleTeams(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	if (!pSelf->m_pController->IsTeamplay())
-		return;
+		return true;
 
 	int CounterRed = 0;
 	int CounterBlue = 0;
@@ -1340,9 +1359,10 @@ void CGameContext::ConShuffleTeams(IConsole::IResult *pResult, void *pUserData)
 	}
 
 	(void)pSelf->m_pController->CheckTeamBalance();
+	return true;
 }
 
-void CGameContext::ConLockTeams(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::ConLockTeams(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	pSelf->m_LockTeams ^= 1;
@@ -1350,9 +1370,10 @@ void CGameContext::ConLockTeams(IConsole::IResult *pResult, void *pUserData)
 		pSelf->SendChatTarget(-1, _("Teams were locked"));
 	else
 		pSelf->SendChatTarget(-1, _("Teams were unlocked"));
+	return true;
 }
 
-void CGameContext::ConAddVote(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::ConAddVote(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	const char *pDescription = pResult->GetString(0);
@@ -1361,7 +1382,7 @@ void CGameContext::ConAddVote(IConsole::IResult *pResult, void *pUserData)
 	if (pSelf->m_NumVoteOptions == MAX_VOTE_OPTIONS)
 	{
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "maximum number of vote options reached");
-		return;
+		return true;
 	}
 
 	// check for valid option
@@ -1370,7 +1391,7 @@ void CGameContext::ConAddVote(IConsole::IResult *pResult, void *pUserData)
 		char aBuf[256];
 		str_format(aBuf, sizeof(aBuf), "skipped invalid command '%s'", pCommand);
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
-		return;
+		return true;
 	}
 	while (*pDescription && *pDescription == ' ')
 		pDescription++;
@@ -1379,7 +1400,7 @@ void CGameContext::ConAddVote(IConsole::IResult *pResult, void *pUserData)
 		char aBuf[256];
 		str_format(aBuf, sizeof(aBuf), "skipped invalid option '%s'", pDescription);
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
-		return;
+		return true;
 	}
 
 	// check for duplicate entry
@@ -1391,7 +1412,7 @@ void CGameContext::ConAddVote(IConsole::IResult *pResult, void *pUserData)
 			char aBuf[256];
 			str_format(aBuf, sizeof(aBuf), "option '%s' already exists", pDescription);
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
-			return;
+			return true;
 		}
 		pOption = pOption->m_pNext;
 	}
@@ -1419,9 +1440,10 @@ void CGameContext::ConAddVote(IConsole::IResult *pResult, void *pUserData)
 	CNetMsg_Sv_VoteOptionAdd OptionMsg;
 	OptionMsg.m_pDescription = pOption->m_aDescription;
 	pSelf->Server()->SendPackMsg(&OptionMsg, MSGFLAG_VITAL, -1);
+	return true;
 }
 
-void CGameContext::ConRemoveVote(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::ConRemoveVote(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	const char *pDescription = pResult->GetString(0);
@@ -1439,7 +1461,7 @@ void CGameContext::ConRemoveVote(IConsole::IResult *pResult, void *pUserData)
 		char aBuf[256];
 		str_format(aBuf, sizeof(aBuf), "option '%s' does not exist", pDescription);
 		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
-		return;
+		return true;
 	}
 
 	// inform clients about removed option
@@ -1484,9 +1506,10 @@ void CGameContext::ConRemoveVote(IConsole::IResult *pResult, void *pUserData)
 	pSelf->m_pVoteOptionFirst = pVoteOptionFirst;
 	pSelf->m_pVoteOptionLast = pVoteOptionLast;
 	pSelf->m_NumVoteOptions = NumVoteOptions;
+	return true;
 }
 
-void CGameContext::ConForceVote(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::ConForceVote(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	const char *pType = pResult->GetString(0);
@@ -1513,7 +1536,7 @@ void CGameContext::ConForceVote(IConsole::IResult *pResult, void *pUserData)
 		{
 			str_format(aBuf, sizeof(aBuf), "'%s' isn't an option on this server", pValue);
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
-			return;
+			return true;
 		}
 	}
 	else if (str_comp_nocase(pType, "kick") == 0)
@@ -1522,7 +1545,7 @@ void CGameContext::ConForceVote(IConsole::IResult *pResult, void *pUserData)
 		if (KickID < 0 || KickID >= MAX_CLIENTS || !pSelf->m_apPlayers[KickID])
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "Invalid client id to kick");
-			return;
+			return true;
 		}
 
 		if (!g_Config.m_SvVoteKickBantime)
@@ -1544,16 +1567,17 @@ void CGameContext::ConForceVote(IConsole::IResult *pResult, void *pUserData)
 		if (SpectateID < 0 || SpectateID >= MAX_CLIENTS || !pSelf->m_apPlayers[SpectateID] || pSelf->m_apPlayers[SpectateID]->GetTeam() == TEAM_SPECTATORS)
 		{
 			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "Invalid client id to move");
-			return;
+			return true;
 		}
 
 		pSelf->SendChatTarget(-1, _("admin moved '{str:Name}' to spectator ({str:Reason})"), "Name", pSelf->Server()->ClientName(SpectateID), "Reason", pReason);
 		str_format(aBuf, sizeof(aBuf), "set_team %d -1 %d", SpectateID, g_Config.m_SvVoteSpectateRejoindelay);
 		pSelf->Console()->ExecuteLine(aBuf, -1);
 	}
+	return true;
 }
 
-void CGameContext::ConClearVotes(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::ConClearVotes(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 
@@ -1564,15 +1588,16 @@ void CGameContext::ConClearVotes(IConsole::IResult *pResult, void *pUserData)
 	pSelf->m_pVoteOptionFirst = 0;
 	pSelf->m_pVoteOptionLast = 0;
 	pSelf->m_NumVoteOptions = 0;
+	return true;
 }
 
-void CGameContext::ConVote(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::ConVote(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 
 	// check if there is a vote running
 	if (!pSelf->m_VoteCloseTime)
-		return;
+		return true;
 
 	if (str_comp_nocase(pResult->GetString(0), "yes") == 0)
 		pSelf->m_VoteEnforce = CGameContext::VOTE_ENFORCE_YES;
@@ -1584,6 +1609,8 @@ void CGameContext::ConVote(IConsole::IResult *pResult, void *pUserData)
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "forcing vote %s", pResult->GetString(0));
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
+
+	return true;
 }
 
 void CGameContext::ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData)
@@ -1600,32 +1627,23 @@ void CGameContext::ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *p
 	}
 }
 
-void CGameContext::ConAbout(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::ConAbout(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pThis = (CGameContext *)pUserData;
 
-	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), "%s %s by %s", MOD_NAME, MOD_VERSION, MOD_AUTHORS);
-	pThis->Console()->Print(IConsole::OUTPUT_LEVEL_CHAT, "chat", aBuf);
+	pThis->SendChatTarget(pResult->GetClientID(), _("{str:modname} {str:modversion} by {str:modauthors}"), "modname", MOD_NAME, "modversion", MOD_VERSION, "modauthors", MOD_AUTHORS);
 
 	if (MOD_CREDITS[0])
-	{
-		str_format(aBuf, sizeof(aBuf), "Credits: %s", MOD_CREDITS);
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_CHAT, "chat", aBuf);
-	}
+		pThis->SendChatTarget(pResult->GetClientID(), _("Credits: {str:credits}"), "credits", MOD_CREDITS);
 	if (MOD_THANKS[0])
-	{
-		str_format(aBuf, sizeof(aBuf), "Thanks to: %s", MOD_THANKS);
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_CHAT, "chat", aBuf);
-	}
+		pThis->SendChatTarget(pResult->GetClientID(), _("Thanks to: {str:thanks}"), "thanks", MOD_THANKS);
 	if (MOD_SOURCES[0])
-	{
-		str_format(aBuf, sizeof(aBuf), "Sources: %s", MOD_SOURCES);
-		pThis->Console()->Print(IConsole::OUTPUT_LEVEL_CHAT, "chat", aBuf);
-	}
+		pThis->SendChatTarget(pResult->GetClientID(), _("Sources: {str:sources}"), "source", MOD_SOURCES);
+
+	return true;
 }
 
-void CGameContext::ConLanguage(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::ConLanguage(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 
@@ -1677,7 +1695,7 @@ void CGameContext::ConLanguage(IConsole::IResult *pResult, void *pUserData)
 		pSelf->SendChatTarget(ClientID, Buffer.buffer());
 	}
 
-	return;
+	return true;
 }
 
 void CGameContext::SetClientLanguage(int ClientID, const char *pLanguage)
@@ -1689,11 +1707,30 @@ void CGameContext::SetClientLanguage(int ClientID, const char *pLanguage)
 	}
 }
 
-void CGameContext::ConsoleOutputCallback_Chat(const char *pStr, void *pUser)
+void CGameContext::ChatConsolePrintCallback(const char *pLine, void *pUser)
 {
-	CGameContext *pThis = (CGameContext *)pUser;
-	if (pThis->m_ConsoleOutput_Target >= 0 && pThis->m_ConsoleOutput_Target < MAX_CLIENTS)
-		pThis->SendChatTarget(pThis->m_ConsoleOutput_Target, pStr);
+	CGameContext *pSelf = (CGameContext *)pUser;
+	int ClientID = pSelf->m_ConsoleOutput_Target;
+
+	if (ClientID < 0 || ClientID >= MAX_CLIENTS)
+		return;
+
+	const char *pLineOrig = pLine;
+
+	static volatile int ReentryGuard = 0;
+
+	if (ReentryGuard)
+		return;
+	ReentryGuard++;
+
+	if (*pLine == '[')
+		do
+			pLine++;
+		while ((pLine - 2 < pLineOrig || *(pLine - 2) != ':') && *pLine != 0); // remove the category (e.g. [Console]: No Such Command)
+
+	pSelf->SendChatTarget(ClientID, pLine);
+
+	ReentryGuard--;
 }
 
 void CGameContext::OnConsoleInit()
@@ -1701,8 +1738,7 @@ void CGameContext::OnConsoleInit()
 	m_pServer = Kernel()->RequestInterface<IServer>();
 	m_pConsole = Kernel()->RequestInterface<IConsole>();
 
-	m_ConsoleOutputHandle_ChatPrint = Console()->RegisterPrintCallback(0, ConsoleOutputCallback_Chat, this);
-	Console()->SetPrintOutputLevel_Hard(m_ConsoleOutputHandle_ChatPrint, IConsole::OUTPUT_LEVEL_CHAT);
+	m_ConsoleOutputHandle_ChatPrint = Console()->RegisterPrintCallback(0, ChatConsolePrintCallback, this);
 
 	Console()->Register("tune", "si", CFGFLAG_SERVER, ConTuneParam, this, "Tune variable to value");
 	Console()->Register("tune_reset", "", CFGFLAG_SERVER, ConTuneReset, this, "Reset tuning");
@@ -1726,7 +1762,7 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("vote", "r", CFGFLAG_SERVER, ConVote, this, "Force a vote to yes/no");
 
 	Console()->Register("about", "", CFGFLAG_CHAT, ConAbout, this, "Show information about the mod");
-	Console()->Register("language", "s", CFGFLAG_CHAT, ConLanguage, this, "Show information about the mod");
+	Console()->Register("language", "?s", CFGFLAG_CHAT, ConLanguage, this, "Show information about the mod");
 
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
 

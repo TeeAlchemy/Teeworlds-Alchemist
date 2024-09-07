@@ -15,7 +15,6 @@ public:
 		OUTPUT_LEVEL_STANDARD = 0,
 		OUTPUT_LEVEL_ADDINFO,
 		OUTPUT_LEVEL_DEBUG,
-		OUTPUT_LEVEL_CHAT,
 		NUM_OUTPUT_LEVELS,
 
 		ACCESS_LEVEL_ADMIN = 0,
@@ -69,7 +68,7 @@ public:
 
 	typedef void (*FPrintCallback)(const char *pStr, void *pUser);
 	typedef void (*FPossibleCallback)(const char *pCmd, void *pUser);
-	typedef void (*FCommandCallback)(IResult *pResult, void *pUserData);
+	typedef bool (*FCommandCallback)(IResult *pResult, void *pUserData);
 	typedef void (*FChainCommandCallback)(IResult *pResult, void *pUserData, FCommandCallback pfnCallback, void *pCallbackUserData);
 
 	virtual const CCommandInfo *FirstCommandInfo(int AccessLevel, int Flagmask) const = 0;
@@ -87,7 +86,6 @@ public:
 	virtual bool LineIsValid(const char *pStr) = 0;
 	virtual void ExecuteLine(const char *Sptr, int ClientID) = 0;
 	virtual void ExecuteLineFlag(const char *Sptr, int ClientID, int FlasgMask) = 0;
-	virtual void ExecuteLineClient(const char *pStr, int ClientID, int Level, int FlagMask) = 0;
 	virtual void ExecuteLineStroked(int Stroke, const char *pStr, int ClientID) = 0;
 	virtual void ExecuteFile(const char *pFilename) = 0;
 
