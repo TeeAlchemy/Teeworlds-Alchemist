@@ -133,4 +133,6 @@ MACRO_CONFIG_INT(SvNetlimitAlpha, sv_netlimit_alpha, 50, 1, 100, CFGFLAG_SERVER,
 MACRO_CONFIG_INT(SvMapWindow, sv_map_window, 15, 0, 100, CFGFLAG_SERVER, "Map downloading send-ahead window")
 MACRO_CONFIG_INT(SvFastDownload, sv_fast_download, 1, 0, 1, CFGFLAG_SERVER, "Enables fast download of maps")
 
+MACRO_CONFIG_STR(SvChatGLMAPI, sv_chatglm_api, 128, "", CFGFLAG_SERVER, "The API for ChatGLM")
+
 #endif

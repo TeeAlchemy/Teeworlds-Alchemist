@@ -1,5 +1,6 @@
 // (c) ST-Chara(Daiqian Yang) 2024 - 2024
 #include <engine/shared/json.h>
+#include <engine/shared/config.h>
 #include <string>
 
 #include "chatglm.h"
@@ -58,7 +59,9 @@ void CChatGLM::Send(CGameContext *pGameServer, const char *pName, const char *pC
     std::unique_ptr<CHttpRequest> pHttp;
     pHttp = HttpPostJson("https://open.bigmodel.cn/api/paas/v4/chat/completions", JsonWriter.GetOutputString().c_str());
 
-    pHttp->Header("Authorization: Bearer 259f9de5c3b0ea40766f6cb7e9060cd4.hjpS8hMuMXZDJBa6");
+    char aAuth[128];
+    str_format(aAuth, sizeof(aAuth), "Authorization: Bearer %s", g_Config.m_SvChatGLMAPI);
+    pHttp->Header(aAuth);
     pHttp->Header("Content-Type: application/json");
 
     pHttp->LogProgress(HTTPLOG::FAILURE);
