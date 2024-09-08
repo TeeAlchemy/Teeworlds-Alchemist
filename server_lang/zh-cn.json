@@ -1,180 +1,212 @@
 {
     "translation": [
         {
-            "key": "Teams are locked",
-            "value": "队伍已锁定"
-        },
-        {
-            "key": "Unknown language",
-            "value": "未知语言"
-        },
-        {
-            "key": "Sorry, I can't answer your question.",
-            "value": "抱歉，我不能回答你的问题"
-        },
-        {
-            "key": "You can't kick yourself",
-            "value": "你不能踢出你自己"
-        },
-        {
-            "key": "'{str:Name}' joined the {str:Team}",
-            "value": "'{str:Name}' 加入了 {str:Team}"
-        },
-        {
             "key": "'{str:Name}' called for vote to kick you",
             "value": "'{str:Name}' 发起投票要踢出你"
-        },
-        {
-            "key": "Server does not allow voting to kick players",
-            "value": "服务器不允许投票踢出玩家"
         },
         {
             "key": "'{str:Name}' entered the game",
             "value": "'{str:Name}' 进入了游戏"
         },
         {
-            "key": "Server does not allow voting to move players to spectators",
-            "value": "服务器不允许投票将玩家移动到旁观"
-        },
-        {
-            "key": "Teams have been balanced",
-            "value": "队伍已平衡"
-        },
-        {
-            "key": "Language successfully switched to English",
-            "value": "语言成功切换为中文"
-        },
-        {
-            "key": "Vote passed",
-            "value": "投票通过"
-        },
-        {
-            "key": "Teams were locked",
-            "value": "队伍被锁定了"
-        },
-        {
-            "key": "Invalid spectator id used",
-            "value": "无效的观众ID"
-        },
-        {
-            "key": "admin forced vote {str:Result}",
-            "value": "管理员强制投票 {str:Result}"
-        },
-        {
-            "key": "Teams were unlocked",
-            "value": "队伍解锁了"
-        },
-        {
-            "key": "'{str:Option}' isn't an option on this server",
-            "value": "'{str:Option}' 不是服务器里的一个设置"
-        },
-        {
-            "key": "You must wait {int:Sec} seconds before making another vote",
-            "value": "你必须等待 {int:Sec} 秒才能发起另一个投票"
-        },
-        {
-            "key": "Time to wait before changing team: {sec:Time}",
-            "value": "你必须等待 {sec:Time} 才能改变队伍"
-        },
-        {
-            "key": "Kick voting requires {int:Min} players on the server",
-            "value": "投票踢出需要服务器上有 {int:Min} 名玩家"
-        },
-        {
-            "key": "Spectators aren't allowed to start a vote.",
-            "value": "旁观者不允许发起投票"
-        },
-        {
-            "key": "Vote failed",
-            "value": "投票失败"
-        },
-        {
-            "key": "You can't kick admins",
-            "value": "你不能踢出管理员"
-        },
-        {
-            "key": "Only {int:Count} active players are allowed",
-            "value": "最多允许 {int:Count} 名玩家"
+            "key": "'{str:Name}' has left the game",
+            "value": "'{str:Name}' 退出了游戏"
         },
         {
             "key": "'{str:Name}' has left the game ({str:Reason})",
             "value": "'{str:Name}' 退出了游戏 ({str:Reason})"
         },
         {
-            "key": "You can't move yourself",
-            "value": "你不能移动你自己"
-        },
-        {
-            "key": "Wait for current vote to end before calling a new one.",
-            "value": "在发起新的投票前请等待当前的投票结束"
-        },
-        {
-            "key": "Teams were shuffled",
-            "value": "队伍被打乱了"
-        },
-        {
-            "key": "Available languages: {str:ListOfLanguage}",
-            "value": "可用语言: {str:ListOfLanguage}"
-        },
-        {
-            "key": "Vote aborted",
-            "value": "投票已中止"
-        },
-        {
-            "key": "'{str:Name}' has left the game",
-            "value": "'{str:Name}' 退出了游戏"
-        },
-        {
-            "key": "All players were moved to the {str:Team}",
-            "value": "所有玩家已被移动到 {str:Team}"
-        },
-        {
-            "key": "Teams were swapped",
-            "value": "队伍已交换"
-        },
-        {
-            "key": "admin forced server option '{str:Value}' ({str:Reason})",
-            "value": "管理员强制更改服务器选项 '{str:Value}' ({str:Reason})"
-        },
-        {
-            "key": "Invalid client id to move",
-            "value": "无效的客户端ID"
-        },
-        {
-            "key": "admin moved '{str:Name}' to spectator ({str:Reason})",
-            "value": "管理员将 '{str:Name}' 移动到旁观者 ({str:Reason})"
-        },
-        {
-            "key": "Teams must be balanced, please join other team",
-            "value": "队伍必须平衡，请加入其他队伍"
-        },
-        {
-            "key": "Invalid client id to kick",
-            "value": "无效的客户端ID"
+            "key": "'{str:Name}' joined the {str:Team}",
+            "value": "'{str:Name}' 加入了 {str:Team}"
         },
         {
             "key": "'{str:OldName}' changed name to '{str:NewName}'",
             "value": "'{str:OldName}' 将名字改为 '{str:NewName}'"
         },
         {
-            "key": "You were moved to {str:Team} due to team balancing",
-            "value": "你被移动到 {str:Team} 以平衡队伍"
+            "key": "'{str:Option}' isn't an option on this server",
+            "value": "'{str:Option}' 不是服务器里的一个设置"
+        },
+        {
+            "key": "Access for command /{str:cmd} denied.",
+            "value": "你没有调用指令 /{str:cmd} 的权限"
+        },
+        {
+            "key": "Access for command {str:cmd} denied.",
+            "value": "你没有调用指令 {str:cmd} 的权限"
+        },
+        {
+            "key": "All players were moved to the {str:Team}",
+            "value": "所有玩家已被移动到 {str:Team}"
+        },
+        {
+            "key": "Available languages: {str:ListOfLanguage}",
+            "value": "可用语言: {str:ListOfLanguage}"
+        },
+        {
+            "key": "ChatGLM has received your message and is currently processing it.",
+            "value": "ChatGLM已接收到了您的消息，正在处理中"
         },
         {
             "key": "Credits: {str:credits}",
             "value": "开发者: {str:credits}"
         },
         {
-            "key": "Thanks to: {str:thanks}",
-            "value": "感谢: {str:thanks}"
+            "key": "Invalid arguments.",
+            "value": "无效参数"
         },
         {
-            "key": "{str:modname} {str:modversion} by {str:modauthors}",
-            "value": "{str:modname} {str:modversion} by {str:modauthors}"
+            "key": "Invalid client id to kick",
+            "value": "无效的客户端ID"
+        },
+        {
+            "key": "Invalid client id to move",
+            "value": "无效的客户端ID"
+        },
+        {
+            "key": "Invalid spectator id used",
+            "value": "无效的观众ID"
+        },
+        {
+            "key": "Kick voting requires {int:Min} players on the server",
+            "value": "投票踢出需要服务器上有 {int:Min} 名玩家"
+        },
+        {
+            "key": "Language successfully switched to English",
+            "value": "语言成功切换为中文"
+        },
+        {
+            "key": "No such command: /{str:cmd}.",
+            "value": "找不到指令: /{str:cmd}."
+        },
+        {
+            "key": "No such command: {str:cmd}.",
+            "value": "找不到指令: {str:cmd}."
+        },
+        {
+            "key": "Only {int:Count} active players are allowed",
+            "value": "最多允许 {int:Count} 名玩家"
+        },
+        {
+            "key": "Server does not allow voting to kick players",
+            "value": "服务器不允许投票踢出玩家"
+        },
+        {
+            "key": "Server does not allow voting to move players to spectators",
+            "value": "服务器不允许投票将玩家移动到旁观"
+        },
+        {
+            "key": "Sorry, I can't answer your question.",
+            "value": "抱歉，我不能回答你的问题"
         },
         {
             "key": "Sources: {str:sources}",
             "value": "源码: {str:sources}"
+        },
+        {
+            "key": "Spectators aren't allowed to start a vote.",
+            "value": "旁观者不允许发起投票"
+        },
+        {
+            "key": "Teams are locked",
+            "value": "队伍已锁定"
+        },
+        {
+            "key": "Teams have been balanced",
+            "value": "队伍已平衡"
+        },
+        {
+            "key": "Teams must be balanced, please join other team",
+            "value": "队伍必须平衡，请加入其他队伍"
+        },
+        {
+            "key": "Teams were locked",
+            "value": "队伍被锁定了"
+        },
+        {
+            "key": "Teams were shuffled",
+            "value": "队伍被打乱了"
+        },
+        {
+            "key": "Teams were swapped",
+            "value": "队伍已交换"
+        },
+        {
+            "key": "Teams were unlocked",
+            "value": "队伍解锁了"
+        },
+        {
+            "key": "Thanks to: {str:thanks}",
+            "value": "感谢: {str:thanks}"
+        },
+        {
+            "key": "Time to wait before changing team: {sec:Time}",
+            "value": "你必须等待 {sec:Time} 才能改变队伍"
+        },
+        {
+            "key": "Unknown language",
+            "value": "未知语言"
+        },
+        {
+            "key": "Usage: /{str:name} {str:help}",
+            "value": "使用方法: /{str:name} {str:help}"
+        },
+        {
+            "key": "Usage: {str:name} {str:help}",
+            "value": "使用方法: {str:name} {str:help}"
+        },
+        {
+            "key": "Vote aborted",
+            "value": "投票已中止"
+        },
+        {
+            "key": "Vote failed",
+            "value": "投票失败"
+        },
+        {
+            "key": "Vote passed",
+            "value": "投票通过"
+        },
+        {
+            "key": "Wait for current vote to end before calling a new one.",
+            "value": "在发起新的投票前请等待当前的投票结束"
+        },
+        {
+            "key": "You can't kick admins",
+            "value": "你不能踢出管理员"
+        },
+        {
+            "key": "You can't kick yourself",
+            "value": "你不能踢出你自己"
+        },
+        {
+            "key": "You can't move yourself",
+            "value": "你不能移动你自己"
+        },
+        {
+            "key": "You must wait {int:Sec} seconds before making another vote",
+            "value": "你必须等待 {int:Sec} 秒才能发起另一个投票"
+        },
+        {
+            "key": "You were moved to {str:Team} due to team balancing",
+            "value": "你被移动到 {str:Team} 以平衡队伍"
+        },
+        {
+            "key": "admin forced server option '{str:Value}' ({str:Reason})",
+            "value": "管理员强制更改服务器选项 '{str:Value}' ({str:Reason})"
+        },
+        {
+            "key": "admin forced vote {str:Result}",
+            "value": "管理员强制投票 {str:Result}"
+        },
+        {
+            "key": "admin moved '{str:Name}' to spectator ({str:Reason})",
+            "value": "管理员将 '{str:Name}' 移动到旁观者 ({str:Reason})"
+        },
+        {
+            "key": "{str:modname} {str:modversion} by {str:modauthors}",
+            "value": "{str:modname}. {str:modversion} by {str:modauthors}."
         }
     ]
 }

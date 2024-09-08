@@ -51,6 +51,7 @@ public:
 							  pEngine->m_pStorage->OpenFile(aFilenameRecv, IOFLAG_WRITE, IStorage::TYPE_SAVE));
 			pEngine->m_Logging = true;
 		}
+		return true;
 	}
 
 	CEngine(bool Test, const char *pAppname, int Jobs)

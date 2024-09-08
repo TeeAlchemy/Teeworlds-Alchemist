@@ -17,38 +17,6 @@ function Script(name)
 	return "python3 " .. name
 end
 
-function CHash(output, ...)
-	local inputs = TableFlatten({...})
-
-	output = Path(output)
-
-	-- compile all the files
-	local cmd = Script("scripts/cmd5.py") .. " "
-	for index, inname in ipairs(inputs) do
-		cmd = cmd .. Path(inname) .. " "
-	end
-
-	cmd = cmd .. " > " .. output
-
-	AddJob(output, "cmd5 " .. output, cmd)
-	for index, inname in ipairs(inputs) do
-		AddDependency(output, inname)
-	end
-	AddDependency(output, "scripts/cmd5.py")
-	return output
-end
-
---[[
-function DuplicateDirectoryStructure(orgpath, srcpath, dstpath)
-	for _,v in pairs(CollectDirs(srcpath .. "/")) do
-		MakeDirectory(dstpath .. "/" .. string.sub(v, string.len(orgpath)+2))
-		DuplicateDirectoryStructure(orgpath, v, dstpath)
-	end
-end
-
-DuplicateDirectoryStructure("src", "src", "objs")
-]]
-
 function ResCompile(scriptfile)
 	scriptfile = Path(scriptfile)
 	if config.compiler.driver == "cl" then
@@ -98,8 +66,6 @@ server_content_header = ContentCompile("server_content_header", "src/game/genera
 
 AddDependency(network_source, network_header)
 AddDependency(server_content_source, server_content_header)
-
-nethash = CHash("src/game/generated/nethash.cpp", "src/engine/shared/protocol.h", "src/game/generated/protocol.h", "src/game/tuning.h", "src/game/gamecore.cpp", network_header)
 
 icu_depends = {}
 server_link_other = {}
@@ -261,7 +227,7 @@ function build(settings)
 	
 	engine = Compile(engine_settings, Collect("src/engine/shared/*.cpp", "src/base/*.cpp"))
 	server = Compile(server_settings, Collect("src/engine/server/*.cpp"))
-	game_shared = Compile(settings, Collect("src/game/*.cpp"), nethash, network_source)
+	game_shared = Compile(settings, Collect("src/game/*.cpp"), network_source)
 	game_server = Compile(settings, CollectRecursive("src/game/server/*.cpp"), server_content_source)
 	teeuniverses = Compile(server_settings, Collect("src/teeuniverses/*.cpp", "src/teeuniverses/components/*.cpp", "src/teeuniverses/system/*.cpp"))
 	

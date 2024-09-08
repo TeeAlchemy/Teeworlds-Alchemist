@@ -32,7 +32,6 @@ class CConsole : public IConsole
 	};
 
 	int m_FlagMask;
-	int m_ClientID;
 	bool m_StoreCommands;
 	const char *m_paStrokeStr[2];
 	CCommand *m_pFirstCommand;
@@ -58,9 +57,6 @@ class CConsole : public IConsole
 	static bool ConToggleStroke(IResult *pResult, void *pUser);
 	static bool ConModCommandAccess(IResult *pResult, void *pUser);
 	static bool ConModCommandStatus(IConsole::IResult *pResult, void *pUser);
-
-	void ExecuteFileRecurse(const char *pFilename);
-	void ExecuteLineStroked(int Stroke, const char *pStr, int ClientID);
 
 	struct
 	{
@@ -155,7 +151,7 @@ class CConsole : public IConsole
 	CCommand *FindCommand(const char *pName, int FlagMask);
 
 public:
-	CConsole(int FlagMask);
+	CConsole(int FlagMask, CLocalization *pLocalization);
 
 	virtual const CCommandInfo *FirstCommandInfo(int AccessLevel, int FlagMask) const;
 	virtual const CCommandInfo *GetCommandInfo(const char *pName, int FlagMask, bool Temp);
@@ -170,9 +166,10 @@ public:
 	virtual void StoreCommands(bool Store);
 
 	virtual bool LineIsValid(const char *pStr);
-	virtual void ExecuteLine(const char *pStr, int ClientID);
-	virtual void ExecuteLineFlag(const char *pStr, int ClientID, int FlagMask);
+	virtual void ExecuteLine(const char *pStr, int ClientID, const char *pLanguage = "en");
+	virtual void ExecuteLineFlag(const char *pStr, int ClientID, int FlagMask, const char *pLanguage = "en");
 	virtual void ExecuteFile(const char *pFilename);
+	virtual void ExecuteLineStroked(int Stroke, const char *pStr, int ClientID, const char *pLanguage = "en");
 
 	virtual int RegisterPrintCallback(int OutputLevel, FPrintCallback pfnPrintCallback, void *pUserData);
 	virtual void SetPrintOutputLevel(int Index, int OutputLevel);

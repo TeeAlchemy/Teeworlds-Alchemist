@@ -344,9 +344,9 @@ void CGameContext::SendChat(int ChatterClientID, int Team, const char *pText)
 {
 	char aBuf[256];
 	if (ChatterClientID >= 0 && ChatterClientID < MAX_CLIENTS)
-		str_format(aBuf, sizeof(aBuf), "%d:%d:%s: %s", ChatterClientID, Team, Server()->ClientName(ChatterClientID), pText);
+		str_format(aBuf, sizeof(aBuf), COLOR_YELLOW_BRIGHT "%d:%d:%s: %s", ChatterClientID, Team, Server()->ClientName(ChatterClientID), pText);
 	else
-		str_format(aBuf, sizeof(aBuf), "*** %s", pText);
+		str_format(aBuf, sizeof(aBuf), COLOR_YELLOW_BRIGHT "*** %s", pText);
 	Console()->Print(IConsole::OUTPUT_LEVEL_ADDINFO, Team != CHAT_ALL ? "teamchat" : "chat", aBuf);
 
 	if (Team == CHAT_ALL)
@@ -794,7 +794,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 				m_ConsoleOutput_Target = ClientID;
 
-				Console()->ExecuteLineFlag(pMsg->m_pMessage + 1, ClientID, CFGFLAG_CHAT);
+				Console()->ExecuteLineFlag(pMsg->m_pMessage + 1, ClientID, CFGFLAG_CHAT, m_apPlayers[ClientID]->GetLanguage());
 
 				m_ConsoleOutput_Target = -1;
 
@@ -1674,9 +1674,7 @@ bool CGameContext::ConLanguage(IConsole::IResult *pResult, void *pUserData)
 	}
 	else
 	{
-		const char *pLanguage = pSelf->m_apPlayers[ClientID]->GetLanguage();
-		const char *pTxtUnknownLanguage = pSelf->Server()->Localization()->Localize(pLanguage, _("Unknown language"));
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "language", pTxtUnknownLanguage);
+		pSelf->SendChatTarget(ClientID, _("Unknown language"));
 
 		dynamic_string BufferList;
 		int BufferIter = 0;
@@ -1687,12 +1685,7 @@ bool CGameContext::ConLanguage(IConsole::IResult *pResult, void *pUserData)
 			BufferIter = BufferList.append_at(BufferIter, pSelf->Server()->Localization()->m_pLanguages[i]->GetFilename());
 		}
 
-		dynamic_string Buffer;
-		pSelf->Server()->Localization()->Format_L(Buffer, pLanguage, _("Available languages: {str:ListOfLanguage}"), "ListOfLanguage", BufferList.buffer(), NULL);
-
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "language", Buffer.buffer());
-
-		pSelf->SendChatTarget(ClientID, Buffer.buffer());
+		pSelf->SendChatTarget(ClientID, _("Available languages: {str:ListOfLanguage}"), "ListOfLanguage", BufferList.buffer(), NULL);
 	}
 
 	return true;
@@ -1733,6 +1726,25 @@ void CGameContext::ChatConsolePrintCallback(const char *pLine, void *pUser)
 	ReentryGuard--;
 }
 
+bool CGameContext::ConChatGLM(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pThis = (CGameContext *)pUserData;
+
+	int CID = pResult->GetClientID();
+
+	if(!pThis->m_apPlayers[CID])
+		return false;
+	
+	if(pResult->NumArguments() < 1)
+		return false;
+
+	pThis->SendChatTarget(CID, _("ChatGLM has received your message and is currently processing it."));
+	
+	pThis->m_pChatGLM->Send(pThis, pThis->Server()->ClientName(CID), pResult->GetString(0));
+
+	return true;
+}
+
 void CGameContext::OnConsoleInit()
 {
 	m_pServer = Kernel()->RequestInterface<IServer>();
@@ -1762,7 +1774,8 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("vote", "r", CFGFLAG_SERVER, ConVote, this, "Force a vote to yes/no");
 
 	Console()->Register("about", "", CFGFLAG_CHAT, ConAbout, this, "Show information about the mod");
-	Console()->Register("language", "?s", CFGFLAG_CHAT, ConLanguage, this, "Show information about the mod");
+	Console()->Register("language", "?s", CFGFLAG_CHAT, ConLanguage, this, "[language code] - Select your language");
+	Console()->Register("askai", "s", CFGFLAG_CHAT, ConChatGLM, this, "[ask] - Ask ChatGLM");
 
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
 

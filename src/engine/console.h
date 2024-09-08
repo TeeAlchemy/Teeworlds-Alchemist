@@ -9,6 +9,7 @@ class IConsole : public IInterface
 {
 	MACRO_INTERFACE("console", 0)
 public:
+	class CLocalization *m_pLocalization;
 	//	TODO: rework/cleanup
 	enum
 	{
@@ -84,9 +85,9 @@ public:
 	virtual void StoreCommands(bool Store) = 0;
 
 	virtual bool LineIsValid(const char *pStr) = 0;
-	virtual void ExecuteLine(const char *Sptr, int ClientID) = 0;
-	virtual void ExecuteLineFlag(const char *Sptr, int ClientID, int FlasgMask) = 0;
-	virtual void ExecuteLineStroked(int Stroke, const char *pStr, int ClientID) = 0;
+	virtual void ExecuteLine(const char *Sptr, int ClientID, const char *pLanguage = "en") = 0;
+	virtual void ExecuteLineFlag(const char *Sptr, int ClientID, int FlasgMask, const char *pLanguage = "en") = 0;
+	virtual void ExecuteLineStroked(int Stroke, const char *pStr, int ClientID, const char *pLanguage = "en") = 0;
 	virtual void ExecuteFile(const char *pFilename) = 0;
 
 	virtual int RegisterPrintCallback(int OutputLevel, FPrintCallback pfnPrintCallback, void *pUserData) = 0;
@@ -97,6 +98,6 @@ public:
 	virtual void SetAccessLevel(int AccessLevel) = 0;
 };
 
-extern IConsole *CreateConsole(int FlagMask);
+extern IConsole *CreateConsole(int FlagMask, CLocalization *pLocalization);
 
 #endif // FILE_ENGINE_CONSOLE_H

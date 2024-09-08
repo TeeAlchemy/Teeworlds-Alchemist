@@ -51,10 +51,6 @@ class CGameContext : public IGameServer
 	CNetObjHandler m_NetObjHandler;
 	CTuningParams m_Tuning;
 
-	static void ChatConsolePrintCallback(const char *pLine, void *pUser);
-
-	static bool ConLanguage(IConsole::IResult *pResult, void *pUserData);
-	static bool ConAbout(IConsole::IResult *pResult, void *pUserData);
 	static bool ConTuneParam(IConsole::IResult *pResult, void *pUserData);
 	static bool ConTuneReset(IConsole::IResult *pResult, void *pUserData);
 	static bool ConTuneDump(IConsole::IResult *pResult, void *pUserData);
@@ -75,6 +71,11 @@ class CGameContext : public IGameServer
 	static bool ConVote(IConsole::IResult *pResult, void *pUserData);
 	
 	static void ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
+
+	static void ChatConsolePrintCallback(const char *pLine, void *pUser);
+	static bool ConLanguage(IConsole::IResult *pResult, void *pUserData);
+	static bool ConAbout(IConsole::IResult *pResult, void *pUserData);
+	static bool ConChatGLM(IConsole::IResult *pResult, void *pUserData);
 
 	CGameContext(int Resetting);
 	void Construct(int Resetting);

@@ -281,6 +281,7 @@ bool CServerBan::ConBanExt(IConsole::IResult *pResult, void *pUser)
 	}
 	else
 		ConBan(pResult, pUser);
+	return true;
 }
 
 void CServer::CClient::Reset()
@@ -916,8 +917,9 @@ void CServer::SendRconType(int ClientID, bool UsernameReq)
 void CServer::SendCapabilities(int ClientID)
 {
 	CMsgPacker Msg(NETMSG_CAPABILITIES, true);
-	Msg.AddInt(SERVERCAP_CURVERSION);																													  // version
-	Msg.AddInt(SERVERCAPFLAG_DDNET | SERVERCAPFLAG_ANYPLAYERFLAG | SERVERCAPFLAG_PINGEX | SERVERCAPFLAG_SYNCWEAPONINPUT | SERVERCAPFLAG_ALLOWDUMMY); // flags
+	Msg.AddInt(SERVERCAP_CURVERSION); // version
+	Msg.AddInt(SERVERCAPFLAG_DDNET | SERVERCAPFLAG_ANYPLAYERFLAG | SERVERCAPFLAG_PINGEX |
+			   SERVERCAPFLAG_SYNCWEAPONINPUT | SERVERCAPFLAG_ALLOWDUMMY); // flags
 	SendMsg(&Msg, MSGFLAG_VITAL, ClientID);
 }
 
@@ -1135,25 +1137,25 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 				SendMap(ClientID, MapID);
 			}
 		}
-		else if(Msg == NETMSG_REQUEST_MAP_DATA)
+		else if (Msg == NETMSG_REQUEST_MAP_DATA)
 		{
-			if((pPacket->m_Flags & NET_CHUNKFLAG_VITAL) == 0 || m_aClients[ClientID].m_State < CClient::STATE_CONNECTING)
+			if ((pPacket->m_Flags & NET_CHUNKFLAG_VITAL) == 0 || m_aClients[ClientID].m_State < CClient::STATE_CONNECTING)
 				return;
 
 			int Chunk = Unpacker.GetInt();
-			if(Unpacker.Error())
+			if (Unpacker.Error())
 			{
 				return;
 			}
-			if(Chunk != m_aClients[ClientID].m_NextMapChunk || !g_Config.m_SvFastDownload)
+			if (Chunk != m_aClients[ClientID].m_NextMapChunk || !g_Config.m_SvFastDownload)
 			{
 				SendMapData(ClientID, MapID, Chunk);
 				return;
 			}
 
-			if(Chunk == 0)
+			if (Chunk == 0)
 			{
-				for(int i = 0; i < g_Config.m_SvMapWindow; i++)
+				for (int i = 0; i < g_Config.m_SvMapWindow; i++)
 				{
 					SendMapData(ClientID, MapID, i);
 				}
@@ -1287,7 +1289,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 				default:
 					Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_USER);
 				}
-				Console()->ExecuteLineFlag(pCmd, ClientID, CFGFLAG_SERVER);
+				Console()->ExecuteLineFlag(pCmd, ClientID, CFGFLAG_SERVER, GetClientLanguage(ClientID));
 				Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_ADMIN);
 				m_RconClientID = IServer::RCON_CID_SERV;
 				m_RconAuthLevel = AUTHED_ADMIN;
@@ -1980,49 +1982,53 @@ int CServer::Run()
 	// load map
 	if (!LoadMap(g_Config.m_SvMap))
 	{
-		dbg_msg("server", "failed to load MAIN map. mapname='%s'", g_Config.m_SvMap);
+		dbg_msg("server", COLOR_RED_BRIGHT "failed to load main map. mapname='%s'", g_Config.m_SvMap);
 		return -1;
 	}
+
 	// read file data into buffer
 	char aFileBuf[512];
 	str_format(aFileBuf, sizeof(aFileBuf), "maps/maps.json");
 	const IOHANDLE File = m_pStorage->OpenFile(aFileBuf, IOFLAG_READ, IStorage::TYPE_ALL);
 	if (!File)
 	{
-		dbg_msg("Maps", "Probably deleted or error when the file is invalid.");
-		return false;
+		dbg_msg("MultiMap", COLOR_RED_BRIGHT "File maps.json not found.");
+		dbg_msg("MultiMap", COLOR_RED_BRIGHT "Probably deleted or error when the file is invalid.");
+		dbg_msg("MultiMap", COLOR_RED_BRIGHT "Multi-Maps Disabled.");
 	}
-
-	const int FileSize = (int)io_length(File);
-	char *pFileData = (char *)malloc(FileSize);
-	io_read(File, pFileData, FileSize);
-	io_close(File);
-
-	// parse json data
-	json_settings JsonSettings;
-	mem_zero(&JsonSettings, sizeof(JsonSettings));
-	char aError[256];
-	json_value *pJsonData = json_parse_ex(&JsonSettings, pFileData, aError);
-	free(pFileData);
-	if (pJsonData == nullptr)
+	else
 	{
-		return false;
-	}
+		const int FileSize = (int)io_length(File);
+		char *pFileData = (char *)malloc(FileSize);
+		io_read(File, pFileData, FileSize);
+		io_close(File);
 
-	// extract data
-	const json_value &rStart = (*pJsonData)["maps"];
-	if (rStart.type == json_array)
-	{
-		for (unsigned i = 0; i < rStart.u.array.length; ++i)
+		// parse json data
+		json_settings JsonSettings;
+		mem_zero(&JsonSettings, sizeof(JsonSettings));
+		char aError[256];
+		json_value *pJsonData = json_parse_ex(&JsonSettings, pFileData, aError);
+		free(pFileData);
+		if (pJsonData == nullptr)
 		{
-			const char *pMapName = rStart[i]["map"];
-
-			LoadMap(pMapName);
+			return false;
 		}
-	}
 
-	// clean up
-	json_value_free(pJsonData);
+		// extract data
+		const json_value &rStart = (*pJsonData)["maps"];
+		if (rStart.type == json_array)
+		{
+			for (unsigned i = 0; i < rStart.u.array.length; ++i)
+			{
+				const char *pMapName = rStart[i]["map"];
+
+				LoadMap(pMapName);
+			}
+		}
+
+		// clean up
+		json_value_free(pJsonData);
+	}
 
 	// start server
 	NETADDR BindAddr;
@@ -2044,7 +2050,7 @@ int CServer::Run()
 	{
 		if (Port != 0 || BindAddr.port >= 8310)
 		{
-			dbg_msg("server", "couldn't open socket. port %d might already be in use", BindAddr.port);
+			dbg_msg("server", COLOR_RED "couldn't open socket. port %d might already be in use", BindAddr.port);
 			return -1;
 		}
 	}
@@ -2057,11 +2063,11 @@ int CServer::Run()
 	m_Econ.Init(Console(), &m_ServerBan);
 
 	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), "server name is '%s'", g_Config.m_SvName);
+	str_format(aBuf, sizeof(aBuf), COLOR_YELLOW "server name is '%s'", g_Config.m_SvName);
 	Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
 
 	GameServer()->OnInit();
-	str_format(aBuf, sizeof(aBuf), "version %s", GameServer()->NetVersion());
+	str_format(aBuf, sizeof(aBuf), COLOR_YELLOW "version %s", GameServer()->NetVersion());
 	Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
 
 	// process pending commands
@@ -2537,7 +2543,6 @@ int main(int argc, const char **argv) // ignore_convention
 	// create the components
 	IEngine *pEngine = CreateEngine("Teeworlds", 2);
 	IGameServer *pGameServer = CreateGameServer();
-	IConsole *pConsole = CreateConsole(CFGFLAG_SERVER | CFGFLAG_ECON);
 	IStorage *pStorage = CreateStorage("Teeworlds", IStorage::STORAGETYPE_SERVER, argc, argv); // ignore_convention
 	IConfig *pConfig = CreateConfig();
 
@@ -2548,6 +2553,8 @@ int main(int argc, const char **argv) // ignore_convention
 		dbg_msg("localization", "could not initialize localization");
 		return -1;
 	}
+
+	IConsole *pConsole = CreateConsole(CFGFLAG_SERVER | CFGFLAG_ECON, pServer->m_pLocalization);
 
 	{
 		bool RegisterFail = false;

@@ -12,6 +12,8 @@
 #include "console.h"
 #include "linereader.h"
 
+#include <teeuniverses/components/localization.h>
+
 // todo: rework this
 
 const char *CConsole::CResult::GetString(unsigned Index)
@@ -258,7 +260,7 @@ bool CConsole::LineIsValid(const char *pStr)
 	return true;
 }
 
-void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientID)
+void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientID, const char *pLanguage)
 {
 	while (pStr && *pStr)
 	{
@@ -315,12 +317,14 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientID)
 				{
 					if (ParseArgs(&Result, pCommand->m_pParams))
 					{
-						char aBuf[256];
+						dynamic_string aLocalizedString;
+						if (m_FlagMask & CFGFLAG_CHAT)
+							m_pLocalization->Format_L(aLocalizedString, pLanguage, _("Usage: /{str:name} {str:help}"), "name", pCommand->m_pName, "help", m_pLocalization->Localize(pLanguage, pCommand->m_pHelp));
+						else
+							m_pLocalization->Format_L(aLocalizedString, pLanguage, _("Usage: {str:name} {str:help}"), "name", pCommand->m_pName, "help", m_pLocalization->Localize(pLanguage, pCommand->m_pParams));
 
-						str_format(aBuf, sizeof(aBuf), "Usage: %s %s", pCommand->m_pName, pCommand->m_pHelp);
-
-						Print(OUTPUT_LEVEL_STANDARD, "Console", "Invalid arguments.");
-						Print(OUTPUT_LEVEL_STANDARD, "Console", aBuf);
+						Print(OUTPUT_LEVEL_STANDARD, "Console", m_pLocalization->Localize(pLanguage, _("Invalid arguments.")));
+						Print(OUTPUT_LEVEL_STANDARD, "Console", aLocalizedString.buffer());
 					}
 					else if (m_StoreCommands && pCommand->m_Flags & CFGFLAG_STORE)
 					{
@@ -334,28 +338,34 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientID)
 						bool ValideArguments = pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);
 						if (!ValideArguments)
 						{
-							char aBuf[256];
-
-							str_format(aBuf, sizeof(aBuf), "Usage: %s %s", pCommand->m_pName, pCommand->m_pHelp);
+							dynamic_string aLocalizedString;
+							m_pLocalization->Format_L(aLocalizedString, pLanguage, _("Usage: {str:name} {str:help}"), "name", pCommand->m_pName, "help", m_pLocalization->Localize(pLanguage, pCommand->m_pHelp));
 
 							Print(OUTPUT_LEVEL_STANDARD, "Console", "Invalid arguments.");
-							Print(OUTPUT_LEVEL_STANDARD, "Console", aBuf);
+							Print(OUTPUT_LEVEL_STANDARD, "Console", aLocalizedString.buffer());
 						}
 					}
 				}
 			}
 			else if (Stroke)
 			{
-				char aBuf[256];
-				str_format(aBuf, sizeof(aBuf), "Access for command %s denied.", Result.m_pCommand);
-				Print(OUTPUT_LEVEL_STANDARD, "Console", aBuf);
+				dynamic_string aLocalizedString;
+				if (m_FlagMask & CFGFLAG_CHAT)
+					m_pLocalization->Format_L(aLocalizedString, pLanguage, _("Access for command /{str:cmd} denied."), "cmd", Result.m_pCommand);
+				else
+					m_pLocalization->Format_L(aLocalizedString, pLanguage, _("Access for command {str:cmd} denied."), "cmd", Result.m_pCommand);
+				Print(OUTPUT_LEVEL_STANDARD, "Console", aLocalizedString.buffer());
 			}
 		}
 		else if (Stroke)
 		{
-			char aBuf[256];
-			str_format(aBuf, sizeof(aBuf), "No such command: %s.", Result.m_pCommand);
-			Print(OUTPUT_LEVEL_STANDARD, "Console", aBuf);
+			dynamic_string aLocalizedString;
+			if (m_FlagMask & CFGFLAG_CHAT)
+				m_pLocalization->Format_L(aLocalizedString, pLanguage, _("No such command: /{str:cmd}."), "cmd", Result.m_pCommand);
+			else
+				m_pLocalization->Format_L(aLocalizedString, pLanguage, _("No such command: {str:cmd}."), "cmd", Result.m_pCommand);
+
+			Print(OUTPUT_LEVEL_STANDARD, "Console", aLocalizedString.buffer());
 		}
 
 		pStr = pNextPart;
@@ -388,17 +398,17 @@ CConsole::CCommand *CConsole::FindCommand(const char *pName, int FlagMask)
 	return 0x0;
 }
 
-void CConsole::ExecuteLine(const char *pStr, int ClientID)
+void CConsole::ExecuteLine(const char *pStr, int ClientID, const char *pLanguage)
 {
-	CConsole::ExecuteLineStroked(1, pStr, ClientID); // press it
-	CConsole::ExecuteLineStroked(0, pStr, ClientID); // then release it
+	CConsole::ExecuteLineStroked(1, pStr, ClientID, pLanguage); // press it
+	CConsole::ExecuteLineStroked(0, pStr, ClientID, pLanguage); // then release it
 }
 
-void CConsole::ExecuteLineFlag(const char *pStr, int ClientID, int FlagMask)
+void CConsole::ExecuteLineFlag(const char *pStr, int ClientID, int FlagMask, const char *pLanguage)
 {
 	int Temp = m_FlagMask;
 	m_FlagMask = FlagMask;
-	ExecuteLine(pStr, ClientID);
+	ExecuteLine(pStr, ClientID, pLanguage);
 	m_FlagMask = Temp;
 }
 
@@ -669,9 +679,10 @@ bool CConsole::ConToggleStroke(IConsole::IResult *pResult, void *pUser)
 	return true;
 }
 
-CConsole::CConsole(int FlagMask)
+CConsole::CConsole(int FlagMask, class CLocalization *pLocalization)
 {
 	m_FlagMask = FlagMask;
+	m_pLocalization = pLocalization;
 	m_AccessLevel = ACCESS_LEVEL_ADMIN;
 	m_pRecycleList = 0;
 	m_TempCommands.Reset();
@@ -935,4 +946,4 @@ const IConsole::CCommandInfo *CConsole::GetCommandInfo(const char *pName, int Fl
 	return 0;
 }
 
-extern IConsole *CreateConsole(int FlagMask) { return new CConsole(FlagMask); }
+extern IConsole *CreateConsole(int FlagMask, CLocalization *pLocalization) { return new CConsole(FlagMask, pLocalization); }

@@ -6,30 +6,33 @@ import re
 
 labelfile = "temp.txt"
 
-directory = "src/game/server/"
-
 old_file = sys.argv[1]
 output_file_name = sys.argv[2]
 
-unique_labels = []
+unique_labels = set()  # 使用集合来避免重复
 
-for root, dirs, files in os.walk(directory):
-    for filename in fnmatch.filter(files, "*.cpp"):
-        with open(os.path.join(root, filename), "r") as file:
-            lines = file.readlines()
-            for line in lines:
-                f = line.find(r'_("')
-                if f != -1:
-                    end_quote = line.find(r'")', f)
-                    if end_quote != -1:
-                        label = line[f + 3 : end_quote]
-                        unique_labels.append(label + "\n")
+def help_localize(directory):
+    for root, dirs, files in os.walk(directory):
+        for filename in fnmatch.filter(files, "*.cpp"):
+            with open(os.path.join(root, filename), "r") as file:
+                lines = file.readlines()
+                for line in lines:
+                    f = line.find(r'_("')
+                    if f != -1:
+                        end_quote = line.find(r'")', f)
+                        if end_quote != -1:
+                            label = line[f + 3 : end_quote]
+                            if label not in unique_labels:  # 检查是否重复
+                                unique_labels.add(label + "\n")  # 添加到集合中
 
-with open(labelfile, "w") as fw:
-    fw.writelines(set(unique_labels))
+    with open(labelfile, "w") as fw:  # 使用 "w" 而不是 "a" 来覆盖旧文件
+        fw.writelines(sorted(unique_labels))  # 对标签进行排序并写入文件
+
+help_localize("src/game/server/")
+help_localize("src/engine/shared/")
 
 with open(labelfile, "r") as file:
-    lines = file.readlines()
+        lines = file.readlines()
 
 # 创建一个列表，用于存储每一行的键值对
 translation_list = [{"key": line.strip(), "value": line.strip()} for line in lines]
@@ -40,7 +43,6 @@ translation_dict = {"translation": translation_list}
 # 将字典写入到输出文件中，格式化为JSON
 with open(output_file_name, "w") as output_file:
     json.dump(translation_dict, output_file, indent=4)
-
 
 # 将Unicode编码的文本转换成汉字
 def unicode_to_chinese(text):
@@ -107,12 +109,15 @@ unicode_to_chinese(output_file_name)
 with open(output_file_name, "r", encoding="utf-8") as input_file:
     data = json.load(input_file)
 
-# 将翻译项分成两组：一组是key和value不一致的，另一组是key和value一致的
-different_items = [item for item in data["translation"] if item["key"] != item["value"]]
-same_items = [item for item in data["translation"] if item["key"] == item["value"]]
+# 将所有翻译项按key进行排序
+sorted_items = sorted(data["translation"], key=lambda x: x['key'])
 
-# 将两组项合并，把key和value一致的项放到末尾
-sorted_translation = different_items + same_items
+# 找出所有key和value不一致的项，并将它们移到列表的末尾
+different_items = [item for item in sorted_items if item["key"] != item["value"]]
+same_items = [item for item in sorted_items if item["key"] == item["value"]]
+
+# 将排序后的项合并，确保不一致的项在末尾
+sorted_translation = same_items + different_items
 
 # 更新数据
 data["translation"] = sorted_translation
