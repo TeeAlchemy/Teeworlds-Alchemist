@@ -91,7 +91,7 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
   src/game/version.h
 )
 
-set(SERVER_EXECUTABLE Alchemist-Server CACHE STRING "Name of the built server executable")
+set(EXECUTABLE Alchemist-Server CACHE STRING "Name of the built executable")
 
 ########################################################################
 # Compiler flags
@@ -228,14 +228,16 @@ endif()
 find_package(ZLIB)
 find_package(Git)
 find_package(Python3)
-# find_package(Threads)
+find_package(ICU)
 find_package(OpenSSL)
 find_package(Curl)
+
 if(MYSQL)
   find_package(MySQL)
 else()
   set(MYSQL_LIBRARIES)
 endif()
+
 if(TARGET_OS AND TARGET_OS STREQUAL "mac")
   find_program(DMG dmg)
   find_program(HFSPLUS hfsplus)
@@ -268,9 +270,9 @@ function(show_dependency_status OUTPUT_NAME NAME)
 endfunction()
 
 show_dependency_status("Curl" CURL)
-if(SERVER_COMPILE)
-  show_dependency_status("OpenSSL" OPENSSL FALSE)
-endif()
+
+show_dependency_status("OpenSSL" OPENSSL FALSE)
+
 if(TARGET_OS AND TARGET_OS STREQUAL "mac")
   show_dependency_status("Dmg tools" DMGTOOLS)
 endif()
@@ -279,7 +281,6 @@ if(TARGET_OS AND TARGET_OS STREQUAL "mac")
   show_dependency_status("Hdiutil" HDIUTIL)
 endif()
 
-show_dependency_status("OpenSSL Crypto" CRYPTO)
 show_dependency_status("Python3" PYTHON3)
 show_dependency_status("Zlib" ZLIB)
 if(MYSQL)
@@ -287,7 +288,7 @@ if(MYSQL)
 endif()
 
 if(NOT(PYTHON3_FOUND))
-  message(SEND_ERROR "You must install Python3 to compile Alchemist")
+  message(SEND_ERROR "You must install Python3 to compile ${PROJECT_NAME}")
 endif()
 if(NOT(MYSQL_FOUND) AND MYSQL)
   message(SEND_ERROR "You must install MySQL to compile the ${PROJECT_NAME}")
@@ -328,6 +329,7 @@ set(DEP_MD5 $<TARGET_OBJECTS:md5>)
 
 file(COPY data server_lang maps DESTINATION .)
 set(COPY_FILES
+  ${ICU_COPY_FILES}
   ${MYSQL_COPY_FILES}
   ${OPENSSL_COPY_FILES}
   storage.cfg
@@ -502,16 +504,12 @@ set(GAME_GENERATED_SHARED
 
 set(DEPS ${DEP_JSON} ${DEP_MD5} ${ZLIB_DEP})
 
-find_package(ICU REQUIRED COMPONENTS uc i18n)
-
 # Libraries
 set(LIBS
   ${CMAKE_THREAD_LIBS_INIT}
   ${ZLIB_LIBRARIES}
   ${PLATFORM_LIBS}
-  ICU::i18n
-  ICU::uc
-  ${CRYPTO_LIBRARIES}
+  ${ICU_LIBRARIES}
   ${CURL_LIBRARIES}
 )
 
@@ -568,7 +566,7 @@ set(GAME_GENERATED_SERVER
 )
 set(SERVER_SRC ${ENGINE_SERVER} ${GAME_SERVER} ${GAME_GENERATED_SERVER})
 if(TARGET_OS STREQUAL "windows")
-  set(SERVER_ICON "other/icons/${SERVER_EXECUTABLE}.rc")
+  set(SERVER_ICON "other/icons/${EXECUTABLE}.rc")
 else()
   set(SERVER_ICON)
 endif()
@@ -577,7 +575,7 @@ endif()
 set(LIBS_SERVER ${LIBS} ${MYSQL_LIBRARIES} ${OPENSSL_LIBRARIES})
 
 # Target
-set(TARGET_SERVER ${SERVER_EXECUTABLE})
+set(TARGET_SERVER ${EXECUTABLE})
 add_executable(${TARGET_SERVER}
   ${DEPS}
   ${SERVER_SRC}
@@ -586,8 +584,6 @@ add_executable(${TARGET_SERVER}
   $<TARGET_OBJECTS:game-shared>
 )
 target_link_libraries(${TARGET_SERVER} ${LIBS_SERVER})
-target_link_libraries(${TARGET_SERVER} ICU::i18n)
-target_link_libraries(${TARGET_SERVER} ICU::uc)
 list(APPEND TARGETS_OWN ${TARGET_SERVER})
 list(APPEND TARGETS_LINK ${TARGET_SERVER})
 
