@@ -338,15 +338,6 @@ file(COPY ${COPY_FILES} DESTINATION .)
 # CODE GENERATION
 ########################################################################
 
-function(chash output_file)
-  add_custom_command(OUTPUT ${output_file}
-    COMMAND ${Python3_EXECUTABLE} scripts/cmd5.py ${ARGN}
-      > "${PROJECT_BINARY_DIR}/${output_file}"
-    DEPENDS scripts/cmd5.py ${ARGN}
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  )
-endfunction()
-
 function(generate_source output_file script_parameter)
   add_custom_command(OUTPUT ${output_file}
     COMMAND ${Python3_EXECUTABLE} datasrc/compile.py ${script_parameter}
@@ -361,12 +352,6 @@ function(generate_source output_file script_parameter)
 endfunction()
 
 file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/src/game/generated/")
-chash(
-  "src/engine/shared/protocol.h"
-  "${PROJECT_BINARY_DIR}/src/game/generated/protocol.h"
-  "src/game/tuning.h"
-  "src/game/gamecore.cpp"
-)
 generate_source("src/game/generated/protocol.cpp" "network_source")
 generate_source("src/game/generated/protocol.h" "network_header")
 generate_source("src/game/generated/server_data.cpp" "server_content_source")
