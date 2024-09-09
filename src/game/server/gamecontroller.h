@@ -17,12 +17,12 @@ class CGameController
 	{
 		NUM_SPAWN_TYPES = 3,
 		NUM_SPAWN_PER_TYPE = 64,
-		NUM_SPAWN_WORLD = 3 * 64,
+		NUM_SPAWN_WORLD = NUM_SPAWN_TYPES * NUM_SPAWN_PER_TYPE,
 	};
 
 	struct SpawnData
 	{
-		vec2 m_aaSpawnPoints[3][64];
+		vec2 m_aaSpawnPoints[NUM_SPAWN_TYPES][NUM_SPAWN_PER_TYPE];
 	};
 
 	std::vector<SpawnData> m_vSpawnPoints;

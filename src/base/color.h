@@ -62,7 +62,7 @@ public:
 	{
 		x = v4.x;
 		y = v4.y;
-		z = v4.z;
+		z = v4.h;
 		a = v4.w;
 	}
 

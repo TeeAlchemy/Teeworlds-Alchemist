@@ -68,6 +68,12 @@ typedef struct NETADDR
 	bool operator!=(const NETADDR &other) const { return !(*this == other); }
 } NETADDR;
 
+struct THREAD_RUN
+{
+	void (*threadfunc)(void *);
+	void *u;
+};
+
 // Reset color
 #define COLOR_RESET "\033[0m"
 

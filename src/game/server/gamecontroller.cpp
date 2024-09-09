@@ -180,7 +180,7 @@ bool CGameController::OnEntity(int Index, vec2 Pos, int MapID)
 void CGameController::SetSpawnNum(int MapNum)
 {
 	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), "Setting enviroment for MapID %d", MapNum - 1);
+	str_format(aBuf, sizeof(aBuf), COLOR_BLUE "Setting enviroment for MapID %d", MapNum - 1);
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 
 	m_vSpawnPoints.resize(MapNum);

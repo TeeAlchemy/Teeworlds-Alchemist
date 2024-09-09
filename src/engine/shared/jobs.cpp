@@ -78,7 +78,7 @@ void CJobPool::Init(int NumThreads)
 	// start threads
 	m_NumThreads = NumThreads > MAX_THREADS ? MAX_THREADS : NumThreads;
 	for (int i = 0; i < NumThreads; i++)
-		m_apThreads[i] = thread_init(WorkerThread, this);
+		m_apThreads[i] = thread_init(WorkerThread, this, "JobPool");
 }
 
 void CJobPool::Destroy()

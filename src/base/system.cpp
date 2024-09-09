@@ -118,12 +118,12 @@ extern "C"
 		time(&nowtime);
 		tm *pTime = localtime(&nowtime);
 
-// 		Cancel the comment when I learned that this code would have bugs in Windows
-//#if defined(CONF_FAMILY_WINDOWS)
-//		str_format(str, sizeof(str), "[%d-%d-%d %d:%d:%d][%s]: ", 1900 + pTime->tm_year, pTime->tm_mon, pTime->tm_mday, pTime->tm_hour, pTime->tm_min, pTime->tm_sec, sys);
-//#else
+		// 		Cancel the comment when I learned that this code would have bugs in Windows
+		// #if defined(CONF_FAMILY_WINDOWS)
+		//		str_format(str, sizeof(str), "[%d-%d-%d %d:%d:%d][%s]: ", 1900 + pTime->tm_year, pTime->tm_mon, pTime->tm_mday, pTime->tm_hour, pTime->tm_min, pTime->tm_sec, sys);
+		// #else
 		str_format(str, sizeof(str), COLOR_RESET COLOR_BLACK_BRIGHT "%d-%d-%d %d:%d:%d" COLOR_WHITE_BRIGHT " | " COLOR_CYAN "[%s]: " COLOR_RESET, 1900 + pTime->tm_year, pTime->tm_mon, pTime->tm_mday, pTime->tm_hour, pTime->tm_min, pTime->tm_sec, sys);
-//#endif
+		// #endif
 		len = strlen(str);
 		msg = (char *)str + len;
 
@@ -386,14 +386,40 @@ extern "C"
 		return 0;
 	}
 
-	void *thread_init(void (*threadfunc)(void *), void *u)
-	{
 #if defined(CONF_FAMILY_UNIX)
-		pthread_t id;
-		pthread_create(&id, NULL, (void *(*)(void *))threadfunc, u);
-		return (void *)id;
+	static void *thread_run(void *user)
 #elif defined(CONF_FAMILY_WINDOWS)
-	return CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)threadfunc, u, 0, NULL);
+static unsigned long __stdcall thread_run(void *user)
+#else
+#error not implemented
+#endif
+	{
+		struct THREAD_RUN *data = (THREAD_RUN *)user;
+		void (*threadfunc)(void *) = data->threadfunc;
+		void *u = data->u;
+		free(data);
+		threadfunc(u);
+		return 0;
+	}
+
+	void *thread_init(void (*threadfunc)(void *), void *u, const char *name)
+	{
+		struct THREAD_RUN *data = (THREAD_RUN *)malloc(sizeof(*data));
+		data->threadfunc = threadfunc;
+		data->u = u;
+#if defined(CONF_FAMILY_UNIX)
+		{
+			pthread_t id;
+			int result = pthread_create(&id, NULL, thread_run, data);
+			if (result != 0)
+			{
+				dbg_msg("thread", "creating %s thread failed: %d", name, result);
+				return 0;
+			}
+			return (void *)id;
+		}
+#elif defined(CONF_FAMILY_WINDOWS)
+	return CreateThread(NULL, 0, thread_run, data, 0, NULL);
 #else
 #error not implemented
 #endif

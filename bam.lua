@@ -237,7 +237,7 @@ function build(settings)
 	end
 
 	-- build server
-	server_exe = Link(server_settings, "teeworlds_srv", engine, server,
+	server_exe = Link(server_settings, "Alchemist-Server", engine, server,
 		game_shared, game_server, zlib, md5, sqlite3, server_link_other, json, teeuniverses)
 
 	serverlaunch = {}
@@ -256,7 +256,7 @@ end
 
 debug_settings = NewSettings()
 debug_settings.config_name = "debug"
-debug_settings.config_ext = "_d"
+debug_settings.config_ext = "-Debug"
 debug_settings.debug = 1
 debug_settings.optimize = 0
 debug_settings.cc.defines:Add("CONF_DEBUG")
@@ -271,14 +271,14 @@ release_settings.cc.defines:Add("CONF_RELEASE")
 if platform == "macosx" then
 	debug_settings_ppc = debug_settings:Copy()
 	debug_settings_ppc.config_name = "debug_ppc"
-	debug_settings_ppc.config_ext = "_ppc_d"
+	debug_settings_ppc.config_ext = "-PPC-Debug"
 	debug_settings_ppc.cc.flags:Add("-arch ppc")
 	debug_settings_ppc.link.flags:Add("-arch ppc")
 	debug_settings_ppc.cc.defines:Add("CONF_DEBUG")
 
 	release_settings_ppc = release_settings:Copy()
 	release_settings_ppc.config_name = "release_ppc"
-	release_settings_ppc.config_ext = "_ppc"
+	release_settings_ppc.config_ext = "-PPC"
 	release_settings_ppc.cc.flags:Add("-arch ppc")
 	release_settings_ppc.link.flags:Add("-arch ppc")
 	release_settings_ppc.cc.defines:Add("CONF_RELEASE")
@@ -289,14 +289,14 @@ if platform == "macosx" then
 	if arch == "ia32" or arch == "amd64" then
 		debug_settings_x86 = debug_settings:Copy()
 		debug_settings_x86.config_name = "debug_x86"
-		debug_settings_x86.config_ext = "_x86_d"
+		debug_settings_x86.config_ext = "-Debug-x86"
 		debug_settings_x86.cc.flags:Add("-arch i386")
 		debug_settings_x86.link.flags:Add("-arch i386")
 		debug_settings_x86.cc.defines:Add("CONF_DEBUG")
 
 		release_settings_x86 = release_settings:Copy()
 		release_settings_x86.config_name = "release_x86"
-		release_settings_x86.config_ext = "_x86"
+		release_settings_x86.config_ext = "-x86"
 		release_settings_x86.cc.flags:Add("-arch i386")
 		release_settings_x86.link.flags:Add("-arch i386")
 		release_settings_x86.cc.defines:Add("CONF_RELEASE")
@@ -308,14 +308,14 @@ if platform == "macosx" then
 	if arch == "amd64" then
 		debug_settings_x86_64 = debug_settings:Copy()
 		debug_settings_x86_64.config_name = "debug_x86_64"
-		debug_settings_x86_64.config_ext = "_x86_64_d"
+		debug_settings_x86_64.config_ext = "-Debug-x86_64"
 		debug_settings_x86_64.cc.flags:Add("-arch x86_64")
 		debug_settings_x86_64.link.flags:Add("-arch x86_64")
 		debug_settings_x86_64.cc.defines:Add("CONF_DEBUG")
 
 		release_settings_x86_64 = release_settings:Copy()
 		release_settings_x86_64.config_name = "release_x86_64"
-		release_settings_x86_64.config_ext = "_x86_64"
+		release_settings_x86_64.config_ext = "-x86_64"
 		release_settings_x86_64.cc.flags:Add("-arch x86_64")
 		release_settings_x86_64.link.flags:Add("-arch x86_64")
 		release_settings_x86_64.cc.defines:Add("CONF_RELEASE")

@@ -367,7 +367,7 @@ extern "C"
 			user - Pointer to pass to the thread.
 
 	*/
-	void *thread_init(void (*threadfunc)(void *), void *user);
+	void *thread_init(void (*threadfunc)(void *), void *u, const char *name);
 
 	/*
 		Function: thread_wait
