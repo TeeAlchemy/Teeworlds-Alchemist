@@ -518,7 +518,7 @@ void CCharacter::Tick()
 {
 	if (m_pPlayer->m_ForceBalanced)
 	{
-		GameServer()->SendBroadcast(m_pPlayer->GetCID(), _("You were moved to {str:Team} due to team balancing"), "Team", GameServer()->m_pController->GetTeamName(m_pPlayer->GetTeam()));
+		GameServer()->Broadcast(m_pPlayer->GetCID(), "You were moved to {} due to team balancing", GameServer()->m_pController->GetTeamName(m_pPlayer->GetTeam()));
 		m_pPlayer->m_ForceBalanced = false;
 	}
 

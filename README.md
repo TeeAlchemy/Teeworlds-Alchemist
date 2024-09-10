@@ -1,3 +1,9 @@
+TODO:
+=====
+
+[] Update Localization Texts
+[] Fix Windows building
+
 Teeworlds
 =========
 

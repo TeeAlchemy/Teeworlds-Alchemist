@@ -67,34 +67,9 @@ server_content_header = ContentCompile("server_content_header", "src/game/genera
 AddDependency(network_source, network_header)
 AddDependency(server_content_source, server_content_header)
 
-icu_depends = {}
 server_link_other = {}
 
 if family == "windows" then
-	if platform == "win32" then
-		-- Add ICU because its a HAVE to
-		if config.compiler.driver == "cl" then
-			table.insert(icu_depends, CopyToDirectory(".", "other/icu/vc/lib32/icudt53.dll"))
-			table.insert(icu_depends, CopyToDirectory(".", "other/icu/vc/lib32/icuin53.dll"))
-			table.insert(icu_depends, CopyToDirectory(".", "other/icu/vc/lib32/icuuc53.dll"))
-		elseif config.compiler.driver == "gcc" then
-			table.insert(icu_depends, CopyToDirectory(".", "other/icu/gcc/lib32/icudt53.dll"))
-			table.insert(icu_depends, CopyToDirectory(".", "other/icu/gcc/lib32/icuin53.dll"))
-			table.insert(icu_depends, CopyToDirectory(".", "other/icu/gcc/lib32/icuuc53.dll"))
-		end
-	else
-		-- Add ICU because its a HAVE to
-		if config.compiler.driver == "cl" then
-			table.insert(icu_depends, CopyToDirectory(".", "other/icu/vc/lib64/icudt53.dll"))
-			table.insert(icu_depends, CopyToDirectory(".", "other/icu/vc/lib64/icuin53.dll"))
-			table.insert(icu_depends, CopyToDirectory(".", "other/icu/vc/lib64/icuuc53.dll"))
-		elseif config.compiler.driver == "gcc" then
-			table.insert(icu_depends, CopyToDirectory(".", "other/icu/gcc/lib64/icudt53.dll"))
-			table.insert(icu_depends, CopyToDirectory(".", "other/icu/gcc/lib64/icuin53.dll"))
-			table.insert(icu_depends, CopyToDirectory(".", "other/icu/gcc/lib64/icuuc53.dll"))
-		end
-	end
-
 	if config.compiler.driver == "cl" then
 		server_link_other = {ResCompile("other/icons/teeworlds_srv_cl.rc")}
 	elseif config.compiler.driver == "gcc" then
@@ -116,7 +91,7 @@ function build(settings)
 	if config.compiler.driver == "cl" then
 		settings.cc.flags:Add("/wd4244", "/wd4577")
 	else
-		settings.cc.flags:Add("-Wall", "-fno-exceptions")
+		settings.cc.flags:Add("-Wall", "-fexceptions")
 		if family == "windows" then
 			-- disable visibility attribute support for gcc on windows
 			settings.cc.defines:Add("NO_VIZ")
@@ -139,21 +114,11 @@ function build(settings)
 	if family == "unix" then
 		if platform == "macosx" then
 			settings.cc.flags_cxx:Add("-stdlib=libc++")
-			settings.cc.includes:Add("/usr/local/opt/icu4c/include")
-			settings.link.libs:Add("icui18n")
-			settings.link.libs:Add("icuuc")
 			settings.link.libs:Add("c++")
-			settings.link.libpath:Add("/usr/local/opt/icu4c/lib")
 			settings.link.frameworks:Add("Carbon")
 			settings.link.frameworks:Add("AppKit")
 		else
 			settings.link.libs:Add("pthread")
-			-- add ICU for linux
-			if ExecuteSilent("pkg-config icu-uc icu-i18n") == 0 then
-			end
-
-			settings.cc.flags:Add("`pkg-config --cflags icu-uc icu-i18n`")
-			settings.link.flags:Add("`pkg-config --libs icu-uc icu-i18n`")
 		end
 		
 		if platform == "solaris" then
@@ -167,9 +132,6 @@ function build(settings)
 		settings.link.libs:Add("ole32")
 		settings.link.libs:Add("shell32")
 		settings.link.libs:Add("advapi32")
-
-		-- add ICU also here
-		settings.cc.includes:Add("other\\icu\\include")
 	end
 
 	-- compile zlib if needed
@@ -201,35 +163,13 @@ function build(settings)
 		server_settings.link.libs:Add("curl")
 		server_settings.link.libs:Add("crypto")
 		server_settings.link.libs:Add("dl")
-
-	elseif family == "windows" then
-		-- Add ICU because its a HAVE to
-		if platform == "win32" then
-			if config.compiler.driver == "cl" then
-				server_settings.link.libpath:Add("other/icu/vc/lib32")
-			elseif config.compiler.driver == "gcc" then
-				server_settings.link.libpath:Add("other/icu/gcc/lib32")
-			end
-			server_settings.link.libs:Add("icudt")
-			server_settings.link.libs:Add("icuin")
-			server_settings.link.libs:Add("icuuc")
-		else
-			if config.compiler.driver == "cl" then
-				server_settings.link.libpath:Add("other/icu/vc/lib64")
-			elseif config.compiler.driver == "gcc" then
-				server_settings.link.libpath:Add("other/icu/gcc/lib64")
-			end
-			server_settings.link.libs:Add("icudt")
-			server_settings.link.libs:Add("icuin")
-			server_settings.link.libs:Add("icuuc")
-		end
 	end
 	
 	engine = Compile(engine_settings, Collect("src/engine/shared/*.cpp", "src/base/*.cpp"))
 	server = Compile(server_settings, Collect("src/engine/server/*.cpp"))
 	game_shared = Compile(settings, Collect("src/game/*.cpp"), network_source)
 	game_server = Compile(settings, CollectRecursive("src/game/server/*.cpp"), server_content_source)
-	teeuniverses = Compile(server_settings, Collect("src/teeuniverses/*.cpp", "src/teeuniverses/components/*.cpp", "src/teeuniverses/system/*.cpp"))
+	teeother = Compile(server_settings, Collect("src/teeother/*.cpp", "src/teeother/components/*.cpp"))
 	
 	server_osxlaunch = {}
 	if platform == "macosx" then
@@ -238,7 +178,7 @@ function build(settings)
 
 	-- build server
 	server_exe = Link(server_settings, "Alchemist-Server", engine, server,
-		game_shared, game_server, zlib, md5, sqlite3, server_link_other, json, teeuniverses)
+		game_shared, game_server, zlib, md5, sqlite3, server_link_other, json, teeother)
 
 	serverlaunch = {}
 	if platform == "macosx" then
@@ -246,7 +186,7 @@ function build(settings)
 	end
 
 	-- make targets
-	s = PseudoTarget("server".."_"..settings.config_name, server_exe, serverlaunch, icu_depends)
+	s = PseudoTarget("server".."_"..settings.config_name, server_exe, serverlaunch)
 
 	all = PseudoTarget(settings.config_name, c, s, v, m, t)
 	return all

@@ -82,7 +82,7 @@ void CChatGLM::CJob_ChatGLM::Run()
     json_value *pJson = m_pHttp->ResultJson();
     if (!pJson)
     {
-        m_pGameServer->SendChatTarget(-1, _("Sorry, I can't answer your question."));
+        m_pGameServer->Chat(-1, "Sorry, I can't answer your question.");
         return;
     }
     const json_value &Json = *pJson;
@@ -91,5 +91,5 @@ void CChatGLM::CJob_ChatGLM::Run()
     std::string Content = Message.u.string.ptr;
     Content = replace_comma_with_newline(Content);
     Content = replace_dot_with_newline(Content);
-    m_pGameServer->SendMotd(-1, Content.c_str());
+    m_pGameServer->Motd(-1, Content.c_str());
 }

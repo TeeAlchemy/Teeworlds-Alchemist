@@ -7,7 +7,7 @@
 #include <engine/console.h>
 #include <engine/shared/memheap.h>
 
-#include <teeuniverses/components/localization.h>
+#include <teeother/components/localization.h>
 
 #include <game/layers.h>
 #include <game/voting.h>
@@ -155,12 +155,9 @@ public:
 	};
 
 	// network
-	void SendChatTarget(int ClientID, const char *pText, ...);
-	void SendMotd(int ClientID, const char *pText, ...);
 	void SendChat(int ClientID, int Team, const char *pText);
 	void SendEmoticon(int ClientID, int Emoticon);
 	void SendWeaponPickup(int ClientID, int Weapon);
-	void SendBroadcast(int ClientID, const char *pText, ...);
 	void SetClientLanguage(int ClientID, const char *pLanguage);
 
 	//
@@ -201,6 +198,58 @@ public:
 	virtual const char *NetVersion();
 
 	int GetClientVersion(int ClientId) const;
+
+public:
+	template< typename ... Ts> void Chat(int ClientID, const char* pText, Ts&&... args)
+	{
+		const int Start = (ClientID < 0 ? 0 : ClientID);
+		const int End = (ClientID < 0 ? MAX_CLIENTS : ClientID + 1);
+
+		CNetMsg_Sv_Chat Msg { -1, -1 };
+		for(int i = Start; i < End; i++)
+		{
+			if(m_apPlayers[i])
+			{
+				std::string endText = Server()->Localization()->Format(m_apPlayers[i]->GetLanguage(), pText, std::forward<Ts>(args) ...);
+				Msg.m_pMessage = endText.c_str();
+				Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, i);
+			}
+		}
+	}
+
+	template <typename ... Ts> void Motd(int ClientID, const char* pText, Ts&&... args)
+	{
+		const int Start = (ClientID < 0 ? 0 : ClientID);
+		const int End = (ClientID < 0 ? MAX_CLIENTS : ClientID + 1);
+
+		CNetMsg_Sv_Motd Msg;
+		for(int i = Start; i < End; i++)
+		{
+			if(m_apPlayers[i])
+			{
+				std::string endText = Server()->Localization()->Format(m_apPlayers[i]->GetLanguage(), pText, std::forward<Ts>(args) ...);
+				Msg.m_pMessage = endText.c_str();
+				Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, i);
+			}
+		}
+	}
+
+	template< typename ... Ts> void Broadcast(int ClientID, const char* pText, Ts&&... args)
+	{
+		const int Start = (ClientID < 0 ? 0 : ClientID);
+		const int End = (ClientID < 0 ? MAX_CLIENTS : ClientID + 1);
+
+		CNetMsg_Sv_Broadcast Msg;
+		for(int i = Start; i < End; i++)
+		{
+			if(m_apPlayers[i])
+			{
+				std::string endText = Server()->Localization()->Format(m_apPlayers[i]->GetLanguage(), pText, std::forward<Ts>(args) ...);
+				Msg.m_pMessage = endText.c_str();
+				Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, i);
+			}
+		}
+	}
 };
 
 inline int CmaskAll() { return -1; }

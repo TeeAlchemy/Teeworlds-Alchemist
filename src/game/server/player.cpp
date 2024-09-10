@@ -166,9 +166,9 @@ void CPlayer::OnDisconnect(const char *pReason)
 	{
 		char aBuf[512];
 		if (pReason && *pReason)
-			GameServer()->SendChatTarget(-1, _("'{str:Name}' has left the game ({str:Reason})"), "Name", Server()->ClientName(m_ClientID), "Reason", pReason);
+			GameServer()->Chat(-1, "'{}' has left the game ({})", Server()->ClientName(m_ClientID), pReason);
 		else
-			GameServer()->SendChatTarget(-1, _("'{str:Name}' has left the game"), "Name", Server()->ClientName(m_ClientID));
+			GameServer()->Chat(-1, "'{}' has left the game", Server()->ClientName(m_ClientID));
 
 		str_format(aBuf, sizeof(aBuf), "leave player='%d:%s'", m_ClientID, Server()->ClientName(m_ClientID));
 		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "game", aBuf);
@@ -251,7 +251,7 @@ void CPlayer::SetTeam(int Team, bool DoChatMsg)
 		return;
 
 	if (DoChatMsg)
-		GameServer()->SendChatTarget(-1, _("'{str:Name}' joined the {str:Team}"), "Name", Server()->ClientName(m_ClientID), "Team", GameServer()->m_pController->GetTeamName(Team));
+		GameServer()->Chat(-1, "'{}' joined the {}", Server()->ClientName(m_ClientID), GameServer()->m_pController->GetTeamName(Team));
 
 	KillCharacter();
 

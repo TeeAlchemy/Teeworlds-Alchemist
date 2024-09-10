@@ -12,7 +12,7 @@
 #include "console.h"
 #include "linereader.h"
 
-#include <teeuniverses/components/localization.h>
+#include <teeother/components/localization.h>
 
 // todo: rework this
 
@@ -317,14 +317,14 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientID, co
 				{
 					if (ParseArgs(&Result, pCommand->m_pParams))
 					{
-						dynamic_string aLocalizedString;
+						std::string aLocalizedString;
 						if (m_FlagMask & CFGFLAG_CHAT)
-							m_pLocalization->Format_L(aLocalizedString, pLanguage, _("Usage: /{str:name} {str:help}"), "name", pCommand->m_pName, "help", m_pLocalization->Localize(pLanguage, pCommand->m_pHelp));
+							aLocalizedString = m_pLocalization->Format(pLanguage, "Usage: /{} {}", pCommand->m_pName, m_pLocalization->Localize(pLanguage, pCommand->m_pHelp));
 						else
-							m_pLocalization->Format_L(aLocalizedString, pLanguage, _("Usage: {str:name} {str:help}"), "name", pCommand->m_pName, "help", m_pLocalization->Localize(pLanguage, pCommand->m_pParams));
+							aLocalizedString = m_pLocalization->Format(pLanguage, "Usage: {} {}", pCommand->m_pName, m_pLocalization->Localize(pLanguage, pCommand->m_pParams));
 
-						Print(OUTPUT_LEVEL_STANDARD, "Console", m_pLocalization->Localize(pLanguage, _("Invalid arguments.")));
-						Print(OUTPUT_LEVEL_STANDARD, "Console", aLocalizedString.buffer());
+						Print(OUTPUT_LEVEL_STANDARD, "Console", m_pLocalization->Localize(pLanguage, "Invalid arguments."));
+						Print(OUTPUT_LEVEL_STANDARD, "Console", aLocalizedString.c_str());
 					}
 					else if (m_StoreCommands && pCommand->m_Flags & CFGFLAG_STORE)
 					{
@@ -338,34 +338,34 @@ void CConsole::ExecuteLineStroked(int Stroke, const char *pStr, int ClientID, co
 						bool ValideArguments = pCommand->m_pfnCallback(&Result, pCommand->m_pUserData);
 						if (!ValideArguments)
 						{
-							dynamic_string aLocalizedString;
-							m_pLocalization->Format_L(aLocalizedString, pLanguage, _("Usage: {str:name} {str:help}"), "name", pCommand->m_pName, "help", m_pLocalization->Localize(pLanguage, pCommand->m_pHelp));
+							std::string aLocalizedString;
+							aLocalizedString = m_pLocalization->Format(pLanguage, "Usage: {} {}", pCommand->m_pName, m_pLocalization->Localize(pLanguage, pCommand->m_pHelp));
 
 							Print(OUTPUT_LEVEL_STANDARD, "Console", "Invalid arguments.");
-							Print(OUTPUT_LEVEL_STANDARD, "Console", aLocalizedString.buffer());
+							Print(OUTPUT_LEVEL_STANDARD, "Console", aLocalizedString.c_str());
 						}
 					}
 				}
 			}
 			else if (Stroke)
 			{
-				dynamic_string aLocalizedString;
+				std::string aLocalizedString;
 				if (m_FlagMask & CFGFLAG_CHAT)
-					m_pLocalization->Format_L(aLocalizedString, pLanguage, _("Access for command /{str:cmd} denied."), "cmd", Result.m_pCommand);
+					aLocalizedString = m_pLocalization->Format(pLanguage, "Access for command /{} denied.", Result.m_pCommand);
 				else
-					m_pLocalization->Format_L(aLocalizedString, pLanguage, _("Access for command {str:cmd} denied."), "cmd", Result.m_pCommand);
-				Print(OUTPUT_LEVEL_STANDARD, "Console", aLocalizedString.buffer());
+					aLocalizedString = m_pLocalization->Format(pLanguage, "Access for command {} denied.", Result.m_pCommand);
+				Print(OUTPUT_LEVEL_STANDARD, "Console", aLocalizedString.c_str());
 			}
 		}
 		else if (Stroke)
 		{
-			dynamic_string aLocalizedString;
+			std::string aLocalizedString;
 			if (m_FlagMask & CFGFLAG_CHAT)
-				m_pLocalization->Format_L(aLocalizedString, pLanguage, _("No such command: /{str:cmd}."), "cmd", Result.m_pCommand);
+				aLocalizedString = m_pLocalization->Format(pLanguage, "No such command: /{}.", Result.m_pCommand);
 			else
-				m_pLocalization->Format_L(aLocalizedString, pLanguage, _("No such command: {str:cmd}."), "cmd", Result.m_pCommand);
+				aLocalizedString = m_pLocalization->Format(pLanguage, "No such command: {}.", Result.m_pCommand);
 
-			Print(OUTPUT_LEVEL_STANDARD, "Console", aLocalizedString.buffer());
+			Print(OUTPUT_LEVEL_STANDARD, "Console", aLocalizedString.c_str());
 		}
 
 		pStr = pNextPart;

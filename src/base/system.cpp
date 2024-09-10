@@ -2513,7 +2513,7 @@ typedef CRITICAL_SECTION LOCKINTERNAL;
 			dbg_break();
 		}
 #if defined(CONF_FAMILY_WINDOWS)
-		if (!CryptGenRandom(secure_random_data.provider, length, bytes))
+		if (!CryptGenRandom(secure_random_data.provider, length, (unsigned char *)bytes))
 		{
 			dbg_msg("secure", "CryptGenRandom failed, last_error=%d", GetLastError());
 			dbg_break();

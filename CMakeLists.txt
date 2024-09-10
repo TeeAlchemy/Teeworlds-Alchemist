@@ -186,7 +186,7 @@ function(set_extra_dirs_lib VARIABLE NAME)
     set(TYPE PATHS)
   endif()
   if(TARGET_BITS AND TARGET_OS)
-    set(DIR "other/${NAME}/${TARGET_OS}/lib${TARGET_BITS}")
+    set(DIR "libs/${NAME}/${TARGET_OS}/lib${TARGET_BITS}")
     set("${TYPE}_${VARIABLE}_LIBDIR" "${DIR}" PARENT_SCOPE)
     set("EXTRA_${VARIABLE}_LIBDIR" "${DIR}" PARENT_SCOPE)
   endif()
@@ -197,7 +197,7 @@ function(set_extra_dirs_include VARIABLE NAME LIBRARY)
   set("HINTS_${VARIABLE}_INCLUDEDIR" PARENT_SCOPE)
   is_bundled(IS_BUNDLED "${LIBRARY}")
   if(IS_BUNDLED)
-    set("HINTS_${VARIABLE}_INCLUDEDIR" "other/${NAME}/include" "other/${NAME}/include/${TARGET_OS}" PARENT_SCOPE)
+    set("HINTS_${VARIABLE}_INCLUDEDIR" "libs/${NAME}/include" "libs/${NAME}/include/${TARGET_OS}" PARENT_SCOPE)
   endif()
 endfunction()
 
@@ -228,8 +228,6 @@ endif()
 find_package(ZLIB)
 find_package(Git)
 find_package(Python3)
-find_package(ICU)
-find_package(OpenSSL)
 find_package(Curl)
 
 if(MYSQL)
@@ -270,8 +268,6 @@ function(show_dependency_status OUTPUT_NAME NAME)
 endfunction()
 
 show_dependency_status("Curl" CURL)
-
-show_dependency_status("OpenSSL" OPENSSL FALSE)
 
 if(TARGET_OS AND TARGET_OS STREQUAL "mac")
   show_dependency_status("Dmg tools" DMGTOOLS)
@@ -329,9 +325,7 @@ set(DEP_MD5 $<TARGET_OBJECTS:md5>)
 
 file(COPY data server_lang maps DESTINATION .)
 set(COPY_FILES
-  ${ICU_COPY_FILES}
   ${MYSQL_COPY_FILES}
-  ${OPENSSL_COPY_FILES}
   storage.cfg
 )
 file(COPY ${COPY_FILES} DESTINATION .)
@@ -374,6 +368,8 @@ set_glob(BASE GLOB_RECURSE src/base
   tl/sorted_array.h
   tl/string.h
   tl/threading.h 
+  big_int.cpp
+  big_int.h
   color.h
   detect.h
   hash_bundled.cpp
@@ -383,7 +379,6 @@ set_glob(BASE GLOB_RECURSE src/base
   hash.cpp
   hash.h
   lock_scope.h
-  math.cpp
   math.h
   system.cpp
   system.h
@@ -391,10 +386,7 @@ set_glob(BASE GLOB_RECURSE src/base
   vmath.h
 )
 
-set(LOCALIZATION
-  src/teeuniverses/components/localization.cpp
-  src/teeuniverses/components/localization.h
-)
+file(GLOB LOCALIZATION "src/teeother/components/*.cpp" "src/teeother/components/*.h" "src/teeother/flat_hash_map/*.h" "src/teeother/system/*.h" "src/teeother/tl/*.h")
 
 set_glob(ENGINE_INTERFACE GLOB src/engine
   config.h
@@ -509,8 +501,6 @@ set(LIBS
   ${CMAKE_THREAD_LIBS_INIT}
   ${ZLIB_LIBRARIES}
   ${PLATFORM_LIBS}
-  ${ICU_LIBRARIES}
-  ${CURL_LIBRARIES}
 )
 
 # Targets
@@ -572,7 +562,7 @@ else()
 endif()
 
 # Libraries
-set(LIBS_SERVER ${LIBS} ${MYSQL_LIBRARIES} ${OPENSSL_LIBRARIES})
+set(LIBS_SERVER ${LIBS} ${MYSQL_LIBRARIES} ${CURL_LIBRARIES})
 
 # Target
 set(TARGET_SERVER ${EXECUTABLE})
@@ -920,12 +910,10 @@ foreach(target ${TARGETS_OWN})
     target_include_directories(${target} SYSTEM PRIVATE ${MYSQL_INCLUDE_DIRS})
   endif()
 
-  if(OPENSSL_FOUND)
-	target_compile_definitions(${target} PRIVATE CONF_OPENSSL)
-	target_include_directories(${target} PRIVATE ${OPENSSL_INCLUDE_DIRS})
-  endif()
+  set_target_properties(${target} PROPERTIES CXX_STANDARD_REQUIRED ON)
+  target_compile_features(${target} PUBLIC cxx_std_14)
 
-  endforeach()
+endforeach()
 
 foreach(target ${TARGETS_DEP})
   if(MSVC)
