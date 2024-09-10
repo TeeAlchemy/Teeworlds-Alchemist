@@ -1,7 +1,7 @@
 TODO:
 =====
 
-[] Update Localization Texts
+[x] Update Localization Texts
 [] Fix Windows building
 
 Teeworlds

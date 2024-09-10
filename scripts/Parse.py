@@ -11,25 +11,37 @@ output_file_name = sys.argv[2]
 
 unique_labels = set()  # 使用集合来避免重复
 
-def help_localize(directory):
+def help_localize(directory, tpattern):
+    pattern = re.compile(tpattern, re.IGNORECASE)
     for root, dirs, files in os.walk(directory):
-        for filename in fnmatch.filter(files, "*.cpp"):
-            with open(os.path.join(root, filename), "r") as file:
-                lines = file.readlines()
-                for line in lines:
-                    f = line.find(r'_("')
-                    if f != -1:
-                        end_quote = line.find(r'")', f)
-                        if end_quote != -1:
-                            label = line[f + 3 : end_quote]
-                            if label not in unique_labels:  # 检查是否重复
-                                unique_labels.add(label + "\n")  # 添加到集合中
+        for filename in files:
+            if filename.endswith('.cpp'):
+                # 获取完整文件路径
+                file_path = os.path.join(root, filename)
+                # 打开并读取文件内容
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    content = file.read()
+                    # 查找所有匹配项
+                    matches = pattern.findall(content)
+                    # 将所有匹配的字符串添加到列表中
+                    for found in matches:
+                        if found not in unique_labels:  # 检查是否重复
+                            unique_labels.add(found + "\n")  # 添加到集合中
 
     with open(labelfile, "w") as fw:  # 使用 "w" 而不是 "a" 来覆盖旧文件
         fw.writelines(sorted(unique_labels))  # 对标签进行排序并写入文件
 
-help_localize("src/game/server/")
-help_localize("src/engine/shared/")
+help_localize("src/game/server/", 'Chat\([^,]*, "(.+?)"')
+help_localize("src/engine/shared/", 'Chat\([^,]*, "(.+?)"')
+help_localize("src/game/server/", 'Broadcast\([^,]*, "(.+?)"')
+help_localize("src/engine/shared/", 'Broadcast\([^,]*, "(.+?)"')
+help_localize("src/game/server/", 'Motd\([^,]*, "(.+?)"')
+help_localize("src/engine/shared/", 'Motd\([^,]*, "(.+?)"')
+help_localize("src/game/server/", 'Format\([^,]*, "(.+?)"')
+help_localize("src/engine/shared/", 'Format\([^,]*, "(.+?)"')
+help_localize("src/game/server/", 'Localize\([^,]*, "(.+?)"')
+help_localize("src/engine/shared/", 'Localize\([^,]*, "(.+?)"')
+
 
 with open(labelfile, "r") as file:
         lines = file.readlines()

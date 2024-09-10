@@ -1,56 +1,56 @@
 {
     "translation": [
         {
-            "key": "'{str:Name}' called for vote to kick you",
-            "value": "'{str:Name}' 发起投票要踢出你"
+            "key": "'{}' called for vote to kick you",
+            "value": "'{}' 发起投票要踢出你"
         },
         {
-            "key": "'{str:Name}' entered the game",
-            "value": "'{str:Name}' 进入了游戏"
+            "key": "'{}' changed name to '{}'",
+            "value": "'{}' 将名称更改为 '{}'"
         },
         {
-            "key": "'{str:Name}' has left the game",
-            "value": "'{str:Name}' 退出了游戏"
+            "key": "'{}' entered the game",
+            "value": "'{}' 进入了游戏"
         },
         {
-            "key": "'{str:Name}' has left the game ({str:Reason})",
-            "value": "'{str:Name}' 退出了游戏 ({str:Reason})"
+            "key": "'{}' has left the game",
+            "value": "'{}' 退出了游戏"
         },
         {
-            "key": "'{str:Name}' joined the {str:Team}",
-            "value": "'{str:Name}' 加入了 {str:Team}"
+            "key": "'{}' has left the game ({})",
+            "value": "'{}' 退出了游戏 ({})"
         },
         {
-            "key": "'{str:OldName}' changed name to '{str:NewName}'",
-            "value": "'{str:OldName}' 将名字改为 '{str:NewName}'"
+            "key": "'{}' isn't an option on this server",
+            "value": "'{}' 不是服务器的一个选项"
         },
         {
-            "key": "'{str:Option}' isn't an option on this server",
-            "value": "'{str:Option}' 不是服务器里的一个设置"
+            "key": "'{}' joined the {}",
+            "value": "'{}' 加入了 {}"
         },
         {
-            "key": "Access for command /{str:cmd} denied.",
-            "value": "你没有调用指令 /{str:cmd} 的权限"
+            "key": "Access for command /{} denied.",
+            "value": "你们没有调用指令 /{} 的权限."
         },
         {
-            "key": "Access for command {str:cmd} denied.",
-            "value": "你没有调用指令 {str:cmd} 的权限"
+            "key": "Access for command {} denied.",
+            "value": "你们没有调用指令 {} 的权限."
         },
         {
-            "key": "All players were moved to the {str:Team}",
-            "value": "所有玩家已被移动到 {str:Team}"
+            "key": "All players were moved to the {}",
+            "value": "所有玩家已被移动到 {}"
         },
         {
-            "key": "Available languages: {str:ListOfLanguage}",
-            "value": "可用语言: {str:ListOfLanguage}"
+            "key": "Available languages: {}",
+            "value": "可用语言: {}"
         },
         {
             "key": "ChatGLM has received your message and is currently processing it.",
             "value": "ChatGLM已接收到了您的消息，正在处理中"
         },
         {
-            "key": "Credits: {str:credits}",
-            "value": "开发者: {str:credits}"
+            "key": "Credits: {}",
+            "value": "开发者: {}"
         },
         {
             "key": "Invalid arguments.",
@@ -69,24 +69,24 @@
             "value": "无效的观众ID"
         },
         {
-            "key": "Kick voting requires {int:Min} players on the server",
-            "value": "投票踢出需要服务器上有 {int:Min} 名玩家"
+            "key": "Kick voting requires {} players on the server",
+            "value": "投票踢人需要服务器上有 {} 名玩家"
         },
         {
             "key": "Language successfully switched to English",
             "value": "语言成功切换为中文"
         },
         {
-            "key": "No such command: /{str:cmd}.",
-            "value": "找不到指令: /{str:cmd}."
+            "key": "No such command: /{}.",
+            "value": "找不到指令: /{}."
         },
         {
-            "key": "No such command: {str:cmd}.",
-            "value": "找不到指令: {str:cmd}."
+            "key": "No such command: {}.",
+            "value": "找不到指令: {}."
         },
         {
-            "key": "Only {int:Count} active players are allowed",
-            "value": "最多允许 {int:Count} 名玩家"
+            "key": "Only {} active players are allowed",
+            "value": "服务器限制最多 {} 名玩家可以活动"
         },
         {
             "key": "Server does not allow voting to kick players",
@@ -101,8 +101,8 @@
             "value": "抱歉，我不能回答你的问题"
         },
         {
-            "key": "Sources: {str:sources}",
-            "value": "源码: {str:sources}"
+            "key": "Sources: {}",
+            "value": "源码: {}"
         },
         {
             "key": "Spectators aren't allowed to start a vote.",
@@ -137,24 +137,24 @@
             "value": "队伍解锁了"
         },
         {
-            "key": "Thanks to: {str:thanks}",
-            "value": "感谢: {str:thanks}"
+            "key": "Thanks to: {}",
+            "value": "感谢: {}"
         },
         {
-            "key": "Time to wait before changing team: {sec:Time}",
-            "value": "你必须等待 {sec:Time} 才能改变队伍"
+            "key": "Time to wait before changing team: {}:{}",
+            "value": "更换队伍前的等待时间: {}:{}"
         },
         {
             "key": "Unknown language",
             "value": "未知语言"
         },
         {
-            "key": "Usage: /{str:name} {str:help}",
-            "value": "使用方法: /{str:name} {str:help}"
+            "key": "Usage: /{} {}",
+            "value": "使用方法: /{} {}"
         },
         {
-            "key": "Usage: {str:name} {str:help}",
-            "value": "使用方法: {str:name} {str:help}"
+            "key": "Usage: {} {}",
+            "value": "使用方法: {} {}"
         },
         {
             "key": "Vote aborted",
@@ -185,28 +185,28 @@
             "value": "你不能移动你自己"
         },
         {
-            "key": "You must wait {int:Sec} seconds before making another vote",
-            "value": "你必须等待 {int:Sec} 秒才能发起另一个投票"
+            "key": "You must wait {} seconds before making another vote",
+            "value": "你必须等待 {} 秒才能发起另一个投票"
         },
         {
-            "key": "You were moved to {str:Team} due to team balancing",
-            "value": "你被移动到 {str:Team} 以平衡队伍"
+            "key": "You were moved to {} due to team balancing",
+            "value": "你因为队伍平衡被移动到 {}"
         },
         {
-            "key": "admin forced server option '{str:Value}' ({str:Reason})",
-            "value": "管理员强制更改服务器选项 '{str:Value}' ({str:Reason})"
+            "key": "admin forced server option '{}' ({})",
+            "value": "强制发起投票 '{}' ({})"
         },
         {
-            "key": "admin forced vote {str:Result}",
-            "value": "管理员强制投票 {str:Result}"
+            "key": "admin forced vote {}",
+            "value": "管理员强制投票 {}"
         },
         {
-            "key": "admin moved '{str:Name}' to spectator ({str:Reason})",
-            "value": "管理员将 '{str:Name}' 移动到旁观者 ({str:Reason})"
+            "key": "admin moved '{}' to spectator ({})",
+            "value": "管理员将玩家 '{}' 移动到旁观 ({})"
         },
         {
-            "key": "{str:modname} {str:modversion} by {str:modauthors}",
-            "value": "{str:modname}. {str:modversion} by {str:modauthors}."
+            "key": "{} {} by {}",
+            "value": "{} {} by.{}"
         }
     ]
 }
