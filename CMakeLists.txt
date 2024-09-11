@@ -471,7 +471,6 @@ set_glob(ENGINE_SHARED GLOB src/engine/shared
 set(ENGINE_GENERATED_SHARED src/game/generated/protocol.cpp src/game/generated/protocol.h)
 
 set_glob(GAME_SHARED GLOB src/game
-  alloc.h
   collision.cpp
   collision.h
   gamecore.cpp
@@ -537,6 +536,7 @@ set_glob(GAME_SERVER GLOB_RECURSE src/game/server
   entities/projectile.h
   gamemodes/mod.cpp
   gamemodes/mod.h
+  alloc.h
   chatglm.cpp
   chatglm.h
   entity.cpp

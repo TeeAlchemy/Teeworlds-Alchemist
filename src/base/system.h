@@ -16,6 +16,14 @@
 #include <sys/socket.h>
 #endif
 
+#if __cplusplus >= 201703L
+#define MAYBE_UNUSED [[maybe_unused]]
+#elif defined(__GNUC__)
+#define MAYBE_UNUSED __attribute__((unused))
+#else
+#define MAYBE_UNUSED
+#endif
+
 #include <chrono>
 
 #include "types.h"
