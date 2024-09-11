@@ -16,8 +16,6 @@ public:
 	CPlayer(CGameContext *pGameServer, int ClientID, int Team);
 	~CPlayer();
 
-	void Init(int CID);
-
 	void TryRespawn();
 	void Respawn();
 	void SetTeam(int Team, bool DoChatMsg = true);

@@ -535,6 +535,8 @@ set_glob(GAME_SERVER GLOB_RECURSE src/game/server
   entities/pickup.h
   entities/projectile.cpp
   entities/projectile.h
+  gamemodes/mod.cpp
+  gamemodes/mod.h
   chatglm.cpp
   chatglm.h
   entity.cpp

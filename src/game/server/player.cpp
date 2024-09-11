@@ -121,7 +121,7 @@ void CPlayer::Snap(int SnappingClient)
 		if (!Server()->ClientIngame(m_ClientID))
 			return;
 
-	CNetObj_ClientInfo *pClientInfo = static_cast<CNetObj_ClientInfo *>(Server()->SnapNewItem(NETOBJTYPE_CLIENTINFO, m_ClientID, sizeof(CNetObj_ClientInfo)));
+	CNetObj_ClientInfo *pClientInfo = Server()->SnapNewItem<CNetObj_ClientInfo>(m_ClientID);
 	if (!pClientInfo)
 		return;
 
@@ -133,7 +133,7 @@ void CPlayer::Snap(int SnappingClient)
 	pClientInfo->m_ColorBody = m_TeeInfos.m_ColorBody;
 	pClientInfo->m_ColorFeet = m_TeeInfos.m_ColorFeet;
 
-	CNetObj_PlayerInfo *pPlayerInfo = static_cast<CNetObj_PlayerInfo *>(Server()->SnapNewItem(NETOBJTYPE_PLAYERINFO, m_ClientID, sizeof(CNetObj_PlayerInfo)));
+	CNetObj_PlayerInfo *pPlayerInfo = Server()->SnapNewItem<CNetObj_PlayerInfo>(m_ClientID);
 	if (!pPlayerInfo)
 		return;
 
@@ -148,7 +148,7 @@ void CPlayer::Snap(int SnappingClient)
 
 	if (m_ClientID == SnappingClient && m_Team == TEAM_SPECTATORS)
 	{
-		CNetObj_SpectatorInfo *pSpectatorInfo = static_cast<CNetObj_SpectatorInfo *>(Server()->SnapNewItem(NETOBJTYPE_SPECTATORINFO, m_ClientID, sizeof(CNetObj_SpectatorInfo)));
+		CNetObj_SpectatorInfo *pSpectatorInfo = Server()->SnapNewItem<CNetObj_SpectatorInfo>(m_ClientID);
 		if (!pSpectatorInfo)
 			return;
 

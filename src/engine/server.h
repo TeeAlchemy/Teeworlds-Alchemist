@@ -97,6 +97,12 @@ public:
 	virtual int SnapNewID() = 0;
 	virtual void SnapFreeID(int ID) = 0;
 	virtual void *SnapNewItem(int Type, int ID, int Size) = 0;
+	template<typename T>
+	T *SnapNewItem(int Id)
+	{
+		const int Type = T::ms_MsgId;
+		return static_cast<T *>(SnapNewItem(Type, Id, sizeof(T)));
+	}
 
 	virtual void SnapSetStaticsize(int ItemType, int Size) = 0;
 

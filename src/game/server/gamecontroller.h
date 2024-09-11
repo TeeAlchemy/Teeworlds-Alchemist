@@ -11,7 +11,7 @@
 		Controls the main game logic. Keeping track of team and player score,
 		winning conditions and specific game logic.
 */
-class CGameController
+class IGameController
 {
 	enum
 	{
@@ -84,8 +84,8 @@ public:
 	bool IsTeamplay() const;
 	bool IsGameOver() const { return m_GameOverTick != -1; }
 
-	CGameController(class CGameContext *pGameServer);
-	virtual ~CGameController();
+	IGameController(class CGameContext *pGameServer);
+	virtual ~IGameController();
 
 	virtual void DoWincheck();
 

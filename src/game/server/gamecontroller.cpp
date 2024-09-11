@@ -9,11 +9,11 @@
 #include "gamecontroller.h"
 #include "gamecontext.h"
 
-CGameController::CGameController(class CGameContext *pGameServer)
+IGameController::IGameController(class CGameContext *pGameServer)
 {
 	m_pGameServer = pGameServer;
 	m_pServer = m_pGameServer->Server();
-	m_pGameType = "Alchemy idm";
+	m_pGameType = "Alchemy"; // Set the gametype to Alchemy by default
 
 	//
 	DoWarmup(g_Config.m_SvWarmup);
@@ -31,9 +31,9 @@ CGameController::CGameController(class CGameContext *pGameServer)
 	m_ForceBalanced = false;
 }
 
-CGameController::~CGameController() {}
+IGameController::~IGameController() {}
 
-float CGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos, int MapID)
+float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos, int MapID)
 {
 	float Score = 0.0f;
 	CCharacter *pC = static_cast<CCharacter *>(GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_CHARACTER));
@@ -53,7 +53,7 @@ float CGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos, int MapID)
 	return Score;
 }
 
-void CGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type, int MapID)
+void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type, int MapID)
 {
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "Evaluate Spawn Map %d Type %d SpawnNum %d", MapID, Type, m_vNumSpawnPoints[MapID].m_aNumSpawnPoints[Type]);
@@ -92,7 +92,7 @@ void CGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type, int MapID)
 	}
 }
 
-bool CGameController::CanSpawn(int Team, vec2 *pOutPos, int MapID)
+bool IGameController::CanSpawn(int Team, vec2 *pOutPos, int MapID)
 {
 	CSpawnEval Eval;
 
@@ -124,7 +124,7 @@ bool CGameController::CanSpawn(int Team, vec2 *pOutPos, int MapID)
 	return Eval.m_Got;
 }
 
-bool CGameController::OnEntity(int Index, vec2 Pos, int MapID)
+bool IGameController::OnEntity(int Index, vec2 Pos, int MapID)
 {
 	int Type = -1;
 
@@ -177,7 +177,7 @@ bool CGameController::OnEntity(int Index, vec2 Pos, int MapID)
 	return false;
 }
 
-void CGameController::SetSpawnNum(int MapNum)
+void IGameController::SetSpawnNum(int MapNum)
 {
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), COLOR_BLUE "Setting enviroment for MapID %d", MapNum - 1);
@@ -189,7 +189,7 @@ void CGameController::SetSpawnNum(int MapNum)
 		m_vNumSpawnPoints[MapNum - 1].m_aNumSpawnPoints[i] = 0;
 }
 
-void CGameController::EndRound()
+void IGameController::EndRound()
 {
 	if (m_Warmup) // game can't end when we are running warmup
 		return;
@@ -199,12 +199,12 @@ void CGameController::EndRound()
 	m_SuddenDeath = 0;
 }
 
-void CGameController::ResetGame()
+void IGameController::ResetGame()
 {
 	GameServer()->m_World.m_ResetRequested = true;
 }
 
-const char *CGameController::GetTeamName(int Team)
+const char *IGameController::GetTeamName(int Team)
 {
 	if (IsTeamplay())
 	{
@@ -224,7 +224,7 @@ const char *CGameController::GetTeamName(int Team)
 
 static bool IsSeparator(char c) { return c == ';' || c == ' ' || c == ',' || c == '\t'; }
 
-void CGameController::StartRound()
+void IGameController::StartRound()
 {
 	ResetGame();
 
@@ -241,13 +241,13 @@ void CGameController::StartRound()
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 }
 
-void CGameController::ChangeMap(const char *pToMap)
+void IGameController::ChangeMap(const char *pToMap)
 {
 	str_copy(m_aMapWish, pToMap, sizeof(m_aMapWish));
 	EndRound();
 }
 
-void CGameController::CycleMap()
+void IGameController::CycleMap()
 {
 	if (m_aMapWish[0] != 0)
 	{
@@ -323,7 +323,7 @@ void CGameController::CycleMap()
 	str_copy(g_Config.m_SvMap, &aBuf[i], sizeof(g_Config.m_SvMap));
 }
 
-void CGameController::PostReset()
+void IGameController::PostReset()
 {
 	for (int i = 0; i < MAX_CLIENTS; i++)
 	{
@@ -337,7 +337,7 @@ void CGameController::PostReset()
 	}
 }
 
-void CGameController::OnPlayerInfoChange(class CPlayer *pP)
+void IGameController::OnPlayerInfoChange(class CPlayer *pP)
 {
 	const int aTeamColors[2] = {65387, 10223467};
 	if (IsTeamplay())
@@ -356,7 +356,7 @@ void CGameController::OnPlayerInfoChange(class CPlayer *pP)
 	}
 }
 
-int CGameController::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon)
+int IGameController::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon)
 {
 	// do scoreing
 	if (!pKiller || Weapon == WEAPON_GAME)
@@ -375,7 +375,7 @@ int CGameController::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *
 	return 0;
 }
 
-void CGameController::OnCharacterSpawn(class CCharacter *pChr)
+void IGameController::OnCharacterSpawn(class CCharacter *pChr)
 {
 	// default health
 	pChr->IncreaseHealth(10);
@@ -385,7 +385,7 @@ void CGameController::OnCharacterSpawn(class CCharacter *pChr)
 	pChr->GiveWeapon(WEAPON_GUN, 10);
 }
 
-void CGameController::DoWarmup(int Seconds)
+void IGameController::DoWarmup(int Seconds)
 {
 	if (Seconds < 0)
 		m_Warmup = 0;
@@ -393,7 +393,7 @@ void CGameController::DoWarmup(int Seconds)
 		m_Warmup = Seconds * Server()->TickSpeed();
 }
 
-void CGameController::TogglePause()
+void IGameController::TogglePause()
 {
 	if (IsGameOver())
 		return;
@@ -417,7 +417,7 @@ void CGameController::TogglePause()
 	}
 }
 
-bool CGameController::IsFriendlyFire(int ClientID1, int ClientID2)
+bool IGameController::IsFriendlyFire(int ClientID1, int ClientID2)
 {
 	if (ClientID1 == ClientID2)
 		return false;
@@ -434,7 +434,7 @@ bool CGameController::IsFriendlyFire(int ClientID1, int ClientID2)
 	return false;
 }
 
-bool CGameController::IsForceBalanced()
+bool IGameController::IsForceBalanced()
 {
 	if (m_ForceBalanced)
 	{
@@ -445,12 +445,12 @@ bool CGameController::IsForceBalanced()
 		return false;
 }
 
-bool CGameController::CanBeMovedOnBalance(int ClientID)
+bool IGameController::CanBeMovedOnBalance(int ClientID)
 {
 	return true;
 }
 
-void CGameController::Tick()
+void IGameController::Tick()
 {
 	// do warmup
 	if (!GameServer()->m_World.m_Paused && m_Warmup)
@@ -587,14 +587,14 @@ void CGameController::Tick()
 	DoWincheck();
 }
 
-bool CGameController::IsTeamplay() const
+bool IGameController::IsTeamplay() const
 {
 	return m_GameFlags & GAMEFLAG_TEAMS;
 }
 
-void CGameController::Snap(int SnappingClient)
+void IGameController::Snap(int SnappingClient)
 {
-	CNetObj_GameInfo *pGameInfoObj = (CNetObj_GameInfo *)Server()->SnapNewItem(NETOBJTYPE_GAMEINFO, 0, sizeof(CNetObj_GameInfo));
+	CNetObj_GameInfo *pGameInfoObj = Server()->SnapNewItem<CNetObj_GameInfo>(0);
 	if (!pGameInfoObj)
 		return;
 
@@ -616,7 +616,7 @@ void CGameController::Snap(int SnappingClient)
 	pGameInfoObj->m_RoundCurrent = m_RoundCount + 1;
 }
 
-int CGameController::GetAutoTeam(int NotThisID)
+int IGameController::GetAutoTeam(int NotThisID)
 {
 	// this will force the auto balancer to work overtime aswell
 	if (g_Config.m_DbgStress)
@@ -641,7 +641,7 @@ int CGameController::GetAutoTeam(int NotThisID)
 	return -1;
 }
 
-bool CGameController::CanJoinTeam(int Team, int NotThisID)
+bool IGameController::CanJoinTeam(int Team, int NotThisID)
 {
 	if (Team == TEAM_SPECTATORS || (GameServer()->m_apPlayers[NotThisID] && GameServer()->m_apPlayers[NotThisID]->GetTeam() != TEAM_SPECTATORS))
 		return true;
@@ -659,7 +659,7 @@ bool CGameController::CanJoinTeam(int Team, int NotThisID)
 	return (aNumplayers[0] + aNumplayers[1]) < Server()->MaxClients() - g_Config.m_SvSpectatorSlots;
 }
 
-bool CGameController::CheckTeamBalance()
+bool IGameController::CheckTeamBalance()
 {
 	if (!IsTeamplay() || !g_Config.m_SvTeambalanceTime)
 		return true;
@@ -690,7 +690,7 @@ bool CGameController::CheckTeamBalance()
 	}
 }
 
-bool CGameController::CanChangeTeam(CPlayer *pPlayer, int JoinTeam)
+bool IGameController::CanChangeTeam(CPlayer *pPlayer, int JoinTeam)
 {
 	int aT[2] = {0, 0};
 
@@ -722,7 +722,7 @@ bool CGameController::CanChangeTeam(CPlayer *pPlayer, int JoinTeam)
 		return true;
 }
 
-void CGameController::DoWincheck()
+void IGameController::DoWincheck()
 {
 	if (m_GameOverTick == -1 && !m_Warmup && !GameServer()->m_World.m_ResetRequested)
 	{
@@ -770,7 +770,7 @@ void CGameController::DoWincheck()
 	}
 }
 
-int CGameController::ClampTeam(int Team)
+int IGameController::ClampTeam(int Team)
 {
 	if (Team < 0)
 		return TEAM_SPECTATORS;

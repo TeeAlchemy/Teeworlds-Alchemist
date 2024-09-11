@@ -26,12 +26,12 @@ public:
 
 	CCharacter(CGameWorld *pWorld, int MapID);
 
-	virtual void Reset();
-	virtual void Destroy();
-	virtual void Tick();
-	virtual void TickDefered();
-	virtual void TickPaused();
-	virtual void Snap(int SnappingClient);
+	void Reset() override;
+	void Destroy() override;
+	void Tick() override;
+	void TickDefered() override;
+	void TickPaused() override;
+	void Snap(int SnappingClient) override;
 
 	bool IsGrounded();
 
@@ -51,7 +51,6 @@ public:
 	bool TakeDamage(vec2 Force, int Dmg, int From, int Weapon);
 
 	bool Spawn(class CPlayer *pPlayer, vec2 Pos);
-	bool Remove();
 
 	bool IncreaseHealth(int Amount);
 	bool IncreaseArmor(int Amount);

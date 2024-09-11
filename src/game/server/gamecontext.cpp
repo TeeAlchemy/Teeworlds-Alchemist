@@ -15,6 +15,8 @@
 
 #include "chatglm.h"
 
+#include "gamemodes/mod.h"
+
 enum
 {
 	RESET,
@@ -264,7 +266,6 @@ void CGameContext::CreateMapSoundGlobal(int MapSoundID, int Target)
 		Server()->SendPackMsg(&Msg, Flag, Target);
 	}
 }
-
 
 void CGameContext::SendChat(int ChatterClientID, int Team, const char *pText)
 {
@@ -1163,7 +1164,7 @@ bool CGameContext::ConBroadcast(IConsole::IResult *pResult, void *pUserData)
 bool CGameContext::ConSay(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->SendChat(-1, CGameContext::CHAT_ALL, pResult->GetString(0));
+	pSelf->Chat(-1, pResult->GetString(0));
 	return true;
 }
 
@@ -1622,14 +1623,14 @@ bool CGameContext::ConChatGLM(IConsole::IResult *pResult, void *pUserData)
 
 	int CID = pResult->GetClientID();
 
-	if(!pThis->m_apPlayers[CID])
+	if (!pThis->m_apPlayers[CID])
 		return false;
-	
-	if(pResult->NumArguments() < 1)
+
+	if (pResult->NumArguments() < 1)
 		return false;
 
 	pThis->Chat(CID, "ChatGLM has received your message and is currently processing it.");
-	
+
 	pThis->m_pChatGLM->Send(pThis, pThis->Server()->ClientName(CID), pResult->GetString(0));
 
 	return true;
@@ -1683,7 +1684,7 @@ void CGameContext::OnInit()
 		Server()->SnapSetStaticsize(i, m_NetObjHandler.GetObjSize(i));
 
 	// select gametype
-	m_pController = new CGameController(this);
+	m_pController = new CGameControllerMOD(this);
 
 	OnInitMap(0);
 }
@@ -1787,6 +1788,18 @@ void CGameContext::PrepareClientChangeMap(int ClientID)
 int CGameContext::GetClientVersion(int ClientId) const
 {
 	return Server()->GetClientVersion(ClientId);
+}
+
+CPlayer *CGameContext::GetPlayer(int ClientID)
+{
+    if(m_apPlayers[ClientID])
+		return m_apPlayers[ClientID];
+	return nullptr;
+}
+
+const char *CGameContext::GetClientLanguage(int ClientID)
+{
+	return Server()->GetClientLanguage(ClientID);
 }
 
 const char *CGameContext::GameType() { return m_pController && m_pController->m_pGameType ? m_pController->m_pGameType : ""; }

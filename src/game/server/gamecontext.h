@@ -29,7 +29,7 @@ class CChatGLM;
 				All entities in the world (CEntity::Tick)
 				All entities in the world (CEntity::TickDeferd)
 				Remove entities marked for deletion (CGameWorld::RemoveEntity)
-			Game Controller (CGameController::Tick)
+			Game Controller (IGameController::Tick)
 			All players (CPlayer::Tick)
 
 
@@ -37,7 +37,7 @@ class CChatGLM;
 		Game Context (CGameContext::OnSnap)
 			Game World (CGameWorld::Snap)
 				All entities in the world (CEntity::Snap)
-			Game Controller (CGameController::Snap)
+			Game Controller (IGameController::Snap)
 			Events handler (CEventHandler::Snap)
 			All players (CPlayer::Snap)
 
@@ -69,7 +69,7 @@ class CGameContext : public IGameServer
 	static bool ConForceVote(IConsole::IResult *pResult, void *pUserData);
 	static bool ConClearVotes(IConsole::IResult *pResult, void *pUserData);
 	static bool ConVote(IConsole::IResult *pResult, void *pUserData);
-	
+
 	static void ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 
 	static void ChatConsolePrintCallback(const char *pLine, void *pUser);
@@ -98,13 +98,15 @@ public:
 	CEventHandler m_Events;
 	CPlayer *m_apPlayers[MAX_CLIENTS];
 
-	CGameController *m_pController;
+	IGameController *m_pController;
 	CGameWorld m_World;
 
 	CChatGLM *m_pChatGLM;
 
 	// helper functions
 	class CCharacter *GetPlayerChar(int ClientID);
+	CPlayer *GetPlayer(int ClientID);
+	const char *GetClientLanguage(int ClientID);
 
 	int m_LockTeams;
 
@@ -145,7 +147,7 @@ public:
 	void CreateExtraEffect(vec2 Pos, int Effect, int MapID, CClientMask Mask = CClientMask().set());
 	void CreateMapSound(vec2 Pos, int MapSoundID, int MapID, CClientMask Mask = CClientMask().set());
 	void CreateMapSoundGlobal(int MapSoundID, int Target = -1);
-	
+
 	enum
 	{
 		CHAT_ALL = -2,
@@ -167,84 +169,88 @@ public:
 	void SwapTeams();
 
 	// engine events
-	virtual void OnInit();
-	virtual void OnInitMap(int MapID);
-	virtual void OnConsoleInit();
-	virtual void OnShutdown();
+	void OnInit() override;
+	void OnInitMap(int MapID) override;
+	void OnConsoleInit() override;
+	void OnShutdown() override;
 
-	virtual void OnTick();
-	virtual void OnPreSnap();
-	virtual void OnSnap(int ClientID);
-	virtual void OnPostSnap();
+	void OnTick() override;
+	void OnPreSnap() override;
+	void OnSnap(int ClientID) override;
+	void OnPostSnap() override;
 
-	virtual void OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID);
+	void OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID) override;
 
-	virtual void OnClientConnected(int ClientID, int MapChange);
-	virtual void OnClientEnter(int ClientID);
-	virtual void KillCharacter(int ClientID);
-	virtual void OnClientDrop(int ClientID, const char *pReason);
-	virtual void OnClientDirectInput(int ClientID, void *pInput);
-	virtual void OnClientPredictedInput(int ClientID, void *pInput);
+	void OnClientConnected(int ClientID, int MapChange) override;
+	void OnClientEnter(int ClientID) override;
+	void KillCharacter(int ClientID) override;
+	void OnClientDrop(int ClientID, const char *pReason) override;
+	void OnClientDirectInput(int ClientID, void *pInput) override;
+	void OnClientPredictedInput(int ClientID, void *pInput) override;
 
 	void PrepareClientChangeMap(int ClientID) override;
 
-	virtual bool IsClientReady(int ClientID);
-	virtual bool IsClientPlayer(int ClientID);
+	bool IsClientReady(int ClientID) override;
+	bool IsClientPlayer(int ClientID) override;
 
-	virtual void OnSetAuthed(int ClientID, int Level);
+	void OnSetAuthed(int ClientID, int Level) override;
 
-	virtual const char *GameType();
-	virtual const char *Version();
-	virtual const char *NetVersion();
+	const char *GameType() override;
+	const char *Version() override;
+	const char *NetVersion() override;
 
 	int GetClientVersion(int ClientId) const;
 
 public:
-	template< typename ... Ts> void Chat(int ClientID, const char* pText, Ts&&... args)
+	// TODO: Rewrite this.
+	template <typename... Ts>
+	void Chat(int ClientID, const char *pText, Ts &&...args)
 	{
 		const int Start = (ClientID < 0 ? 0 : ClientID);
 		const int End = (ClientID < 0 ? MAX_CLIENTS : ClientID + 1);
 
-		CNetMsg_Sv_Chat Msg { -1, -1 };
-		for(int i = Start; i < End; i++)
+		CNetMsg_Sv_Chat Msg{-1, -1};
+		for (int i = Start; i < End; i++)
 		{
-			if(m_apPlayers[i])
+			if (GetPlayer(i))
 			{
-				std::string endText = Server()->Localization()->Format(m_apPlayers[i]->GetLanguage(), pText, std::forward<Ts>(args) ...);
+				std::string endText = Server()->Localization()->Format(GetClientLanguage(i), pText, std::forward<Ts>(args)...);
 				Msg.m_pMessage = endText.c_str();
 				Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, i);
 			}
 		}
 	}
 
-	template <typename ... Ts> void Motd(int ClientID, const char* pText, Ts&&... args)
+	template <typename... Ts>
+	void Motd(int ClientID, const char *pText, Ts &&...args)
 	{
 		const int Start = (ClientID < 0 ? 0 : ClientID);
 		const int End = (ClientID < 0 ? MAX_CLIENTS : ClientID + 1);
 
 		CNetMsg_Sv_Motd Msg;
-		for(int i = Start; i < End; i++)
+		for (int i = Start; i < End; i++)
 		{
-			if(m_apPlayers[i])
+			if (GetPlayer(i))
 			{
-				std::string endText = Server()->Localization()->Format(m_apPlayers[i]->GetLanguage(), pText, std::forward<Ts>(args) ...);
+				std::string endText = Server()->Localization()->Format(GetClientLanguage(i), pText, std::forward<Ts>(args)...);
 				Msg.m_pMessage = endText.c_str();
 				Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, i);
 			}
 		}
 	}
 
-	template< typename ... Ts> void Broadcast(int ClientID, const char* pText, Ts&&... args)
+	template <typename... Ts>
+	void Broadcast(int ClientID, const char *pText, Ts &&...args)
 	{
 		const int Start = (ClientID < 0 ? 0 : ClientID);
 		const int End = (ClientID < 0 ? MAX_CLIENTS : ClientID + 1);
 
 		CNetMsg_Sv_Broadcast Msg;
-		for(int i = Start; i < End; i++)
+		for (int i = Start; i < End; i++)
 		{
-			if(m_apPlayers[i])
+			if (GetPlayer(i))
 			{
-				std::string endText = Server()->Localization()->Format(m_apPlayers[i]->GetLanguage(), pText, std::forward<Ts>(args) ...);
+				std::string endText = Server()->Localization()->Format(GetClientLanguage(i), pText, std::forward<Ts>(args)...);
 				Msg.m_pMessage = endText.c_str();
 				Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, i);
 			}

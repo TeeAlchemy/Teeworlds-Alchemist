@@ -439,8 +439,6 @@ public:
 	SECURITY_TOKEN GetToken(const NETADDR &Addr);
 	// vanilla token/gametick shouldn't be negative
 	SECURITY_TOKEN GetVanillaToken(const NETADDR &Addr) { return absolute(GetToken(Addr)); }
-
-	bool m_SlotTakenByBot[64];
 };
 
 class CNetConsole

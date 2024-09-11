@@ -71,10 +71,7 @@ bool CNetServer::Open(NETADDR BindAddr, CNetBan *pNetBan, int MaxClients, int Ma
 		Slot.m_Connection.Init(m_Socket, true);
 
 	for (int i = 0; i < NET_MAX_CLIENTS; i++)
-	{
 		m_aSlots[i].m_Connection.Init(m_Socket, true);
-		m_SlotTakenByBot[i] = false;
-	}
 
 	return true;
 }
@@ -112,8 +109,6 @@ int CNetServer::Drop(int ClientID, const char *pReason)
 		m_pfnDelClient(ClientID, pReason, m_pUser);
 
 	m_aSlots[ClientID].m_Connection.Disconnect(pReason);
-
-	m_SlotTakenByBot[ClientID] = false;
 
 	return 0;
 }
@@ -239,7 +234,7 @@ int CNetServer::TryAcceptClient(NETADDR &Addr, SECURITY_TOKEN SecurityToken, boo
 	int Slot = -1;
 	for (int i = 0; i < MaxClients(); i++)
 	{
-		if (m_aSlots[i].m_Connection.State() == NET_CONNSTATE_OFFLINE && !m_SlotTakenByBot[i])
+		if (m_aSlots[i].m_Connection.State() == NET_CONNSTATE_OFFLINE)
 		{
 			Slot = i;
 			break;
@@ -248,18 +243,6 @@ int CNetServer::TryAcceptClient(NETADDR &Addr, SECURITY_TOKEN SecurityToken, boo
 
 	if (Slot == -1)
 	{
-		for (int i = 0; i < MaxClients(); i++)
-		{
-			if (m_SlotTakenByBot[i])
-			{
-				Drop(i, "Making room for a real player.");
-				m_aSlots[i].m_Connection.Feed(&m_RecvUnpacker.m_Data, &Addr);
-				if (m_pfnNewClient)
-					m_pfnNewClient(i, m_pUser, Sixup);
-				break;
-			}
-		}
-
 		const char aFullMsg[] = "This server is full";
 		CNetBase::SendControlMsg(m_Socket, &Addr, 0, NET_CTRLMSG_CLOSE, aFullMsg, sizeof(aFullMsg), SecurityToken, Sixup);
 
@@ -600,8 +583,7 @@ int CNetServer::GetClientSlot(const NETADDR &Addr)
 
 	for (int i = 0; i < MaxClients(); i++)
 	{
-		if (!m_SlotTakenByBot[i] &&
-			m_aSlots[i].m_Connection.State() != NET_CONNSTATE_OFFLINE &&
+		if (m_aSlots[i].m_Connection.State() != NET_CONNSTATE_OFFLINE &&
 			m_aSlots[i].m_Connection.State() != NET_CONNSTATE_ERROR &&
 			net_addr_comp(m_aSlots[i].m_Connection.PeerAddress(), &Addr) == 0)
 
@@ -759,9 +741,6 @@ int CNetServer::Send(CNetChunk *pChunk)
 		dbg_assert(pChunk->m_ClientID < MAX_CLIENTS, "erroneous client id");
 
 		// might crash, fatal error
-		if (m_SlotTakenByBot[pChunk->m_ClientID])
-			return -1;
-
 		if (pChunk->m_Flags & NETSENDFLAG_VITAL)
 			Flags = NET_CHUNKFLAG_VITAL;
 

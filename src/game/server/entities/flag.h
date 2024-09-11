@@ -20,9 +20,9 @@ public:
 
 	CFlag(CGameWorld *pGameWorld, int Team, int MapID);
 
-	virtual void Reset();
-	virtual void TickPaused();
-	virtual void Snap(int SnappingClient);
+	void Reset() override;
+	void TickPaused() override;
+	void Snap(int SnappingClient) override;
 };
 
 #endif
