@@ -1,8 +1,8 @@
-TODO:
+TODOs:
 =====
 
-[] MySQL Connection.
-[] Add More TODOs.
+- **[] MySQL Connection.**
+- **[] Add More TODOs.**
 
 Teeworlds-Alchemist
 =================
