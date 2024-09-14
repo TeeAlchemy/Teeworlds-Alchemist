@@ -106,6 +106,8 @@ public:
 	// helper functions
 	class CCharacter *GetPlayerChar(int ClientID);
 	CPlayer *GetPlayer(int ClientID);
+	CPlayer *GetPlayerInMap(int ClientID, int MapID);
+
 	const char *GetClientLanguage(int ClientID);
 
 	int m_LockTeams;
@@ -202,59 +204,44 @@ public:
 	int GetClientVersion(int ClientId) const;
 
 public:
-	// TODO: Rewrite this.
-	template <typename... Ts>
-	void Chat(int ClientID, const char *pText, Ts &&...args)
+	template <class Tm, typename... Ts>
+	void SendNetworkMessage(Tm Msg, int MapID, int ClientID, const char *pText, Ts &&...args)
 	{
 		const int Start = (ClientID < 0 ? 0 : ClientID);
 		const int End = (ClientID < 0 ? MAX_CLIENTS : ClientID + 1);
 
-		CNetMsg_Sv_Chat Msg{-1, -1};
 		for (int i = Start; i < End; i++)
 		{
-			if (GetPlayer(i))
+			if (GetPlayerInMap(i, MapID))
 			{
 				std::string endText = Server()->Localization()->Format(GetClientLanguage(i), pText, std::forward<Ts>(args)...);
 				Msg.m_pMessage = endText.c_str();
 				Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, i);
 			}
 		}
+	}
+	
+	template <typename... Ts>
+	void Chat(int ClientID, const char *pText, Ts &&...args)
+	{
+		CNetMsg_Sv_Chat Msg;
+		Msg.m_ClientID = -1;
+		Msg.m_Team = -1;
+		SendNetworkMessage<CNetMsg_Sv_Chat>(Msg, -1, ClientID, pText, std::forward<Ts>(args)...);
 	}
 
 	template <typename... Ts>
 	void Motd(int ClientID, const char *pText, Ts &&...args)
 	{
-		const int Start = (ClientID < 0 ? 0 : ClientID);
-		const int End = (ClientID < 0 ? MAX_CLIENTS : ClientID + 1);
-
 		CNetMsg_Sv_Motd Msg;
-		for (int i = Start; i < End; i++)
-		{
-			if (GetPlayer(i))
-			{
-				std::string endText = Server()->Localization()->Format(GetClientLanguage(i), pText, std::forward<Ts>(args)...);
-				Msg.m_pMessage = endText.c_str();
-				Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, i);
-			}
-		}
+		SendNetworkMessage<CNetMsg_Sv_Motd>(Msg, -1, ClientID, pText, std::forward<Ts>(args)...);
 	}
 
 	template <typename... Ts>
 	void Broadcast(int ClientID, const char *pText, Ts &&...args)
 	{
-		const int Start = (ClientID < 0 ? 0 : ClientID);
-		const int End = (ClientID < 0 ? MAX_CLIENTS : ClientID + 1);
-
 		CNetMsg_Sv_Broadcast Msg;
-		for (int i = Start; i < End; i++)
-		{
-			if (GetPlayer(i))
-			{
-				std::string endText = Server()->Localization()->Format(GetClientLanguage(i), pText, std::forward<Ts>(args)...);
-				Msg.m_pMessage = endText.c_str();
-				Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, i);
-			}
-		}
+		SendNetworkMessage<CNetMsg_Sv_Broadcast>(Msg, -1, ClientID, pText, std::forward<Ts>(args)...);
 	}
 };
 

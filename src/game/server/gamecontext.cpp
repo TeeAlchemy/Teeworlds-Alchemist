@@ -1797,6 +1797,14 @@ CPlayer *CGameContext::GetPlayer(int ClientID)
 	return nullptr;
 }
 
+CPlayer *CGameContext::GetPlayerInMap(int ClientID, int MapID)
+{
+    if(!GetPlayer(ClientID) || (Server()->ClientMapID(ClientID) != MapID && MapID != -1))
+		return nullptr;
+	
+	return GetPlayer(ClientID);
+}
+
 const char *CGameContext::GetClientLanguage(int ClientID)
 {
 	return Server()->GetClientLanguage(ClientID);
