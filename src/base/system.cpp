@@ -118,12 +118,7 @@ extern "C"
 		time(&nowtime);
 		tm *pTime = localtime(&nowtime);
 
-		// 		Cancel the comment when I learned that this code would have bugs in Windows
-		// #if defined(CONF_FAMILY_WINDOWS)
-		//		str_format(str, sizeof(str), "[%d-%d-%d %d:%d:%d][%s]: ", 1900 + pTime->tm_year, pTime->tm_mon, pTime->tm_mday, pTime->tm_hour, pTime->tm_min, pTime->tm_sec, sys);
-		// #else
 		str_format(str, sizeof(str), COLOR_RESET COLOR_BLACK_BRIGHT "%d-%d-%d %d:%d:%d" COLOR_WHITE_BRIGHT " | " COLOR_CYAN "[%s]: " COLOR_RESET, 1900 + pTime->tm_year, pTime->tm_mon, pTime->tm_mday, pTime->tm_hour, pTime->tm_min, pTime->tm_sec, sys);
-		// #endif
 		len = strlen(str);
 		msg = (char *)str + len;
 
