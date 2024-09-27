@@ -13,7 +13,7 @@
 
 #include <teeother/components/localization.h>
 
-#include "chatglm.h"
+#include "chatai.h"
 
 #include "gamemodes/mod.h"
 
@@ -696,7 +696,8 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			{
 				SendChat(ClientID, Team, pMsg->m_pMessage);
 				CreateExtraEffect(m_apPlayers[ClientID]->GetCharacter()->m_Pos, 1, m_apPlayers[ClientID]->GetCharacter()->GetMapID());
-				m_pChatGLM->Send(this, Server()->ClientName(ClientID), pMsg->m_pMessage);
+				if (g_Config.m_SvChatAI)
+					m_pChatAI->Send(this, Server()->ClientName(ClientID), pMsg->m_pMessage);
 			}
 		}
 		else if (MsgID == NETMSGTYPE_CL_CALLVOTE)
@@ -1617,7 +1618,7 @@ void CGameContext::ChatConsolePrintCallback(const char *pLine, void *pUser)
 	ReentryGuard--;
 }
 
-bool CGameContext::ConChatGLM(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::ConChatAI(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pThis = (CGameContext *)pUserData;
 
@@ -1626,12 +1627,18 @@ bool CGameContext::ConChatGLM(IConsole::IResult *pResult, void *pUserData)
 	if (!pThis->m_apPlayers[CID])
 		return false;
 
+	if (!g_Config.m_SvChatAI)
+	{
+		pThis->Chat(CID, "This server has disabled chat AI.");
+		return false;
+	}
+
 	if (pResult->NumArguments() < 1)
 		return false;
 
-	pThis->Chat(CID, "ChatGLM has received your message and is currently processing it.");
+	pThis->Chat(CID, "Chat AI(module: {}) has received your message and is currently processing it.", g_Config.m_SvChatAIModule);
 
-	pThis->m_pChatGLM->Send(pThis, pThis->Server()->ClientName(CID), pResult->GetString(0));
+	pThis->m_pChatAI->Send(pThis, pThis->Server()->ClientName(CID), pResult->GetString(0));
 
 	return true;
 }
@@ -1666,11 +1673,11 @@ void CGameContext::OnConsoleInit()
 
 	Console()->Register("about", "", CFGFLAG_CHAT, ConAbout, this, "Show information about the mod");
 	Console()->Register("language", "?s", CFGFLAG_CHAT, ConLanguage, this, "[language code] - Select your language");
-	Console()->Register("askai", "s", CFGFLAG_CHAT, ConChatGLM, this, "[ask] - Ask ChatGLM");
+	Console()->Register("askai", "s", CFGFLAG_CHAT, ConChatAI, this, "[ask] - Ask Chat AI");
 
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
 
-	m_pChatGLM = new CChatGLM(Kernel()->RequestInterface<IEngine>());
+	m_pChatAI = new CChatAI(Kernel()->RequestInterface<IEngine>());
 }
 
 void CGameContext::OnInit()

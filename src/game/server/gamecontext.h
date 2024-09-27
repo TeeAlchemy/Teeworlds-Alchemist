@@ -19,7 +19,7 @@
 #include "gameworld.h"
 #include "player.h"
 
-class CChatGLM;
+class CChatAI;
 
 /*
 	Tick
@@ -75,7 +75,7 @@ class CGameContext : public IGameServer
 	static void ChatConsolePrintCallback(const char *pLine, void *pUser);
 	static bool ConLanguage(IConsole::IResult *pResult, void *pUserData);
 	static bool ConAbout(IConsole::IResult *pResult, void *pUserData);
-	static bool ConChatGLM(IConsole::IResult *pResult, void *pUserData);
+	static bool ConChatAI(IConsole::IResult *pResult, void *pUserData);
 
 	CGameContext(int Resetting);
 	void Construct(int Resetting);
@@ -101,7 +101,7 @@ public:
 	IGameController *m_pController;
 	CGameWorld m_World;
 
-	CChatGLM *m_pChatGLM;
+	CChatAI *m_pChatAI;
 
 	// helper functions
 	class CCharacter *GetPlayerChar(int ClientID);

@@ -538,8 +538,8 @@ set_glob(GAME_SERVER GLOB_RECURSE src/game/server
   gamemodes/mod.cpp
   gamemodes/mod.h
   alloc.h
-  chatglm.cpp
-  chatglm.h
+  chatai.cpp
+  chatai.h
   entity.cpp
   entity.h
   eventhandler.cpp

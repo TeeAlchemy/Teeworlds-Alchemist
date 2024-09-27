@@ -3,7 +3,7 @@
 #include <engine/shared/config.h>
 #include <string>
 
-#include "chatglm.h"
+#include "chatai.h"
 
 std::string replace_comma_with_newline(const std::string& input) {
     std::string result = input;
@@ -25,22 +25,25 @@ std::string replace_dot_with_newline(const std::string& input) {
     return result;
 }
 
-CChatGLM::CChatGLM(IEngine *pEngine)
+CChatAI::CChatAI(IEngine *pEngine)
 {
     m_pEngine = pEngine;
 }
 
-CChatGLM::~CChatGLM()
+CChatAI::~CChatAI()
 {
 }
 
-void CChatGLM::Send(CGameContext *pGameServer, const char *pName, const char *pContent)
+void CChatAI::Send(CGameContext *pGameServer, const char *pName, const char *pContent)
 {
+    if (g_Config.m_SvChatAI)
+        return;
+
     CJsonStringWriter JsonWriter;
     {
         JsonWriter.BeginObject();
         {
-            JsonWriter.WriteStrValue("model", "glm-4");
+            JsonWriter.WriteStrValue("model", g_Config.m_SvChatAIModule);
             // "messages": []
             JsonWriter.BeginArray("messages");
             {
@@ -57,20 +60,21 @@ void CChatGLM::Send(CGameContext *pGameServer, const char *pName, const char *pC
     }
 
     std::unique_ptr<CHttpRequest> pHttp;
-    pHttp = HttpPostJson("https://open.bigmodel.cn/api/paas/v4/chat/completions", JsonWriter.GetOutputString().c_str());
+    // For example: https://api.chatanywhere.tech/v1/chat/completions
+    pHttp = HttpPostJson(g_Config.m_SvChatAIUrl, JsonWriter.GetOutputString().c_str());
 
     char aAuth[128];
-    str_format(aAuth, sizeof(aAuth), "Authorization: Bearer %s", g_Config.m_SvChatGLMAPI);
+    str_format(aAuth, sizeof(aAuth), "Authorization: Bearer %s", g_Config.m_SvChatAIAPI);
     pHttp->Header(aAuth);
     pHttp->Header("Content-Type: application/json");
 
     pHttp->LogProgress(HTTPLOG::FAILURE);
     pHttp->IpResolve(IPRESOLVE::V4);
 
-    m_pEngine->AddJob(std::make_unique<CJob_ChatGLM>(std::move(pHttp), pGameServer));
+    m_pEngine->AddJob(std::make_unique<CJob_ChatAI>(std::move(pHttp), pGameServer));
 }
 
-void CChatGLM::CJob_ChatGLM::Run()
+void CChatAI::CJob_ChatAI::Run()
 {
     IEngine::RunJobBlocking(m_pHttp.get());
 
