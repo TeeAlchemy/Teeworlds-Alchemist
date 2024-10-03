@@ -589,3 +589,6 @@ bool CNetBan::ConBansSave(IConsole::IResult *pResult, void *pUser)
 	pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", aBuf);
 	return true;
 }
+
+template void CNetBan::MakeBanInfo<CNetRange>(const CBan<CNetRange> *pBan, char *pBuf, unsigned BufferSize, int Type) const;
+template void CNetBan::MakeBanInfo<NETADDR>(const CBan<NETADDR> *pBan, char *pBuf, unsigned BufferSize, int Type) const;

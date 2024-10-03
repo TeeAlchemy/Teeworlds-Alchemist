@@ -479,50 +479,6 @@ public:
 	CNetBan *NetBan() const { return m_pNetBan; }
 };
 
-// client side
-class CNetClient
-{
-	CNetConnection m_Connection;
-	CNetRecvUnpacker m_RecvUnpacker;
-
-	CStun *m_pStun = nullptr;
-
-public:
-	NETSOCKET m_Socket;
-	// openness
-	bool Open(NETADDR BindAddr);
-	int Close();
-
-	// connection state
-	int Disconnect(const char *pReason);
-	int Connect(const NETADDR *pAddr, int NumAddrs);
-
-	// communication
-	int Recv(CNetChunk *pChunk);
-	int Send(CNetChunk *pChunk);
-
-	// pumping
-	int Update();
-	int Flush();
-
-	int ResetErrorString();
-
-	// error and state
-	int NetType() const { return net_socket_type(m_Socket); }
-	int State();
-	const NETADDR *ServerAddress() const { return m_Connection.PeerAddress(); }
-	void ConnectAddresses(const NETADDR **ppAddrs, int *pNumAddrs) const { m_Connection.ConnectAddresses(ppAddrs, pNumAddrs); }
-	int GotProblems(int64_t MaxLatency) const;
-	const char *ErrorString() const;
-
-	bool SecurityTokenUnknown() { return m_Connection.SecurityToken() == NET_SECURITY_TOKEN_UNKNOWN; }
-
-	// stun
-	void FeedStunServer(NETADDR StunServer);
-	void RefreshStun();
-	CONNECTIVITY GetConnectivity(int NetType, NETADDR *pGlobalAddr);
-};
-
 // TODO: both, fix these. This feels like a junk class for stuff that doesn't fit anywere
 class CNetBase
 {

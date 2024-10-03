@@ -440,7 +440,6 @@ set_glob(ENGINE_SHARED GLOB src/engine/shared
   message.h
   netban.cpp
   netban.h
-  network_client.cpp
   network_conn.cpp
   network_console_conn.cpp
   network_console.cpp
