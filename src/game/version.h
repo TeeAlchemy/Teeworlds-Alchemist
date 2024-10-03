@@ -10,7 +10,7 @@ static const char GAME_RELEASE_VERSION[8] = "0.6.4"; // for cmake
 
 #define DDNET_VERSION_NUMBER 18050
 
-#define MOD_NAME "Tee Alchemist"
+#define MOD_NAME "Tee Defense"
 #define MOD_VERSION "0.1"
 #define MOD_AUTHORS "ST-Chara"
 #define MOD_CREDITS "ST-Chara"

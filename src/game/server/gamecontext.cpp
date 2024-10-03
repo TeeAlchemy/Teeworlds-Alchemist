@@ -1691,7 +1691,7 @@ void CGameContext::OnInit()
 		Server()->SnapSetStaticsize(i, m_NetObjHandler.GetObjSize(i));
 
 	// select gametype
-	m_pController = new CGameControllerMOD(this);
+	m_pController = new CGameControllerMOD(this); // force TeeDefense
 
 	OnInitMap(0);
 }

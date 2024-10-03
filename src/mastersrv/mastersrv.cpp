@@ -333,7 +333,7 @@ int main(int argc, const char **argv) // ignore_convention
 	IKernel *pKernel = IKernel::Create();
 	IStorage *pStorage = CreateStorage("Teeworlds", IStorage::STORAGETYPE_BASIC, argc, argv);
 	IConfig *pConfig = CreateConfig();
-	m_pConsole = CreateConsole(CFGFLAG_MASTER);
+	m_pConsole = CreateConsole(CFGFLAG_MASTER, nullptr);
 
 	bool RegisterFail = !pKernel->RegisterInterface(pStorage);
 	RegisterFail |= !pKernel->RegisterInterface(m_pConsole);
@@ -360,13 +360,13 @@ int main(int argc, const char **argv) // ignore_convention
 		BindAddr.port = MASTERSERVER_PORT;
 	}
 
-	if (!m_NetOp.Open(BindAddr, 0))
+	if (!m_NetOp.Open(BindAddr))
 	{
 		dbg_msg("mastersrv", "couldn't start network (op)");
 		return -1;
 	}
 	BindAddr.port = MASTERSERVER_PORT + 1;
-	if (!m_NetChecker.Open(BindAddr, 0))
+	if (!m_NetChecker.Open(BindAddr))
 	{
 		dbg_msg("mastersrv", "couldn't start network (checker)");
 		return -1;
