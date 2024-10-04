@@ -216,7 +216,16 @@ int CHttpRequest::RunImpl(CURL *pUser)
 	}
 
 	curl_easy_setopt(pHandle, CURLOPT_SHARE, gs_pShare);
-	curl_easy_setopt(pHandle, CURLOPT_PROTOCOLS_STR, Protocols);
+	// ‘CURLOPT_PROTOCOLS’ is deprecated: since 7.85.0. Use CURLOPT_PROTOCOLS_STR
+	// Wait until all platforms have 7.85.0
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+	curl_easy_setopt(pHandle, CURLOPT_PROTOCOLS, Protocols);
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 	curl_easy_setopt(pHandle, CURLOPT_FOLLOWLOCATION, 1L);
 	curl_easy_setopt(pHandle, CURLOPT_MAXREDIRS, 4L);
 	curl_easy_setopt(pHandle, CURLOPT_FAILONERROR, 1L);
@@ -229,9 +238,18 @@ int CHttpRequest::RunImpl(CURL *pUser)
 	curl_easy_setopt(pHandle, CURLOPT_WRITEFUNCTION, WriteCallback);
 	curl_easy_setopt(pHandle, CURLOPT_NOPROGRESS, 0L);
 	curl_easy_setopt(pHandle, CURLOPT_PROGRESSDATA, this);
-	curl_easy_setopt(pHandle, CURLOPT_XFERINFOFUNCTION, ProgressCallback);
+	// ‘CURLOPT_PROGRESSFUNCTION’ is deprecated: since 7.32.0. Use CURLOPT_XFERINFOFUNCTION
+	// See problems with curl_off_t type in header file in https://github.com/ddnet/ddnet/pull/6185/
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+	curl_easy_setopt(pHandle, CURLOPT_PROGRESSFUNCTION, ProgressCallback);
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 	curl_easy_setopt(pHandle, CURLOPT_IPRESOLVE, m_IpResolve == IPRESOLVE::V4 ? CURL_IPRESOLVE_V4 : m_IpResolve == IPRESOLVE::V6 ? CURL_IPRESOLVE_V6
-																																 : CURL_IPRESOLVE_WHATEVER);
+																															: CURL_IPRESOLVE_WHATEVER);
 	if (g_Config.m_Bindaddr[0] != '\0')
 	{
 		curl_easy_setopt(pHandle, CURLOPT_INTERFACE, g_Config.m_Bindaddr);
