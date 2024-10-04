@@ -13,25 +13,8 @@
 */
 class IGameController
 {
-	enum
-	{
-		NUM_SPAWN_TYPES = 3,
-		NUM_SPAWN_PER_TYPE = 64,
-		NUM_SPAWN_WORLD = NUM_SPAWN_TYPES * NUM_SPAWN_PER_TYPE,
-	};
-
-	struct SpawnData
-	{
-		vec2 m_aaSpawnPoints[NUM_SPAWN_TYPES][NUM_SPAWN_PER_TYPE];
-	};
-
-	std::vector<SpawnData> m_vSpawnPoints;
-
-	struct NumSpawnData
-	{
-		int m_aNumSpawnPoints[3];
-	};
-	std::vector<NumSpawnData> m_vNumSpawnPoints;
+	vec2 m_aaSpawnPoints[3][64];
+	int m_aNumSpawnPoints[3];
 
 	class CGameContext *m_pGameServer;
 	class IServer *m_pServer;
@@ -55,9 +38,8 @@ protected:
 		float m_Score;
 	};
 
-	float EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos, int MapID);
-	void EvaluateSpawnType(CSpawnEval *pEval, int Type, int MapID);
-	bool EvaluateSpawn(class CPlayer *pP, vec2 *pPos);
+	float EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos);
+	void EvaluateSpawnType(CSpawnEval *pEval, int Type);
 
 	void CycleMap();
 	void ResetGame();
@@ -94,7 +76,6 @@ public:
 
 	void StartRound();
 	void EndRound();
-	void ChangeMap(const char *pToMap);
 
 	bool IsFriendlyFire(int ClientID1, int ClientID2);
 
@@ -121,7 +102,7 @@ public:
 		Returns:
 			bool?
 	*/
-	virtual bool OnEntity(int Index, vec2 Pos, int MapID);
+	virtual bool OnEntity(int Index, vec2 Pos);
 
 	/*
 		Function: on_CCharacter_spawn
@@ -130,7 +111,7 @@ public:
 		Arguments:
 			chr - The CCharacter that was spawned.
 	*/
-	virtual void OnCharacterSpawn(class CCharacter *pChr);
+	virtual void OnCharacterSpawn(class CCharacter *pChr, bool RequestAI = false);
 
 	/*
 		Function: on_CCharacter_death
@@ -147,7 +128,7 @@ public:
 	virtual void OnPlayerInfoChange(class CPlayer *pP);
 
 	//
-	virtual bool CanSpawn(int Team, vec2 *pPos, int MapID);
+	virtual bool CanSpawn(int Team, vec2 *pPos);
 
 	/*
 
@@ -159,9 +140,12 @@ public:
 	bool CanChangeTeam(CPlayer *pPplayer, int JoinTeam);
 	int ClampTeam(int Team);
 
-	void SetSpawnNum(int MapNum);
-
 	virtual void PostReset();
+
+	void OnPlayerConnect(class CPlayer *pPlayer);
+	void OnPlayerDisconnect(class CPlayer *pPlayer);
+	void OnPlayerInfoChange(class CPlayer *pPlayer, int WorldID);
+	void OnReset();
 };
 
 #endif

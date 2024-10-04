@@ -69,11 +69,13 @@ class CServer : public IServer
 	class IConsole *m_pConsole;
 	class IStorage *m_pStorage;
 	class IRegister *m_pRegister;
-
+	class CMultiWorlds* m_pMultiWorlds;
 public:
-	class IGameServer *GameServer() { return m_pGameServer; }
+	class IGameServer* GameServer(int WorldID = 0) override;
+	class IGameServer* GameServerPlayer(int ClientID) override;
 	class IConsole *Console() { return m_pConsole; }
 	class IStorage *Storage() { return m_pStorage; }
+	class CMultiWorlds* MultiWorlds() const { return m_pMultiWorlds; }
 
 	enum
 	{
@@ -135,9 +137,10 @@ public:
 
 		NETADDR m_Addr;
 
-		int m_MapID;
-		int m_NextMapID;
-		bool m_ChangeMap;
+		int m_WorldID;
+		int m_OldWorldID;
+		bool m_ChangeWorld;
+		bool m_Quitting;
 		int m_NextMapChunk;
 
 		char m_aLanguage[16];
@@ -151,6 +154,8 @@ public:
 
 		double m_Traffic;
 		int64_t m_TrafficSince;
+
+		bool m_Bot;
 	};
 
 	CClient m_aClients[MAX_CLIENTS];
@@ -161,8 +166,6 @@ public:
 	CNetServer m_NetServer;
 	CEcon m_Econ;
 	CServerBan m_ServerBan;
-
-	std::vector<IEngineMap *> m_vpMap;
 
 	int64 m_GameStartTime;
 	// int m_CurrentGameTick;
@@ -181,21 +184,13 @@ public:
 		MAP_DEFAULT_ID = 0,
 	};
 
-	struct CMapData
-	{
-		char m_aCurrentMap[64];
-		unsigned m_CurrentMapCrc;
-		unsigned char *m_pCurrentMapData;
-		unsigned int m_CurrentMapSize;
-	};
-
-	std::vector<CMapData> m_vMapData;
-
 	bool m_ServerInfoHighLoad;
 	int64 m_ServerInfoFirstRequest;
 	int m_ServerInfoNumRequests;
 
 	CDemoRecorder m_DemoRecorder;
+
+	bool m_HeavyReload;
 
 	CServer();
 	~CServer();
@@ -206,11 +201,6 @@ public:
 	void SetClientClan(int ClientID, char const *pClan) override;
 	void SetClientCountry(int ClientID, int Country) override;
 	void SetClientScore(int ClientID, int Score) override;
-	// Multimap
-	virtual void SetClientMap(int ClientID, int MapID);
-	virtual void SetClientMap(int ClientID, char *MapName);
-
-	virtual IEngineMap *GetMap(int MapID) const override { return m_vpMap[MapID]; }
 
 	void Kick(int ClientID, const char *pReason);
 	void RedirectClient(int ClientId, int Port, bool Verbose = false) override;
@@ -235,13 +225,12 @@ public:
 	const char *ClientClan(int ClientID);
 	int ClientCountry(int ClientID);
 	bool ClientIngame(int ClientID);
-	int ClientMapID(int ClientID) const override;
 	int MaxClients() const;
 
 	int GetClientVersion(int ClientId) const override;
-	int SendMsg(CMsgPacker *pMsg, int Flags, int ClientID) override;
+	int SendMsg(CMsgPacker *pMsg, int Flags, int ClientID, int WorldID) override;
 
-	void DoSnapshot();
+	void DoSnapshot(int WorldID);
 
 	static int ClientRejoinCallback(int ClientID, void *pUser);
 	static int NewClientCallback(int ClientID, void *pUser, bool Sixup);
@@ -250,9 +239,8 @@ public:
 
 	void SendRconType(int ClientID, bool UsernameReq);
 	void SendCapabilities(int ClientID);
-	void SendMap(int ClientID, int MapID);
-	void SendMapData(int ClientID, int MapID, int Chunk);
-	void ChangeClientMap(int ClientID);
+	void SendMap(int ClientID);
+	void SendMapData(int ClientID, int Chunk);
 	void SendConnectionReady(int ClientID);
 	void SendRconLine(int ClientID, const char *pLine);
 	static void SendRconLineAuthed(const char *pLine, void *pUser);
@@ -297,9 +285,7 @@ public:
 
 	void PumpNetwork(bool PacketWaiting);
 
-	char *GetMapName(int MapID);
-	int LoadMap(const char *pMapName);
-	int LoadTMap(const char *pMapName);
+	int LoadMap(int ID);
 
 	int Run();
 
@@ -308,9 +294,9 @@ public:
 	static bool ConShutdown(IConsole::IResult *pResult, void *pUser);
 	static bool ConRecord(IConsole::IResult *pResult, void *pUser);
 	static bool ConStopRecord(IConsole::IResult *pResult, void *pUser);
-	static bool ConSetMapByID(IConsole::IResult *pResult, void *pUser);
-	static bool ConSetMapByName(IConsole::IResult *pResult, void *pUser);
 	static bool ConLogout(IConsole::IResult *pResult, void *pUser);
+	static bool ConReload(IConsole::IResult* pResult, void* pUser);
+	static bool ConChangeWorld(IConsole::IResult* pResult, void* pUser);
 	
 	static void ConchainSpecialInfoupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainMaxclientsperipUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
@@ -327,6 +313,35 @@ public:
 public:
 	virtual const char *GetClientLanguage(int ClientID);
 	virtual void SetClientLanguage(int ClientID, const char *pLanguage);
+
+	virtual void AddBot(int WorldID);
+	void UpdateAIInput();
+
+	bool IsClientChangingWorld(int ClientID) override;
+	void ChangeWorld(int ClientID, int NewWorldID) override;
+	int GetClientWorldID(int ClientID) override;
+
+	const char* GetWorldName(int WorldID) override;
+	int GetWorldsSize() const override;
+};
+
+class _StoreMultiworldIdentifiableStaticData
+{
+	inline static class IServer* m_pServer {};
+
+public:
+	class IServer* Server() const { return m_pServer; }
+	static void Init(IServer* pServer) { m_pServer = pServer; }
+};
+
+template < typename T >
+class MultiworldIdentifiableStaticData : public _StoreMultiworldIdentifiableStaticData
+{
+protected:
+	inline static T m_pData {};
+
+public:
+	static T& Data() { return m_pData; }
 };
 
 #endif

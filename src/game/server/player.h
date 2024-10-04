@@ -7,6 +7,8 @@
 #include "entities/character.h"
 #include "gamecontext.h"
 
+#include "ai.h"
+
 // player object
 class CPlayer
 {
@@ -22,6 +24,7 @@ public:
 	int GetTeam() const { return m_Team; };
 	int GetCID() const { return m_ClientID; };
 	int GetClientVersion() const;
+	int GetPlayerWorldID() const;
 
 	void Tick();
 	void PostTick();
@@ -29,7 +32,7 @@ public:
 
 	void OnDirectInput(CNetObj_PlayerInput *NewInput);
 	void OnPredictedInput(CNetObj_PlayerInput *NewInput);
-	void OnDisconnect(const char *pReason);
+	void OnDisconnect();
 
 	void KillCharacter(int Weapon = WEAPON_GAME);
 	CCharacter *GetCharacter();
@@ -100,6 +103,12 @@ public:
 
 	int m_Authed;
 
+	CAI *m_pAI;
+	bool m_IsBot;
+	
+	void AITick();
+	bool AIInputChanged();
+
 private:
 	CCharacter *m_pCharacter;
 	CGameContext *m_pGameServer;
@@ -113,6 +122,17 @@ private:
 	int m_Team;
 
 	char m_aLanguage[16];
+
+private:
+	CTuningParams m_PrevTuningParams;
+	CTuningParams m_NextTuningParams;
+
+	void HandleTuningParams(); // This function will send the new parameters if needed
+
+public:
+	CTuningParams *GetNextTuningParams() { return &m_NextTuningParams; };
+
+	bool m_WantSpawn;
 };
 
 #endif

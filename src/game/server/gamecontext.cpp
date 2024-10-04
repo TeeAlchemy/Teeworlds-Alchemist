@@ -17,6 +17,11 @@
 
 #include "gamemodes/mod.h"
 
+#include <game/server/ai_protocol.h>
+#include <game/server/ai.h>
+
+#include <game/mapitems.h>
+
 enum
 {
 	RESET,
@@ -95,7 +100,7 @@ class CCharacter *CGameContext::GetPlayerChar(int ClientID)
 	return m_apPlayers[ClientID]->GetCharacter();
 }
 
-void CGameContext::CreateDamageInd(vec2 Pos, float Angle, int Amount, int MapID, CClientMask Mask)
+void CGameContext::CreateDamageInd(vec2 Pos, float Angle, int Amount, CClientMask Mask)
 {
 	float a = 3 * 3.14159f / 2 + Angle;
 	// float a = get_angle(dir);
@@ -104,7 +109,7 @@ void CGameContext::CreateDamageInd(vec2 Pos, float Angle, int Amount, int MapID,
 	for (int i = 0; i < Amount; i++)
 	{
 		float f = mix(s, e, float(i + 1) / float(Amount + 2));
-		CNetEvent_DamageInd *pEvent = m_Events.Create<CNetEvent_DamageInd>(Mask, MapID);
+		CNetEvent_DamageInd *pEvent = m_Events.Create<CNetEvent_DamageInd>(Mask);
 		if (pEvent)
 		{
 			pEvent->m_X = (int)Pos.x;
@@ -114,10 +119,10 @@ void CGameContext::CreateDamageInd(vec2 Pos, float Angle, int Amount, int MapID,
 	}
 }
 
-void CGameContext::CreateHammerHit(vec2 Pos, int MapID, CClientMask Mask)
+void CGameContext::CreateHammerHit(vec2 Pos, CClientMask Mask)
 {
 	// create the event
-	CNetEvent_HammerHit *pEvent = m_Events.Create<CNetEvent_HammerHit>(Mask, MapID);
+	CNetEvent_HammerHit *pEvent = m_Events.Create<CNetEvent_HammerHit>(Mask);
 	if (pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
@@ -125,17 +130,17 @@ void CGameContext::CreateHammerHit(vec2 Pos, int MapID, CClientMask Mask)
 	}
 }
 
-void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int MapID, CClientMask Mask)
+void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, CClientMask Mask)
 {
 	// create the event
-	CNetEvent_Explosion *pEvent = m_Events.Create<CNetEvent_Explosion>(Mask, MapID);
+	CNetEvent_Explosion *pEvent = m_Events.Create<CNetEvent_Explosion>(Mask);
 	if (pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
 		pEvent->m_Y = (int)Pos.y;
 	}
 
-	CreateExtraEffect(Pos, 0, MapID, Mask);
+	CreateExtraEffect(Pos, 0, Mask);
 
 	if (!NoDamage)
 	{
@@ -143,10 +148,10 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 		CCharacter *apEnts[MAX_CLIENTS];
 		float Radius = 135.0f;
 		float InnerRadius = 48.0f;
-		int Num = m_World.FindEntities(Pos, Radius, (CEntity **)apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER, MapID);
+		int Num = m_World.FindEntities(Pos, Radius, (CEntity **)apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
 		for (int i = 0; i < Num; i++)
 		{
-			vec2 Diff = apEnts[i]->m_Pos - Pos;
+			vec2 Diff = apEnts[i]->GetPos() - Pos;
 			vec2 ForceDir(0, 1);
 			float l = length(Diff);
 			if (l)
@@ -159,10 +164,10 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 	}
 }
 
-void CGameContext::CreatePlayerSpawn(vec2 Pos, int MapID, CClientMask Mask)
+void CGameContext::CreatePlayerSpawn(vec2 Pos, CClientMask Mask)
 {
 	// create the event
-	CNetEvent_Spawn *ev = m_Events.Create<CNetEvent_Spawn>(Mask, MapID);
+	CNetEvent_Spawn *ev = m_Events.Create<CNetEvent_Spawn>(Mask);
 	;
 	if (ev)
 	{
@@ -171,10 +176,10 @@ void CGameContext::CreatePlayerSpawn(vec2 Pos, int MapID, CClientMask Mask)
 	}
 }
 
-void CGameContext::CreateDeath(vec2 Pos, int ClientID, int MapID, CClientMask Mask)
+void CGameContext::CreateDeath(vec2 Pos, int ClientID, CClientMask Mask)
 {
 	// create the event
-	CNetEvent_Death *pEvent = m_Events.Create<CNetEvent_Death>(Mask, MapID);
+	CNetEvent_Death *pEvent = m_Events.Create<CNetEvent_Death>(Mask);
 	if (pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
@@ -183,13 +188,13 @@ void CGameContext::CreateDeath(vec2 Pos, int ClientID, int MapID, CClientMask Ma
 	}
 }
 
-void CGameContext::CreateSound(vec2 Pos, int Sound, int MapID, CClientMask Mask)
+void CGameContext::CreateSound(vec2 Pos, int Sound, CClientMask Mask)
 {
 	if (Sound < 0)
 		return;
 
 	// create a sound
-	CNetEvent_SoundWorld *pEvent = m_Events.Create<CNetEvent_SoundWorld>(Mask, MapID);
+	CNetEvent_SoundWorld *pEvent = m_Events.Create<CNetEvent_SoundWorld>(Mask);
 	if (pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
@@ -198,29 +203,11 @@ void CGameContext::CreateSound(vec2 Pos, int Sound, int MapID, CClientMask Mask)
 	}
 }
 
-void CGameContext::CreateSoundGlobal(int Sound, int Target)
-{
-	if (Sound < 0)
-		return;
-
-	CNetMsg_Sv_SoundGlobal Msg;
-	Msg.m_SoundID = Sound;
-	if (Target == -2)
-		Server()->SendPackMsg(&Msg, MSGFLAG_NOSEND, -1);
-	else
-	{
-		int Flag = MSGFLAG_VITAL;
-		if (Target != -1)
-			Flag |= MSGFLAG_NORECORD;
-		Server()->SendPackMsg(&Msg, Flag, Target);
-	}
-}
-
-void CGameContext::CreateExtraEffect(vec2 Pos, int Effect, int MapID, CClientMask Mask)
+void CGameContext::CreateExtraEffect(vec2 Pos, int Effect, CClientMask Mask)
 {
 	if (Effect)
 	{
-		CNetEvent_Finish *pEvent = m_Events.Create<CNetEvent_Finish>(Mask, MapID);
+		CNetEvent_Finish *pEvent = m_Events.Create<CNetEvent_Finish>(Mask);
 		if (pEvent)
 		{
 			pEvent->m_X = (int)Pos.x;
@@ -229,7 +216,7 @@ void CGameContext::CreateExtraEffect(vec2 Pos, int Effect, int MapID, CClientMas
 	}
 	else
 	{
-		CNetEvent_Birthday *pEvent = m_Events.Create<CNetEvent_Birthday>(Mask, MapID);
+		CNetEvent_Birthday *pEvent = m_Events.Create<CNetEvent_Birthday>(Mask);
 		if (pEvent)
 		{
 			pEvent->m_X = (int)Pos.x;
@@ -238,9 +225,9 @@ void CGameContext::CreateExtraEffect(vec2 Pos, int Effect, int MapID, CClientMas
 	}
 }
 
-void CGameContext::CreateMapSound(vec2 Pos, int MapSoundID, int MapID, CClientMask Mask)
+void CGameContext::CreateMapSound(vec2 Pos, int MapSoundID, CClientMask Mask)
 {
-	CNetEvent_MapSoundWorld *pEvent = m_Events.Create<CNetEvent_MapSoundWorld>(Mask, MapID);
+	CNetEvent_MapSoundWorld *pEvent = m_Events.Create<CNetEvent_MapSoundWorld>(Mask);
 	if (pEvent)
 	{
 		pEvent->m_X = (int)Pos.x;
@@ -257,13 +244,13 @@ void CGameContext::CreateMapSoundGlobal(int MapSoundID, int Target)
 	CNetMsg_Sv_MapSoundGlobal Msg;
 	Msg.m_SoundID = MapSoundID;
 	if (Target == -2)
-		Server()->SendPackMsg(&Msg, MSGFLAG_NOSEND, -1);
+		Server()->SendPackMsg(&Msg, MSGFLAG_NOSEND, -1, m_WorldID);
 	else
 	{
 		int Flag = MSGFLAG_VITAL;
 		if (Target != -1)
 			Flag |= MSGFLAG_NORECORD;
-		Server()->SendPackMsg(&Msg, Flag, Target);
+		Server()->SendPackMsg(&Msg, Flag, Target, m_WorldID);
 	}
 }
 
@@ -282,7 +269,7 @@ void CGameContext::SendChat(int ChatterClientID, int Team, const char *pText)
 		Msg.m_Team = 0;
 		Msg.m_ClientID = ChatterClientID;
 		Msg.m_pMessage = pText;
-		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, -1);
+		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, -1, -1);
 	}
 	else
 	{
@@ -292,13 +279,13 @@ void CGameContext::SendChat(int ChatterClientID, int Team, const char *pText)
 		Msg.m_pMessage = pText;
 
 		// pack one for the recording only
-		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NOSEND, -1);
+		Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NOSEND, -1, -1);
 
 		// send to the clients
 		for (int i = 0; i < MAX_CLIENTS; i++)
 		{
 			if (m_apPlayers[i] && m_apPlayers[i]->GetTeam() == Team)
-				Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, i);
+				Server()->SendPackMsg(&Msg, MSGFLAG_VITAL | MSGFLAG_NORECORD, i, -1);
 		}
 	}
 }
@@ -308,14 +295,14 @@ void CGameContext::SendEmoticon(int ClientID, int Emoticon)
 	CNetMsg_Sv_Emoticon Msg;
 	Msg.m_ClientID = ClientID;
 	Msg.m_Emoticon = Emoticon;
-	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, -1);
+	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, -1, m_WorldID);
 }
 
 void CGameContext::SendWeaponPickup(int ClientID, int Weapon)
 {
 	CNetMsg_Sv_WeaponPickup Msg;
 	Msg.m_Weapon = Weapon;
-	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ClientID);
+	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ClientID, -1);
 }
 
 //
@@ -366,7 +353,7 @@ void CGameContext::SendVoteSet(int ClientID)
 		Msg.m_pDescription = "";
 		Msg.m_pReason = "";
 	}
-	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ClientID);
+	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ClientID, m_WorldID);
 }
 
 void CGameContext::SendVoteStatus(int ClientID, int Total, int Yes, int No)
@@ -377,7 +364,7 @@ void CGameContext::SendVoteStatus(int ClientID, int Total, int Yes, int No)
 	Msg.m_No = No;
 	Msg.m_Pass = Total - (Yes + No);
 
-	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ClientID);
+	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ClientID, m_WorldID);
 }
 
 void CGameContext::AbortVoteKickOnDisconnect(int ClientID)
@@ -393,7 +380,7 @@ void CGameContext::SendTuningParams(int ClientID)
 	int *pParams = (int *)&m_Tuning;
 	for (unsigned i = 0; i < sizeof(m_Tuning) / sizeof(int); i++)
 		Msg.AddInt(pParams[i]);
-	Server()->SendMsg(&Msg, MSGFLAG_VITAL, ClientID);
+	Server()->SendMsg(&Msg, MSGFLAG_VITAL, ClientID, -1);
 }
 
 void CGameContext::SwapTeams()
@@ -423,11 +410,11 @@ void CGameContext::OnTick()
 
 	for (int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if (m_apPlayers[i])
-		{
-			m_apPlayers[i]->Tick();
-			m_apPlayers[i]->PostTick();
-		}
+		if(!m_apPlayers[i] || m_apPlayers[i]->GetPlayerWorldID() != m_WorldID)
+			continue;
+		
+		m_apPlayers[i]->Tick();
+		m_apPlayers[i]->PostTick();
 	}
 
 	// update voting
@@ -537,12 +524,14 @@ void CGameContext::OnClientPredictedInput(int ClientID, void *pInput)
 
 void CGameContext::OnClientEnter(int ClientID)
 {
-	m_apPlayers[ClientID]->Respawn();
-	Chat(-1, "'{}' entered the game", Server()->ClientName(ClientID));
+	CPlayer* pPlayer = m_apPlayers[ClientID];
+	if(!pPlayer || pPlayer->m_IsBot)
+		return;
 
-	char aBuf[512];
-	str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d", ClientID, Server()->ClientName(ClientID), m_apPlayers[ClientID]->GetTeam());
-	Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+	m_pController->OnPlayerConnect(pPlayer);
+
+	m_apPlayers[ClientID]->Respawn();
+	Chat(-1, "'{}' entered and joined the game", Server()->ClientName(ClientID));
 
 	m_VoteUpdate = true;
 }
@@ -557,18 +546,18 @@ void CGameContext::KillCharacter(int ClientID)
 	}
 }
 
-void CGameContext::OnClientConnected(int ClientID, int MapChange = 1)
+void CGameContext::OnClientConnected(int ClientID, bool AI)
 {
 	// Check which team the player should be on
 	const int StartTeam = g_Config.m_SvTournamentMode ? TEAM_SPECTATORS : m_pController->GetAutoTeam(ClientID);
 
-	if (MapChange)
+	if(!m_apPlayers[ClientID])
 	{
-		delete m_apPlayers[ClientID];
-		m_apPlayers[ClientID] = 0;
+		const int AllocMemoryCell = ClientID + m_WorldID * MAX_CLIENTS;
+		m_apPlayers[ClientID] = new(AllocMemoryCell) CPlayer(this, ClientID, StartTeam);
 	}
 
-	m_apPlayers[ClientID] = new (ClientID) CPlayer(this, ClientID, StartTeam);
+	m_apPlayers[ClientID]->m_IsBot = AI;
 
 	// send active vote
 	if (m_VoteCloseTime)
@@ -577,15 +566,24 @@ void CGameContext::OnClientConnected(int ClientID, int MapChange = 1)
 	// send motd
 	CNetMsg_Sv_Motd Msg;
 	Msg.m_pMessage = g_Config.m_SvMotd;
-	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ClientID);
+	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ClientID, -1);
 }
 
 void CGameContext::OnClientDrop(int ClientID, const char *pReason)
 {
+	if(!m_apPlayers[ClientID] || m_apPlayers[ClientID]->m_IsBot)
+		return;
+
 	AbortVoteKickOnDisconnect(ClientID);
-	m_apPlayers[ClientID]->OnDisconnect(pReason);
-	delete m_apPlayers[ClientID];
-	m_apPlayers[ClientID] = 0;
+
+	// update clients on drop
+	m_pController->OnPlayerDisconnect(m_apPlayers[ClientID]);
+
+	if((Server()->ClientIngame(ClientID) || Server()->IsClientChangingWorld(ClientID)) && IsPlayerInWorld(ClientID))
+	{
+		Chat(-1, "{} has left the game", Server()->ClientName(ClientID));
+		dbg_msg("game", "leave player='%d:%s'", ClientID, Server()->ClientName(ClientID));
+	}
 
 	(void)m_pController->CheckTeamBalance();
 	m_VoteUpdate = true;
@@ -607,6 +605,9 @@ void CGameContext::OnClientDrop(int ClientID, const char *pReason)
 	{
 		m_pController->TogglePause();
 	}
+
+	delete m_apPlayers[ClientID];
+	m_apPlayers[ClientID] = nullptr;
 }
 
 void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
@@ -690,14 +691,15 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				m_ConsoleOutput_Target = -1;
 
 				Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_ADMIN);
-				CreateExtraEffect(m_apPlayers[ClientID]->GetCharacter()->m_Pos, 0, m_apPlayers[ClientID]->GetCharacter()->GetMapID());
+				CreateExtraEffect(m_apPlayers[ClientID]->GetCharacter()->GetPos(), 0, m_apPlayers[ClientID]->GetPlayerWorldID());
 			}
 			else
 			{
 				SendChat(ClientID, Team, pMsg->m_pMessage);
-				CreateExtraEffect(m_apPlayers[ClientID]->GetCharacter()->m_Pos, 1, m_apPlayers[ClientID]->GetCharacter()->GetMapID());
+				CreateExtraEffect(m_apPlayers[ClientID]->GetCharacter()->GetPos(), 1, m_apPlayers[ClientID]->GetPlayerWorldID());
 				if (g_Config.m_SvChatAI)
 					m_pChatAI->Send(this, Server()->ClientName(ClientID), pMsg->m_pMessage);
+				AddBot();
 			}
 		}
 		else if (MsgID == NETMSGTYPE_CL_CALLVOTE)
@@ -980,7 +982,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 			// send vote options
 			CNetMsg_Sv_VoteClearOptions ClearMsg;
-			Server()->SendPackMsg(&ClearMsg, MSGFLAG_VITAL, ClientID);
+			Server()->SendPackMsg(&ClearMsg, MSGFLAG_VITAL, ClientID, -1);
 
 			CNetMsg_Sv_VoteOptionListAdd OptionMsg;
 			int NumOptions = 0;
@@ -1050,7 +1052,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				{
 					OptionMsg.m_pDescription14 = pCurrent->m_aDescription;
 					OptionMsg.m_NumOptions = NumOptions;
-					Server()->SendPackMsg(&OptionMsg, MSGFLAG_VITAL, ClientID);
+					Server()->SendPackMsg(&OptionMsg, MSGFLAG_VITAL, ClientID, -1);
 					OptionMsg = CNetMsg_Sv_VoteOptionListAdd();
 					NumOptions = 0;
 					OptionMsg.m_pDescription1 = "";
@@ -1074,7 +1076,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			if (NumOptions > 0)
 			{
 				OptionMsg.m_NumOptions = NumOptions;
-				Server()->SendPackMsg(&OptionMsg, MSGFLAG_VITAL, ClientID);
+				Server()->SendPackMsg(&OptionMsg, MSGFLAG_VITAL, ClientID, -1);
 			}
 
 			// send tuning parameters to client
@@ -1083,7 +1085,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			// client is ready to enter
 			pPlayer->m_IsReady = true;
 			CNetMsg_Sv_ReadyToEnter m;
-			Server()->SendPackMsg(&m, MSGFLAG_VITAL | MSGFLAG_FLUSH, ClientID);
+			Server()->SendPackMsg(&m, MSGFLAG_VITAL | MSGFLAG_FLUSH, ClientID, -1);
 		}
 	}
 }
@@ -1135,13 +1137,6 @@ bool CGameContext::ConPause(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	pSelf->m_pController->TogglePause();
-	return true;
-}
-
-bool CGameContext::ConChangeMap(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->m_pController->ChangeMap(pResult->NumArguments() ? pResult->GetString(0) : "");
 	return true;
 }
 
@@ -1331,7 +1326,7 @@ bool CGameContext::ConAddVote(IConsole::IResult *pResult, void *pUserData)
 	// inform clients about added option
 	CNetMsg_Sv_VoteOptionAdd OptionMsg;
 	OptionMsg.m_pDescription = pOption->m_aDescription;
-	pSelf->Server()->SendPackMsg(&OptionMsg, MSGFLAG_VITAL, -1);
+	pSelf->Server()->SendPackMsg(&OptionMsg, MSGFLAG_VITAL, -1, -1);
 	return true;
 }
 
@@ -1359,7 +1354,7 @@ bool CGameContext::ConRemoveVote(IConsole::IResult *pResult, void *pUserData)
 	// inform clients about removed option
 	CNetMsg_Sv_VoteOptionRemove OptionMsg;
 	OptionMsg.m_pDescription = pOption->m_aDescription;
-	pSelf->Server()->SendPackMsg(&OptionMsg, MSGFLAG_VITAL, -1);
+	pSelf->Server()->SendPackMsg(&OptionMsg, MSGFLAG_VITAL, -1, -1);
 
 	// TODO: improve this
 	// remove the option
@@ -1475,7 +1470,7 @@ bool CGameContext::ConClearVotes(IConsole::IResult *pResult, void *pUserData)
 
 	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "cleared votes");
 	CNetMsg_Sv_VoteClearOptions VoteClearOptionsMsg;
-	pSelf->Server()->SendPackMsg(&VoteClearOptionsMsg, MSGFLAG_VITAL, -1);
+	pSelf->Server()->SendPackMsg(&VoteClearOptionsMsg, MSGFLAG_VITAL, -1, -1);
 	pSelf->m_pVoteOptionHeap->Reset();
 	pSelf->m_pVoteOptionFirst = 0;
 	pSelf->m_pVoteOptionLast = 0;
@@ -1515,7 +1510,7 @@ void CGameContext::ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *p
 		CGameContext *pSelf = (CGameContext *)pUserData;
 		for (int i = 0; i < MAX_CLIENTS; ++i)
 			if (pSelf->m_apPlayers[i])
-				pSelf->Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, i);
+				pSelf->Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, i, -1);
 	}
 }
 
@@ -1655,7 +1650,6 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("tune_dump", "", CFGFLAG_SERVER, ConTuneDump, this, "Dump tuning");
 
 	Console()->Register("pause", "", CFGFLAG_SERVER, ConPause, this, "Pause/unpause game");
-	Console()->Register("change_map", "?r", CFGFLAG_SERVER | CFGFLAG_STORE, ConChangeMap, this, "Change map");
 	Console()->Register("restart", "?i", CFGFLAG_SERVER | CFGFLAG_STORE, ConRestart, this, "Restart in x seconds (0 = abort)");
 	Console()->Register("broadcast", "r", CFGFLAG_SERVER, ConBroadcast, this, "Broadcast message");
 	Console()->Register("say", "r", CFGFLAG_SERVER, ConSay, this, "Say in chat");
@@ -1680,59 +1674,41 @@ void CGameContext::OnConsoleInit()
 	m_pChatAI = new CChatAI(Kernel()->RequestInterface<IEngine>());
 }
 
-void CGameContext::OnInit()
+void CGameContext::OnInit(int WorldID)
 {
 	m_pServer = Kernel()->RequestInterface<IServer>();
 	m_pConsole = Kernel()->RequestInterface<IConsole>();
 	m_World.SetGameServer(this);
 	m_Events.SetGameServer(this);
+	m_WorldID = WorldID;
+	m_RespawnWorldID = WorldID;
 
 	for (int i = 0; i < NUM_NETOBJTYPES; i++)
 		Server()->SnapSetStaticsize(i, m_NetObjHandler.GetObjSize(i));
 
+	m_pLayers = new CLayers();
+	m_pLayers->Init(Kernel(), WorldID);
+	m_Collision.Init(m_pLayers);
+
 	// select gametype
 	m_pController = new CGameControllerMOD(this); // force TeeDefense
 
-	OnInitMap(0);
-}
-
-void CGameContext::OnInitMap(int MapID)
-{
-	if (MapID < (int)m_vLayers.size()) // Map exists already, huray
-		return;
-
-	IEngineMap *pMap = Server()->GetMap(MapID);
-
-	m_vLayers.push_back(CLayers());
-	m_vCollision.push_back(CCollision());
-
-	m_vLayers[MapID].Init(Kernel(), pMap); // Default map id
-	m_vCollision[MapID].Init(&(m_vLayers[MapID]));
-
-	m_pController->SetSpawnNum((MapID + 1));
-
 	// create all entities from the game layer
-	CMapItemLayerTilemap *pTileMap = m_vLayers[MapID].GameLayer();
-	// CTile *pTiles = (CTile *)Kernel()->RequestInterface<IMap>()->GetData(pTileMap->m_Data);
-	CTile *pTiles = (CTile *)pMap->GetData(pTileMap->m_Data);
-
-	for (int y = 0; y < pTileMap->m_Height; y++)
+	// initialize cores
+	CMapItemLayerTilemap *pTileMap = m_pLayers->GameLayer();
+	CTile *pTiles = (CTile *)Kernel()->RequestInterface<IMap>(WorldID)->GetData(pTileMap->m_Data);
+	for(int y = 0; y < pTileMap->m_Height; y++)
 	{
-		for (int x = 0; x < pTileMap->m_Width; x++)
+		for(int x = 0; x < pTileMap->m_Width; x++)
 		{
-			int Index = pTiles[y * pTileMap->m_Width + x].m_Index;
-
-			if (Index >= ENTITY_OFFSET)
+			const int Index = pTiles[y*pTileMap->m_Width+x].m_Index;
+			if(Index >= ENTITY_OFFSET)
 			{
-				vec2 Pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
-				m_pController->OnEntity(Index - ENTITY_OFFSET, Pos, MapID);
+				const vec2 Pos(x*32.0f+16.0f, y*32.0f+16.0f);
+				m_pController->OnEntity(Index-ENTITY_OFFSET, Pos);
 			}
 		}
 	}
-
-	char aBuf[128];
-	str_format(aBuf, sizeof(aBuf), "Initalized new Map with ID '%d'", MapID);
-	Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "multimap", aBuf);
 }
 
 void CGameContext::OnShutdown()
@@ -1744,6 +1720,11 @@ void CGameContext::OnShutdown()
 
 void CGameContext::OnSnap(int ClientID)
 {
+	// check valid player
+	CPlayer* pPlayer = m_apPlayers[ClientID];
+	if(pPlayer && pPlayer->GetPlayerWorldID() != GetWorldID())
+		return;
+
 	// add tuning to demo
 	CTuningParams StandardTuning;
 	if (ClientID == -1 && Server()->DemoRecorder_IsRecording() && mem_comp(&StandardTuning, &m_Tuning, sizeof(CTuningParams)) != 0)
@@ -1752,18 +1733,17 @@ void CGameContext::OnSnap(int ClientID)
 		int *pParams = (int *)&m_Tuning;
 		for (unsigned i = 0; i < sizeof(m_Tuning) / sizeof(int); i++)
 			Msg.AddInt(pParams[i]);
-		Server()->SendMsg(&Msg, MSGFLAG_RECORD | MSGFLAG_NOSEND, ClientID);
+		Server()->SendMsg(&Msg, MSGFLAG_RECORD | MSGFLAG_NOSEND, ClientID, GetWorldID());
 	}
 
-	m_World.Snap(ClientID);
 	m_pController->Snap(ClientID);
-	m_Events.Snap(ClientID);
-
-	for (int i = 0; i < MAX_CLIENTS; i++)
+	for(const auto& pIterPlayer : m_apPlayers)
 	{
-		if (m_apPlayers[i])
-			m_apPlayers[i]->Snap(ClientID);
+		if(pIterPlayer)
+			pIterPlayer->Snap(ClientID);
 	}
+	m_World.Snap(ClientID);
+	m_Events.Snap(ClientID);
 }
 void CGameContext::OnPreSnap() {}
 void CGameContext::OnPostSnap()
@@ -1781,17 +1761,6 @@ bool CGameContext::IsClientPlayer(int ClientID)
 	return m_apPlayers[ClientID] && m_apPlayers[ClientID]->GetTeam() == TEAM_SPECTATORS ? false : true;
 }
 
-void CGameContext::PrepareClientChangeMap(int ClientID)
-{
-	if (m_apPlayers[ClientID])
-	{
-		m_apPlayers[ClientID]->KillCharacter(WEAPON_WORLD);
-		delete m_apPlayers[ClientID];
-		m_apPlayers[ClientID] = nullptr;
-	}
-	m_apPlayers[ClientID] = new (ClientID) CPlayer(this, ClientID, TEAM_RED);
-}
-
 int CGameContext::GetClientVersion(int ClientId) const
 {
 	return Server()->GetClientVersion(ClientId);
@@ -1804,17 +1773,131 @@ CPlayer *CGameContext::GetPlayer(int ClientID)
 	return nullptr;
 }
 
-CPlayer *CGameContext::GetPlayerInMap(int ClientID, int MapID)
+bool CGameContext::IsPlayerEqualWorld(int ClientID, int WorldID) const
 {
-    if(!GetPlayer(ClientID) || (Server()->ClientMapID(ClientID) != MapID && MapID != -1))
-		return nullptr;
-	
-	return GetPlayer(ClientID);
+	if (ClientID < 0 || ClientID >= MAX_CLIENTS || !m_apPlayers[ClientID])
+		return false;
+
+	if (WorldID <= -1)
+		return m_apPlayers[ClientID]->GetPlayerWorldID() == m_WorldID;
+	return m_apPlayers[ClientID]->GetPlayerWorldID() == WorldID;
+}
+
+bool CGameContext::IsPlayersNearby(vec2 Pos, float Distance) const
+{
+	for (int i = 0; i < MAX_PLAYERS; i++)
+	{
+		if (m_apPlayers[i] && IsPlayerEqualWorld(i) && distance(Pos, m_apPlayers[i]->m_ViewPos) <= Distance)
+			return true;
+	}
+	return false;
+}
+
+int CPlayer::GetPlayerWorldID() const
+{
+	return Server()->GetClientWorldID(m_ClientID);
+}
+
+// change the world
+void CGameContext::OnClientPrepareChangeWorld(int ClientID)
+{
+	if (m_apPlayers[ClientID])
+	{
+		m_apPlayers[ClientID]->KillCharacter(WEAPON_WORLD);
+		delete m_apPlayers[ClientID];
+		m_apPlayers[ClientID] = nullptr;
+	}
+	const int AllocMemoryCell = ClientID + m_WorldID * MAX_CLIENTS;
+	m_apPlayers[ClientID] = new (AllocMemoryCell) CPlayer(this, ClientID, TEAM_RED);
+}
+
+// clearing all data at the exit of the client necessarily call once enough
+void CGameContext::ClearClientData(int ClientID)
+{
+	return; //
 }
 
 const char *CGameContext::GetClientLanguage(int ClientID)
 {
 	return Server()->GetClientLanguage(ClientID);
+}
+
+void CGameContext::KickBots()
+{
+	Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "engine", "Kicking bots...");
+
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(IsBot(i))
+			Server()->Kick(i, "");
+	}
+}
+
+
+void CGameContext::KickBot(int ClientID)
+{
+	if(IsBot(ClientID))
+		Server()->Kick(ClientID, "");
+}
+
+void CGameContext::AddBot()
+{
+	Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "engine", "Adding a bot...");
+
+	Server()->AddBot(GetWorldID());
+}
+
+bool CGameContext::AIInputUpdateNeeded(int ClientID)
+{
+	if(m_apPlayers[ClientID])
+		return m_apPlayers[ClientID]->AIInputChanged();
+		
+	return false;
+}
+
+
+void CGameContext::UpdateAI()
+{
+	for(int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if(m_apPlayers[i] && IsBot(i))
+			m_apPlayers[i]->AITick();
+	}
+}
+
+void CGameContext::AIUpdateInput(int ClientID, int *Data)
+{
+	if(m_apPlayers[ClientID] && m_apPlayers[ClientID]->m_pAI)
+		m_apPlayers[ClientID]->m_pAI->UpdateInput(Data);
+}
+
+bool CGameContext::IsBot(int ClientID)
+{
+	if(m_apPlayers[ClientID] && m_apPlayers[ClientID]->m_pAI)
+		return true;
+	
+	return false;
+}
+
+bool CGameContext::IsPlayerInWorld(int ClientID, int WorldID) const
+{
+	if(ClientID < 0 || ClientID >= MAX_CLIENTS || !m_apPlayers[ClientID])
+		return false;
+
+	int PlayerWorldID = m_apPlayers[ClientID]->GetPlayerWorldID();
+	return PlayerWorldID == (WorldID == -1 ? m_WorldID : WorldID);
+}
+
+bool CGameContext::ArePlayersNearby(vec2 Pos, float Distance) const
+{
+	for(int i = 0; i < MAX_PLAYERS; i++)
+	{
+		CPlayer* pPlayer = m_apPlayers[i];
+		if(pPlayer && IsPlayerInWorld(i) && distance(Pos, pPlayer->m_ViewPos) <= Distance)
+			return true;
+	}
+
+	return false;
 }
 
 const char *CGameContext::GameType() { return m_pController && m_pController->m_pGameType ? m_pController->m_pGameType : ""; }
