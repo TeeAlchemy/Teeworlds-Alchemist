@@ -7,21 +7,21 @@ TODOs:
 Teeworlds-Alchemist
 =================
 Features:
-- DDNet Protocol Support
 - Colorful Console
-- ChatGLM API(Just for example, and for fun)
+- ChatAI(Just for example, and for fun)
 - 64 Player Support
-- Full Translation Support
 - Long-Time-Support
 - MySQL Support
 - Both Bam & CMake Compiler Support
 
+The copied part (wait wait wait.. what th————)
+- DDNet Protocol from DDNet (by DDNet-Team)
+- AI from CSTT (by Siile)
+- Localization, Multi-Worlds from MRPG (by Kurosio)
+
 Teeworlds-Example
 =================
 Features:
-- Teeworlds with multiple maps at once. (AssassinTee, MikiGamer)
-- Load maps from json file. (Kurosio)
-- Localization System (MRPG-Team)
 - Content related to client removed (necropotame)
 - Content related to editor removed (necropotame)
 - Content related to master server removed (necropotame)

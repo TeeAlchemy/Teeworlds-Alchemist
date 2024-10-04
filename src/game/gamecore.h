@@ -48,15 +48,26 @@ public:
 #include "tuning.h"
 #undef MACRO_TUNING_PARAM
 
-	static int Num()
-	{
-		return sizeof(CTuningParams) / sizeof(int);
-	}
+	static int Num() { return sizeof(CTuningParams) / sizeof(int); }
 	bool Set(int Index, float Value);
 	bool Set(const char *pName, float Value);
 	bool Get(int Index, float *pValue);
 	bool Get(const char *pName, float *pValue);
+
+	bool operator==(const CTuningParams &TuningParams)
+	{
+#define MACRO_TUNING_PARAM(Name, ScriptName, Value) \
+	if (m_##Name != TuningParams.m_##Name)          \
+		return false;
+#include "tuning.h"
+#undef MACRO_TUNING_PARAM
+		return true;
+	}
 };
+
+// 0.7 compliant
+#define direction(x) GetDir(x)
+#define angle(x) GetAngle(x)
 
 inline vec2 GetDirection(int Angle)
 {
@@ -182,10 +193,8 @@ class CCharacterCore
 {
 	CWorldCore *m_pWorld;
 	CCollision *m_pCollision;
-	int m_MapID;
 
 public:
-	int GetMapID() const { return m_MapID; }
 	vec2 m_Pos;
 	vec2 m_Vel;
 
@@ -203,14 +212,16 @@ public:
 
 	int m_TriggeredEvents;
 
-	void Init(CWorldCore *pWorld, CCollision *pCollision, int MapID);
+	void Init(CWorldCore *pWorld, CCollision *pCollision);
 	void Reset();
-	void Tick(bool UseInput);
-	void Move();
+	void Tick(bool UseInput, const CTuningParams *pTuningParams);
+	void Move(const CTuningParams *pTuningParams);
 
 	void Read(const CNetObj_CharacterCore *pObjCore);
 	void Write(CNetObj_CharacterCore *pObjCore);
 	void Quantize();
+
+	int m_WorldID;
 };
 
 #endif

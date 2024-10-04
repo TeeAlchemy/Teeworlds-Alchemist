@@ -18,11 +18,11 @@ public:
 	int m_DropTick;
 	int m_GrabTick;
 
-	CFlag(CGameWorld *pGameWorld, int Team, int MapID);
+	CFlag(CGameWorld *pGameWorld, int Team);
 
-	void Reset() override;
-	void TickPaused() override;
-	void Snap(int SnappingClient) override;
+	virtual void Reset();
+	virtual void TickPaused();
+	virtual void Snap(int SnappingClient);
 };
 
 #endif

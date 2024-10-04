@@ -206,7 +206,6 @@ extern "C"
 		IOSEEK_END = 2,
 	};
 
-
 	/*
 		Function: io_open
 			Opens a file.
@@ -1328,6 +1327,17 @@ typedef long long int64;
 	int net_would_block();
 
 	int net_socket_read_wait(NETSOCKET sock, int time);
+
+	/**
+	 * Fetches a sample from a high resolution timer and converts it in nanoseconds.
+	 *
+	 * @ingroup Time
+	 *
+	 * @return Current value of the timer in nanoseconds.
+	 */
+	std::chrono::nanoseconds time_get_nanoseconds();
+
+	int net_socket_read_wait_nanosecond(NETSOCKET sock, std::chrono::nanoseconds nanoseconds);
 
 	void mem_debug_dump(IOHANDLE file);
 

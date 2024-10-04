@@ -4,7 +4,7 @@
 #include <engine/shared/config.h>
 #include "player.h"
 
-MACRO_ALLOC_POOL_ID_IMPL(CPlayer, MAX_CLIENTS)
+MACRO_ALLOC_POOL_ID_IMPL(CPlayer, MAX_CLIENTS *ENGINE_MAX_WORLDS + MAX_CLIENTS)
 
 IServer *CPlayer::Server() const { return m_pGameServer->Server(); }
 
@@ -23,10 +23,21 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, int Team)
 	SetLanguage(Server()->GetClientLanguage(ClientID));
 
 	m_Authed = IServer::AUTHED_NO;
+
+	m_PrevTuningParams = *pGameServer->Tuning();
+	m_NextTuningParams = m_PrevTuningParams;
+
+	m_IsBot = false;
+	m_pAI = NULL;
+
+	m_WantSpawn = true;
 }
 
 CPlayer::~CPlayer()
 {
+	if (m_pAI)
+		delete m_pAI;
+
 	delete m_pCharacter;
 	m_pCharacter = 0;
 }
@@ -75,7 +86,7 @@ void CPlayer::Tick()
 		{
 			if (m_pCharacter->IsAlive())
 			{
-				m_ViewPos = m_pCharacter->m_Pos;
+				m_ViewPos = m_pCharacter->GetPos();
 			}
 			else
 			{
@@ -83,7 +94,7 @@ void CPlayer::Tick()
 				m_pCharacter = 0;
 			}
 		}
-		else if (m_Spawning && m_RespawnTick <= Server()->Tick())
+		else if (m_WantSpawn && m_Spawning && m_RespawnTick <= Server()->Tick())
 			TryRespawn();
 	}
 	else
@@ -94,6 +105,8 @@ void CPlayer::Tick()
 		++m_LastActionTick;
 		++m_TeamChangeTick;
 	}
+
+	HandleTuningParams();
 }
 
 void CPlayer::PostTick()
@@ -158,21 +171,9 @@ void CPlayer::Snap(int SnappingClient)
 	}
 }
 
-void CPlayer::OnDisconnect(const char *pReason)
+void CPlayer::OnDisconnect()
 {
 	KillCharacter();
-
-	if (Server()->ClientIngame(m_ClientID))
-	{
-		char aBuf[512];
-		if (pReason && *pReason)
-			GameServer()->Chat(-1, "'{}' has left the game ({})", Server()->ClientName(m_ClientID), pReason);
-		else
-			GameServer()->Chat(-1, "'{}' has left the game", Server()->ClientName(m_ClientID));
-
-		str_format(aBuf, sizeof(aBuf), "leave player='%d:%s'", m_ClientID, Server()->ClientName(m_ClientID));
-		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "game", aBuf);
-	}
 }
 
 void CPlayer::OnPredictedInput(CNetObj_PlayerInput *NewInput)
@@ -187,7 +188,7 @@ void CPlayer::OnPredictedInput(CNetObj_PlayerInput *NewInput)
 
 void CPlayer::OnDirectInput(CNetObj_PlayerInput *NewInput)
 {
-	if (NewInput->m_PlayerFlags & PLAYERFLAG_CHATTING)
+	if (NewInput->m_PlayerFlags & PLAYERFLAG_CHATTING && !m_pAI)
 	{
 		// skip the input if chat is active
 		if (m_PlayerFlags & PLAYERFLAG_CHATTING)
@@ -282,13 +283,17 @@ void CPlayer::TryRespawn()
 {
 	vec2 SpawnPos;
 
-	if (!GameServer()->m_pController->CanSpawn(m_Team, &SpawnPos, GameServer()->Server()->ClientMapID(m_ClientID)))
-		return;
+	Server()->ChangeWorld(GetCID(), GameServer()->GetRespawnWorld());
+	if (GameServer()->m_pController->CanSpawn(m_Team, &SpawnPos))
+	{
+		m_Spawning = false;
+		int AllocMemoryCell = MAX_CLIENTS * GameServer()->GetWorldID() + m_ClientID;
+		m_pCharacter = new (AllocMemoryCell) CCharacter(&GameServer()->m_World);
+		m_pCharacter->Spawn(this, SpawnPos);
+		GameServer()->CreatePlayerSpawn(SpawnPos);
 
-	m_Spawning = false;
-	m_pCharacter = new (m_ClientID) CCharacter(&GameServer()->m_World, GameServer()->Server()->ClientMapID(m_ClientID));
-	m_pCharacter->Spawn(this, SpawnPos);
-	GameServer()->CreatePlayerSpawn(SpawnPos, GameServer()->Server()->ClientMapID(m_ClientID));
+		m_WantSpawn = false;
+	}
 }
 
 const char *CPlayer::GetLanguage()
@@ -304,4 +309,37 @@ void CPlayer::SetLanguage(const char *pLanguage)
 int CPlayer::GetClientVersion() const
 {
 	return m_pGameServer->GetClientVersion(GetCID());
+}
+
+void CPlayer::AITick()
+{
+	if (m_pAI)
+		m_pAI->Tick();
+}
+
+bool CPlayer::AIInputChanged()
+{
+	if (m_pAI)
+		return m_pAI->m_InputChanged;
+
+	return false;
+}
+
+void CPlayer::HandleTuningParams()
+{
+	if (!(m_PrevTuningParams == m_NextTuningParams))
+	{
+		if (m_IsReady)
+		{
+			CMsgPacker Msg(NETMSGTYPE_SV_TUNEPARAMS);
+			int *pParams = (int *)&m_NextTuningParams;
+			for (unsigned i = 0; i < sizeof(m_NextTuningParams) / sizeof(int); i++)
+				Msg.AddInt(pParams[i]);
+			Server()->SendMsg(&Msg, MSGFLAG_VITAL, GetCID(), -1);
+		}
+
+		m_PrevTuningParams = m_NextTuningParams;
+	}
+
+	m_NextTuningParams = *GameServer()->Tuning();
 }

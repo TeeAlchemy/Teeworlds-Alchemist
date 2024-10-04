@@ -29,50 +29,53 @@ IGameController::IGameController(class CGameContext *pGameServer)
 
 	m_UnbalancedTick = -1;
 	m_ForceBalanced = false;
+
+	m_aNumSpawnPoints[0] = 0;
+	m_aNumSpawnPoints[1] = 0;
+	m_aNumSpawnPoints[2] = 0;
+
+	GameServer()->Collision()->GenerateWaypoints();
+	
+	char aBuf[128]; str_format(aBuf, sizeof(aBuf), "%d waypoints generated, %d connections created", GameServer()->Collision()->WaypointCount(), GameServer()->Collision()->ConnectionCount());
+	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cstt", aBuf);
 }
 
 IGameController::~IGameController() {}
 
-float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos, int MapID)
+float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos)
 {
 	float Score = 0.0f;
 	CCharacter *pC = static_cast<CCharacter *>(GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_CHARACTER));
 	for (; pC; pC = (CCharacter *)pC->TypeNext())
 	{
-		if (pC->GetMapID() != MapID)
-			continue;
 		// team mates are not as dangerous as enemies
 		float Scoremod = 1.0f;
 		if (pEval->m_FriendlyTeam != -1 && pC->GetPlayer()->GetTeam() == pEval->m_FriendlyTeam)
 			Scoremod = 0.5f;
 
-		float d = distance(Pos, pC->m_Pos);
+		float d = distance(Pos, pC->GetPos());
 		Score += Scoremod * (d == 0 ? 1000000000.0f : 1.0f / d);
 	}
 
 	return Score;
 }
 
-void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type, int MapID)
+void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type)
 {
-	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), "Evaluate Spawn Map %d Type %d SpawnNum %d", MapID, Type, m_vNumSpawnPoints[MapID].m_aNumSpawnPoints[Type]);
-	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "debug", aBuf);
-
 	// get spawn point
-	for (int i = 0; i < m_vNumSpawnPoints[MapID].m_aNumSpawnPoints[Type]; i++)
+	for (int i = 0; i < m_aNumSpawnPoints[Type]; i++)
 	{
 		// check if the position is occupado
 		CCharacter *aEnts[MAX_CLIENTS];
-		int Num = GameServer()->m_World.FindEntities(m_vSpawnPoints[MapID].m_aaSpawnPoints[Type][i], 64, (CEntity **)aEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER, MapID);
+		int Num = GameServer()->m_World.FindEntities(m_aaSpawnPoints[Type][i], 64, (CEntity **)aEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
 		vec2 Positions[5] = {vec2(0.0f, 0.0f), vec2(-32.0f, 0.0f), vec2(0.0f, -32.0f), vec2(32.0f, 0.0f), vec2(0.0f, 32.0f)}; // start, left, up, right, down
 		int Result = -1;
 		for (int Index = 0; Index < 5 && Result == -1; ++Index)
 		{
 			Result = Index;
 			for (int c = 0; c < Num; ++c)
-				if (GameServer()->Collision(MapID)->CheckPoint(m_vSpawnPoints[MapID].m_aaSpawnPoints[Type][i] + Positions[Index]) ||
-					distance(aEnts[c]->GetPos(), m_vSpawnPoints[MapID].m_aaSpawnPoints[Type][i] + Positions[Index]) <= aEnts[c]->GetProximityRadius())
+				if (GameServer()->Collision()->CheckPoint(m_aaSpawnPoints[Type][i] + Positions[Index]) ||
+					distance(aEnts[c]->GetPos(), m_aaSpawnPoints[Type][i] + Positions[Index]) <= aEnts[c]->GetProximityRadius())
 				{
 					Result = -1;
 					break;
@@ -81,8 +84,8 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type, int MapID)
 		if (Result == -1)
 			continue; // try next spawn point
 
-		vec2 P = m_vSpawnPoints[MapID].m_aaSpawnPoints[Type][i] + Positions[Result];
-		float S = EvaluateSpawnPos(pEval, P, MapID);
+		vec2 P = m_aaSpawnPoints[Type][i] + Positions[Result];
+		float S = EvaluateSpawnPos(pEval, P);
 		if (!pEval->m_Got || pEval->m_Score > S)
 		{
 			pEval->m_Got = true;
@@ -92,7 +95,7 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type, int MapID)
 	}
 }
 
-bool IGameController::CanSpawn(int Team, vec2 *pOutPos, int MapID)
+bool IGameController::CanSpawn(int Team, vec2 *pOutPos)
 {
 	CSpawnEval Eval;
 
@@ -105,88 +108,69 @@ bool IGameController::CanSpawn(int Team, vec2 *pOutPos, int MapID)
 		Eval.m_FriendlyTeam = Team;
 
 		// first try own team spawn, then normal spawn and then enemy
-		EvaluateSpawnType(&Eval, 1 + (Team & 1), MapID);
+		EvaluateSpawnType(&Eval, 1 + (Team & 1));
 		if (!Eval.m_Got)
 		{
-			EvaluateSpawnType(&Eval, 0, MapID);
+			EvaluateSpawnType(&Eval, 0);
 			if (!Eval.m_Got)
-				EvaluateSpawnType(&Eval, 1 + ((Team + 1) & 1), MapID);
+				EvaluateSpawnType(&Eval, 1 + ((Team + 1) & 1));
 		}
 	}
 	else
 	{
-		EvaluateSpawnType(&Eval, 0, MapID);
-		EvaluateSpawnType(&Eval, 1, MapID);
-		EvaluateSpawnType(&Eval, 2, MapID);
+		EvaluateSpawnType(&Eval, 0);
+		EvaluateSpawnType(&Eval, 1);
+		EvaluateSpawnType(&Eval, 2);
 	}
 
 	*pOutPos = Eval.m_Pos;
 	return Eval.m_Got;
 }
 
-bool IGameController::OnEntity(int Index, vec2 Pos, int MapID)
+bool IGameController::OnEntity(int Index, vec2 Pos)
 {
 	int Type = -1;
-
 	int SubType = 0;
-
-	if (Index == ENTITY_SPAWN)
+	switch (Index)
 	{
-		m_vSpawnPoints[MapID].m_aaSpawnPoints[0][m_vNumSpawnPoints[MapID].m_aNumSpawnPoints[0]++] = Pos;
-	}
-	else if (Index == ENTITY_SPAWN_RED)
-	{
-		m_vSpawnPoints[MapID].m_aaSpawnPoints[1][m_vNumSpawnPoints[MapID].m_aNumSpawnPoints[1]++] = Pos;
-	}
-	else if (Index == ENTITY_SPAWN_BLUE)
-	{
-		m_vSpawnPoints[MapID].m_aaSpawnPoints[2][m_vNumSpawnPoints[MapID].m_aNumSpawnPoints[2]++] = Pos;
-	}
-	else if (Index == ENTITY_ARMOR_1)
+	case ENTITY_SPAWN:
+		m_aaSpawnPoints[TEAM_RED][m_aNumSpawnPoints[TEAM_RED]++] = Pos;
+		break;
+	case ENTITY_SPAWN_RED:
+		m_aaSpawnPoints[TEAM_RED][m_aNumSpawnPoints[TEAM_RED]++] = Pos;
+		break;
+	case ENTITY_SPAWN_BLUE:
+		m_aaSpawnPoints[TEAM_BLUE][m_aNumSpawnPoints[TEAM_BLUE]++] = Pos;
+		break;
+	case ENTITY_ARMOR_1:
 		Type = POWERUP_ARMOR;
-	else if (Index == ENTITY_HEALTH_1)
+		break;
+	case ENTITY_HEALTH_1:
 		Type = POWERUP_HEALTH;
-	else if (Index == ENTITY_WEAPON_SHOTGUN)
-	{
+		break;
+	case ENTITY_WEAPON_SHOTGUN:
 		Type = POWERUP_WEAPON;
 		SubType = WEAPON_SHOTGUN;
-	}
-	else if (Index == ENTITY_WEAPON_GRENADE)
-	{
+		break;
+	case ENTITY_WEAPON_GRENADE:
 		Type = POWERUP_WEAPON;
 		SubType = WEAPON_GRENADE;
-	}
-	else if (Index == ENTITY_WEAPON_RIFLE)
-	{
+		break;
+	case ENTITY_WEAPON_RIFLE:
 		Type = POWERUP_WEAPON;
 		SubType = WEAPON_RIFLE;
-	}
-	else if (Index == ENTITY_POWERUP_NINJA && g_Config.m_SvPowerups)
-	{
-		Type = POWERUP_NINJA;
-		SubType = WEAPON_NINJA;
+		break;
+	default:
+		break;
 	}
 
 	if (Type != -1)
 	{
-		CPickup *pPickup = new CPickup(&GameServer()->m_World, Type, SubType, MapID);
-		pPickup->m_Pos = Pos;
+		new CPickup(&GameServer()->m_World, Type, SubType, Pos);
 		return true;
 	}
 
 	return false;
-}
-
-void IGameController::SetSpawnNum(int MapNum)
-{
-	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), COLOR_BLUE "Setting enviroment for MapID %d", MapNum - 1);
-	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
-
-	m_vSpawnPoints.resize(MapNum);
-	m_vNumSpawnPoints.resize(MapNum);
-	for (int i = 0; i < NUM_SPAWN_TYPES; ++i)
-		m_vNumSpawnPoints[MapNum - 1].m_aNumSpawnPoints[i] = 0;
 }
 
 void IGameController::EndRound()
@@ -239,12 +223,6 @@ void IGameController::StartRound()
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "start round type='%s' teamplay='%d'", m_pGameType, m_GameFlags & GAMEFLAG_TEAMS);
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
-}
-
-void IGameController::ChangeMap(const char *pToMap)
-{
-	str_copy(m_aMapWish, pToMap, sizeof(m_aMapWish));
-	EndRound();
 }
 
 void IGameController::CycleMap()
@@ -375,7 +353,7 @@ int IGameController::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *
 	return 0;
 }
 
-void IGameController::OnCharacterSpawn(class CCharacter *pChr)
+void IGameController::OnCharacterSpawn(class CCharacter *pChr, bool RequestAI)
 {
 	// default health
 	pChr->IncreaseHealth(10);
@@ -383,6 +361,9 @@ void IGameController::OnCharacterSpawn(class CCharacter *pChr)
 	// give default weapons
 	pChr->GiveWeapon(WEAPON_HAMMER, -1);
 	pChr->GiveWeapon(WEAPON_GUN, 10);
+
+	if (pChr->GetPlayer()->m_pAI)
+		pChr->GetPlayer()->m_pAI->Reset();
 }
 
 void IGameController::DoWarmup(int Seconds)
@@ -778,3 +759,31 @@ int IGameController::ClampTeam(int Team)
 		return Team & 1;
 	return 0;
 }
+
+void IGameController::OnPlayerConnect(CPlayer* pPlayer)
+{
+	const int ClientID = pPlayer->GetCID();
+	if(Server()->ClientIngame(ClientID) && pPlayer->GetPlayerWorldID() == GameServer()->GetWorldID())
+	{
+		char aBuf[128];
+		str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d", ClientID, Server()->ClientName(ClientID), pPlayer->GetTeam());
+		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+	}
+}
+
+void IGameController::OnPlayerDisconnect(CPlayer* pPlayer)
+{
+	const int ClientID = pPlayer->GetCID();
+	if(Server()->ClientIngame(ClientID) && pPlayer->GetPlayerWorldID() == GameServer()->GetWorldID())
+	{
+		char aBuf[128];
+		str_format(aBuf, sizeof(aBuf), "leave player='%d:%s'", ClientID, Server()->ClientName(ClientID));
+		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "game", aBuf);
+	}
+
+	pPlayer->OnDisconnect();
+}
+
+void IGameController::OnPlayerInfoChange(CPlayer* pPlayer, int WorldID) {}
+
+void IGameController::OnReset() {}

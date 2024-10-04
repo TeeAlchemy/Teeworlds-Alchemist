@@ -1234,20 +1234,6 @@ typedef CRITICAL_SECTION LOCKINTERNAL;
 	}
 #endif
 
-#if defined(CONF_WEBSOCKETS)
-		if (bytes <= 0 && sock->web_ipv4sock >= 0)
-		{
-			char *buf;
-			int size;
-			net_buffer_simple(&sock->buffer, &buf, &size);
-			socklen_t fromlen = sizeof(struct sockaddr);
-			struct sockaddr_in *sockaddrbuf_in = (struct sockaddr_in *)&sockaddrbuf;
-			bytes = websocket_recv(sock->web_ipv4sock, (unsigned char *)buf, size, sockaddrbuf_in, fromlen);
-			*data = (unsigned char *)buf;
-			sockaddrbuf_in->sin_family = AF_WEBSOCKET_INET;
-		}
-#endif
-
 		if (bytes > 0)
 		{
 			sockaddr_to_netaddr((struct sockaddr *)&sockaddrbuf, addr);
@@ -1733,7 +1719,7 @@ typedef CRITICAL_SECTION LOCKINTERNAL;
 		tv.tv_usec = time % 1000000;
 		sockid = 0;
 
-		FD_ZERO(&readfds); // NOLINT(clang-analyzer-security.insecureAPI.bzero)
+		FD_ZERO(&readfds);
 		if (sock->ipv4sock >= 0)
 		{
 			FD_SET(sock->ipv4sock, &readfds);
@@ -1754,10 +1740,22 @@ typedef CRITICAL_SECTION LOCKINTERNAL;
 
 		if (sock->ipv4sock >= 0 && FD_ISSET(sock->ipv4sock, &readfds))
 			return 1;
+
 		if (sock->ipv6sock >= 0 && FD_ISSET(sock->ipv6sock, &readfds))
 			return 1;
 
 		return 0;
+	}
+
+	std::chrono::nanoseconds time_get_nanoseconds()
+	{
+		return std::chrono::nanoseconds(time_get_impl());
+	}
+
+	int net_socket_read_wait_nanosecond(NETSOCKET sock, std::chrono::nanoseconds nanoseconds)
+	{
+		using namespace std::chrono_literals;
+		return ::net_socket_read_wait(sock, (nanoseconds / std::chrono::nanoseconds(1us).count()).count());
 	}
 
 	int time_timestamp()
