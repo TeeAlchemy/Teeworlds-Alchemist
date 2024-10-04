@@ -140,7 +140,9 @@ MACRO_CONFIG_STR(SvChatAIUrl, sv_chatai_url, 256, "", CFGFLAG_SERVER, "The Url f
 MACRO_CONFIG_STR(SvChatAIModule, sv_chatai_module, 256, "", CFGFLAG_SERVER, "The Module for Chat AI")
 
 // AI
-MACRO_CONFIG_INT(SvBotReactTime, sv_bot_react_time, 6, 0, 20, CFGFLAG_SERVER, "Time bot takes to start shooting")
+MACRO_CONFIG_INT(SvBotAllowHook, sv_bot_allow_hook, 1, 0, 1, CFGFLAG_SERVER, "Bots are allowed to hook")
+MACRO_CONFIG_INT(SvBotAllowMove, sv_bot_allow_move, 1, 0, 1, CFGFLAG_SERVER, "Bots are allowed to move")
+MACRO_CONFIG_INT(SvBotAllowFire, sv_bot_allow_fire, 1, 0, 1, CFGFLAG_SERVER, "Bots fire")
 
 // Heavy reset
 MACRO_CONFIG_INT(SvHardresetAfterDays, sv_hard_reset_after_days, 7, 1, 14, CFGFLAG_SAVE | CFGFLAG_SERVER, "Reset the server when it has been idle for a specified number of days without players")

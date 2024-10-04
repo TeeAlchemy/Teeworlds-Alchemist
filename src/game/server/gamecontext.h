@@ -19,6 +19,8 @@
 #include "gameworld.h"
 #include "player.h"
 
+#include "botengine.h"
+
 class CChatAI;
 
 /*
@@ -139,6 +141,8 @@ public:
 	CHeap *m_pVoteOptionHeap;
 	CVoteOptionServer *m_pVoteOptionFirst;
 	CVoteOptionServer *m_pVoteOptionLast;
+
+	class CBotEngine *m_pBotEngine;
 
 	// helper functions
 	void CreateDamageInd(vec2 Pos, float AngleMod, int Amount, CClientMask Mask = CClientMask().set());

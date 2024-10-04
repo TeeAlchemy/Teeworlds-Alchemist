@@ -137,10 +137,10 @@ bool IGameController::OnEntity(int Index, vec2 Pos)
 	case ENTITY_SPAWN_BLUE:
 		m_aaSpawnPoints[TEAM_BLUE][m_aNumSpawnPoints[TEAM_BLUE]++] = Pos;
 		break;
-	case ENTITY_ARMOR_1:
+	case ENTITY_ARMOR:
 		Type = POWERUP_ARMOR;
 		break;
-	case ENTITY_HEALTH_1:
+	case ENTITY_HEALTH:
 		Type = POWERUP_HEALTH;
 		break;
 	case ENTITY_WEAPON_SHOTGUN:

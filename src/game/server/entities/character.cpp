@@ -35,7 +35,7 @@ CInputCount CountInput(int Prev, int Cur)
 	return c;
 }
 
-MACRO_ALLOC_POOL_ID_IMPL(CCharacter, MAX_CLIENTS * ENGINE_MAX_WORLDS + MAX_CLIENTS)
+MACRO_ALLOC_POOL_ID_IMPL(CCharacter, MAX_CLIENTS *ENGINE_MAX_WORLDS + MAX_CLIENTS)
 
 // Character, "physical" player's part
 CCharacter::CCharacter(CGameWorld *pWorld)
@@ -550,7 +550,7 @@ void CCharacter::TickDefered()
 		CWorldCore TempWorld;
 		m_ReckoningCore.Init(&TempWorld, GameServer()->Collision());
 		m_ReckoningCore.Tick(false, &TempWorld.m_Tuning);
-		//m_ReckoningCore.Move(&TempWorld.m_Tuning);
+		// m_ReckoningCore.Move(&TempWorld.m_Tuning);
 		m_ReckoningCore.Quantize();
 	}
 
@@ -664,12 +664,7 @@ void CCharacter::Die(int Killer, int Weapon)
 	// we got to wait 0.5 secs before respawning
 	m_pPlayer->m_RespawnTick = Server()->Tick() + Server()->TickSpeed() / 2;
 	int ModeSpecial = GameServer()->m_pController->OnCharacterDeath(this, GameServer()->m_apPlayers[Killer], Weapon);
-
-	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), "kill killer='%d:%s' victim='%d:%s' weapon=%d special=%d",
-			   Killer, Server()->ClientName(Killer),
-			   m_pPlayer->GetCID(), Server()->ClientName(m_pPlayer->GetCID()), Weapon, ModeSpecial);
-	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+	GameServer()->m_pBotEngine->OnCharacterDeath(m_pPlayer->GetCID(), Killer, Weapon);
 
 	// send the kill message
 	CNetMsg_Sv_KillMsg Msg;
@@ -847,11 +842,11 @@ void CCharacter::Snap(int SnappingClient)
 
 void CCharacter::AutoWeaponChange()
 {
-	if (HasAmmo(GetActiveWeapon()) && frandom()*100 > 10 && GetActiveWeapon() != WEAPON_HAMMER)
+	if (HasAmmo(GetActiveWeapon()) && frandom() * 100 > 10 && GetActiveWeapon() != WEAPON_HAMMER)
 		return;
-	
-	int w = rand()%(int)NUM_WEAPONS;
-	
+
+	int w = rand() % (int)NUM_WEAPONS;
+
 	if (m_aWeapons[w].m_Got)
 	{
 		if (HasAmmo(w))
@@ -863,7 +858,7 @@ bool CCharacter::Hooking()
 {
 	if (m_Core.m_HookState == HOOK_GRABBED || m_Core.m_HookState == HOOK_FLYING)
 		return true;
-		
+
 	return false;
 }
 
@@ -871,6 +866,6 @@ int CCharacter::HookedPlayer()
 {
 	if (m_Core.m_HookState == HOOK_GRABBED && m_Core.m_HookedPlayer >= 0)
 		return m_Core.m_HookedPlayer;
-		
+
 	return -1;
 }

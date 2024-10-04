@@ -12,7 +12,7 @@ class CCollision
 	int m_Height;
 	class CLayers *m_pLayers;
 
-	int GetTile(int x, int y);
+	int GetTile(int x, int y) const;
 
 public:
 	enum
@@ -22,7 +22,7 @@ public:
 		COLFLAG_NOHOOK = 4,
 	};
 
-	bool IsTileSolid(int x, int y, bool IncludeDeath = false);
+	bool IsTileSolid(int x, int y, bool IncludeDeath = false) const;
 
 	CCollision();
 	void Init(class CLayers *pLayers);
@@ -32,7 +32,7 @@ public:
 	int GetWidth() { return m_Width; };
 	int GetHeight() { return m_Height; };
 	int IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, bool IncludeDeath = false);
-	int FastIntersectLine(vec2 Pos0, vec2 Pos1);
+	int FastIntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision) const;
 	void MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, int *pBounces);
 	void MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elasticity);
 	bool TestBox(vec2 Pos, vec2 Size);

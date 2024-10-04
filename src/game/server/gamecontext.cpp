@@ -5,19 +5,19 @@
 #include <engine/shared/config.h>
 #include <engine/map.h>
 #include <engine/console.h>
-#include "gamecontext.h"
 #include <game/version.h>
 #include <game/collision.h>
 #include <game/gamecore.h>
+#include <game/mapitems.h>
 #include <string.h>
 
 #include <teeother/components/localization.h>
 
 #include "chatai.h"
-
 #include "gamemodes/mod.h"
+#include "bot.h"
 
-#include <game/mapitems.h>
+#include "gamecontext.h"
 
 enum
 {
@@ -44,6 +44,8 @@ void CGameContext::Construct(int Resetting)
 
 	if (Resetting == NO_RESET)
 		m_pVoteOptionHeap = new CHeap();
+
+	m_pBotEngine = new CBotEngine(this);
 }
 
 CGameContext::CGameContext(int Resetting)
@@ -62,6 +64,7 @@ CGameContext::~CGameContext()
 		delete m_apPlayers[i];
 	if (!m_Resetting)
 		delete m_pVoteOptionHeap;
+	delete m_pBotEngine;
 }
 
 void CGameContext::OnSetAuthed(int ClientID, int Level)
@@ -398,6 +401,15 @@ void CGameContext::SwapTeams()
 
 void CGameContext::OnTick()
 {
+	// Test basic move for bots
+	for(int i = 0; i < MAX_CLIENTS ; i++)
+	{
+		if(!m_apPlayers[i] || !m_apPlayers[i]->m_IsBot)
+			continue;
+		CNetObj_PlayerInput Input = m_apPlayers[i]->m_pBot->GetLastInputData();
+		m_apPlayers[i]->OnPredictedInput(&Input);
+	}
+
 	// copy tuning
 	m_World.m_Core.m_Tuning = m_Tuning;
 	m_World.Tick();
@@ -436,7 +448,7 @@ void CGameContext::OnTick()
 				bool aVoteChecked[MAX_CLIENTS] = {0};
 				for (int i = 0; i < MAX_CLIENTS; i++)
 				{
-					if (!m_apPlayers[i] || m_apPlayers[i]->GetTeam() == TEAM_SPECTATORS || aVoteChecked[i]) // don't count in votes by spectators
+					if (!m_apPlayers[i] || m_apPlayers[i]->GetTeam() == TEAM_SPECTATORS || aVoteChecked[i] || m_apPlayers[i]->m_IsBot) // don't count in votes by spectators
 						continue;
 
 					int ActVote = m_apPlayers[i]->m_Vote;
@@ -491,6 +503,15 @@ void CGameContext::OnTick()
 				SendVoteStatus(-1, Total, Yes, No);
 			}
 		}
+	}
+
+	// Test basic move for bots
+	for(int i = 0; i < MAX_CLIENTS ; i++)
+	{
+		if(!m_apPlayers[i] || !m_apPlayers[i]->m_IsBot)
+			continue;
+		CNetObj_PlayerInput Input = m_apPlayers[i]->m_pBot->GetInputData();
+		m_apPlayers[i]->OnDirectInput(&Input);
 	}
 
 #ifdef CONF_DEBUG
@@ -694,7 +715,6 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				CreateExtraEffect(m_apPlayers[ClientID]->GetCharacter()->GetPos(), 1, m_apPlayers[ClientID]->GetPlayerWorldID());
 				if (g_Config.m_SvChatAI)
 					m_pChatAI->Send(this, Server()->ClientName(ClientID), pMsg->m_pMessage);
-				AddBot();
 			}
 		}
 		else if (MsgID == NETMSGTYPE_CL_CALLVOTE)
@@ -1705,6 +1725,8 @@ void CGameContext::OnInit(int WorldID)
 		}
 	}
 
+	m_pBotEngine->Init(pTiles, pTileMap->m_Width, pTileMap->m_Height);
+
 	for (int i = 0; i < 16; i++)
 		AddBot();
 }
@@ -1829,6 +1851,9 @@ void CGameContext::AddBot()
 	const int AllocMemoryCell = BotClientID + m_WorldID * MAX_CLIENTS;
 	m_apPlayers[BotClientID] = new(AllocMemoryCell) CPlayer(this, BotClientID, 0);
 	m_apPlayers[BotClientID]->m_BotWorldID = GetWorldID();
+	m_apPlayers[BotClientID]->m_IsBot = true;
+	m_apPlayers[BotClientID]->m_pBot = new CBot(m_pBotEngine, m_apPlayers[BotClientID]);
+	
 	return;
 }
 

@@ -101,6 +101,12 @@ public:
 
 	int m_Authed;
 
+	// Bot flag
+	bool m_IsBot;
+	class CBot *m_pBot;
+	
+	bool IsBot() { return m_IsBot; }
+
 	int m_BotWorldID;
 
 private:

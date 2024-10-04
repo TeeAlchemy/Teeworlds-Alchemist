@@ -80,6 +80,11 @@ public:
 
 	int GetActiveWeapon() { return m_ActiveWeapon; }
 
+	bool CanFire() { return m_ReloadTimer <= 0; }
+	int GetHealth() { return m_Health; }
+	int GetArmor() { return m_Armor; }
+	int GetAmmoCount(int Weapon) { return m_aWeapons[clamp(Weapon, 0,NUM_WEAPONS-1)].m_Ammo; }
+
 	// these are non-heldback inputs
 	CNetObj_PlayerInput m_LatestPrevInput;
 	CNetObj_PlayerInput m_LatestInput;

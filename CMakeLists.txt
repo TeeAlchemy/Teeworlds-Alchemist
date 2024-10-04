@@ -526,6 +526,12 @@ set(SERVER_INCLUDES_DIRS
 )
 
 set_glob(GAME_SERVER GLOB_RECURSE src/game/server
+  ai/defence.cpp
+  ai/defence.h
+  ai/genetics.cpp
+  ai/genetics.h
+  ai/strategy.cpp
+  ai/strategy.h
   entities/character.cpp
   entities/character.h
   entities/flag.cpp
@@ -539,6 +545,10 @@ set_glob(GAME_SERVER GLOB_RECURSE src/game/server
   gamemodes/mod.cpp
   gamemodes/mod.h
   alloc.h
+  bot.cpp
+  bot.h
+  botengine.cpp
+  botengine.h
   chatai.cpp
   chatai.h
   entity.cpp
