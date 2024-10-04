@@ -111,7 +111,7 @@ public:
 		Arguments:
 			chr - The CCharacter that was spawned.
 	*/
-	virtual void OnCharacterSpawn(class CCharacter *pChr, bool RequestAI = false);
+	virtual void OnCharacterSpawn(class CCharacter *pChr);
 
 	/*
 		Function: on_CCharacter_death

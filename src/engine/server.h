@@ -119,14 +119,15 @@ public:
 
 	virtual void ExpireServerInfo() = 0;
 
-	virtual void AddBot(int WorldID) = 0;
-
 public:
 	virtual bool IsClientChangingWorld(int ClientID) = 0;
 	virtual void ChangeWorld(int ClientID, int NewWorldID) = 0;
 	virtual int GetClientWorldID(int ClientID) = 0;
 	virtual const char* GetWorldName(int WorldID) = 0;
 	virtual int GetWorldsSize() const = 0;
+
+	// Bots
+	virtual void InitClientBot(int ClientID) = 0;
 	
 };
 
@@ -150,7 +151,7 @@ public:
 
 	virtual void OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID) = 0;
 
-	virtual void OnClientConnected(int ClientID, bool AI) = 0;
+	virtual void OnClientConnected(int ClientID) = 0;
 	virtual void KillCharacter(int ClientID) = 0;
 	virtual void OnClientEnter(int ClientID) = 0;
 	virtual void OnClientDrop(int ClientID, const char *pReason) = 0;
@@ -166,8 +167,7 @@ public:
 
 	virtual void OnSetAuthed(int ClientID, int Level) = 0;
 
-	virtual bool AIInputUpdateNeeded(int ClientID) = 0;
-	virtual void AIUpdateInput(int ClientID, int *Data) = 0; // MAX_INPUT_SIZE
+	virtual int GetBotWorldID(int ClientID) = 0;
 };
 
 extern IGameServer *CreateGameServer();

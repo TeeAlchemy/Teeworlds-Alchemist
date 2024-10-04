@@ -66,19 +66,23 @@ public:
 	bool GotWeapon(int Weapon){ return m_aWeapons[Weapon].m_Got; }
 	bool HasAmmo(int Weapon){ return m_aWeapons[Weapon].m_Ammo || Weapon == WEAPON_HAMMER; }
 
-	void AutoWeaponChange();
+	void RemoveWeapon(int Weapon) { m_aWeapons[Weapon].m_Got = false; m_aWeapons[Weapon].m_Ammo = 0; }
 
-	bool m_IsBot;
+	void AutoWeaponChange();
 
 	bool Hooking();
 	int HookedPlayer();
 	
-	CCharacterCore GetCore(){ return m_Core; }
+	CCharacterCore *GetCore(){ return &m_Core; }
 	vec2 GetPosition(){ return m_Pos; }
 	
 	vec2 GetVel(){ return m_Core.m_Vel; }
 
 	int GetActiveWeapon() { return m_ActiveWeapon; }
+
+	// these are non-heldback inputs
+	CNetObj_PlayerInput m_LatestPrevInput;
+	CNetObj_PlayerInput m_LatestInput;
 
 private:
 	// player controlling this character
@@ -114,10 +118,6 @@ private:
 	// last tick that the player took any action ie some input
 	int m_LastAction;
 	int m_LastNoAmmoSound;
-
-	// these are non-heldback inputs
-	CNetObj_PlayerInput m_LatestPrevInput;
-	CNetObj_PlayerInput m_LatestInput;
 
 	// input
 	CNetObj_PlayerInput m_PrevInput;

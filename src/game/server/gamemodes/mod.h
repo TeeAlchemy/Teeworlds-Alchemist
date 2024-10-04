@@ -11,7 +11,7 @@ class CGameControllerMOD : public IGameController
 public:
 	CGameControllerMOD(class CGameContext *pGameServer);
 
-	void OnCharacterSpawn(class CCharacter *pChr, bool RequestAI = false);
+	void OnCharacterSpawn(class CCharacter *pChr);
 	virtual void Tick();
 };
 #endif

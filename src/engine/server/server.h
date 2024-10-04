@@ -156,6 +156,7 @@ public:
 		int64_t m_TrafficSince;
 
 		bool m_Bot;
+		int m_BotWorldID;
 	};
 
 	CClient m_aClients[MAX_CLIENTS];
@@ -314,15 +315,15 @@ public:
 	virtual const char *GetClientLanguage(int ClientID);
 	virtual void SetClientLanguage(int ClientID, const char *pLanguage);
 
-	virtual void AddBot(int WorldID);
-	void UpdateAIInput();
-
 	bool IsClientChangingWorld(int ClientID) override;
 	void ChangeWorld(int ClientID, int NewWorldID) override;
 	int GetClientWorldID(int ClientID) override;
 
 	const char* GetWorldName(int WorldID) override;
 	int GetWorldsSize() const override;
+
+	// Bots
+	void InitClientBot(int ClientID) override;
 };
 
 class _StoreMultiworldIdentifiableStaticData

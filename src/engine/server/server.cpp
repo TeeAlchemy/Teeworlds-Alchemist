@@ -41,7 +41,6 @@
 
 #include <engine/external/json-parser/json.h>
 
-#include <game/server/ai.h>
 #include <game/version.h>
 
 #include "multi_worlds.h"
@@ -1271,7 +1270,7 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 						IGameServer *pGameServer = MultiWorlds()->GetWorld(i)->m_pGameServer;
 						pGameServer->OnClientPrepareChangeWorld(ClientID);
 					}
-					GameServer(WorldID)->OnClientConnected(ClientID, false);
+					GameServer(WorldID)->OnClientConnected(ClientID);
 				}
 
 				m_aClients[ClientID].m_State = CClient::STATE_READY;
@@ -2119,10 +2118,7 @@ int CServer::Run()
 			bool ShouldSnap = false;
 			
 			if (NonActive)
-			{
-				UpdateAIInput();
 				PumpNetwork(PacketWaiting);
-			}
 
 			set_new_tick();
 
@@ -2248,10 +2244,7 @@ int CServer::Run()
 				UpdateServerInfo();
 
 			if (!NonActive)
-			{
-				UpdateAIInput();
 				PumpNetwork(PacketWaiting);
-			}
 
 			NonActive = true;
 
@@ -2659,72 +2652,6 @@ void CServer::SetClientDDNetVersion(int ClientID, int DDNetVersion)
 	}
 }
 
-void CServer::AddBot(int WorldID)
-{
-	int ClientID = -1;
-	for (int i = MAX_CLIENTS; i > MAX_PLAYERS; i--)
-	{
-		if (m_aClients[i].m_State == CClient::STATE_EMPTY)
-		{
-			ClientID = i;
-			break;
-		}
-	}
-	
-	if (ClientID == -1)
-		return;
-	
-	m_aClients[ClientID].m_State = CClient::STATE_CONNECTING;
-
-	for (int i = 0; i < MultiWorlds()->GetSizeInitilized(); i++)
-	{
-		IGameServer *pGameServer = MultiWorlds()->GetWorld(i)->m_pGameServer;
-		pGameServer->OnClientPrepareChangeWorld(ClientID);
-	}
-
-	GameServer(WorldID)->OnClientConnected(ClientID, true);
-
-	m_aClients[ClientID].m_State = CClient::STATE_INGAME;
-	m_aClients[ClientID].m_Bot = true;
-	m_aClients[ClientID].m_WorldID = WorldID;
-
-	SetClientName(ClientID, " ");
-	SetClientClan(ClientID, "ai");
-}
-
-void CServer::UpdateAIInput()
-{
-	for (int i = 0; i < MAX_CLIENTS; i++)
-	{
-		if(m_aClients[i].m_State == CClient::STATE_INGAME && m_aClients[i].m_Bot)
-		{
-			if (GameServer(m_aClients[i].m_WorldID)->AIInputUpdateNeeded(i))
-			{
-				CClient::CInput *pInput;
-
-				m_aClients[i].m_LastInputTick = Tick();
-
-				pInput = &m_aClients[i].m_aInputs[m_aClients[i].m_CurrentInput];
-				pInput->m_GameTick = Tick()+1;
-
-
-				// update input data
-				GameServer(m_aClients[i].m_WorldID)->AIUpdateInput(i, pInput->m_aData);
-
-				
-				mem_copy(m_aClients[i].m_LatestInput.m_aData, pInput->m_aData, MAX_INPUT_SIZE*sizeof(int));
-
-				m_aClients[i].m_CurrentInput++;
-				m_aClients[i].m_CurrentInput %= 200;
-
-				// call the mod with the fresh input data
-				if(m_aClients[i].m_State == CClient::STATE_INGAME)
-					GameServer(m_aClients[i].m_WorldID)->OnClientDirectInput(i, m_aClients[i].m_LatestInput.m_aData);
-			}
-		}
-	}
-}
-
 bool CServer::IsClientChangingWorld(int ClientID)
 {
 	if (ClientID < 0 || ClientID >= MAX_CLIENTS)
@@ -2738,4 +2665,21 @@ const char *CServer::GetWorldName(int WorldID)
 	if (!MultiWorlds()->IsValid(WorldID))
 		return "invalid";
 	return MultiWorlds()->GetWorld(WorldID)->m_aName;
+}
+
+// This function initializes a client bot for the server
+void CServer::InitClientBot(int ClientID)
+{
+	// Check if the ClientID is within valid range
+	if(ClientID < MAX_PLAYERS || ClientID >= MAX_CLIENTS)
+		return;
+
+	// Prepare client data
+	m_aClients[ClientID].m_State = CClient::STATE_INGAME;
+	m_aClients[ClientID].m_Bot = true;
+	m_aClients[ClientID].m_WorldID = -1;
+	m_aClients[ClientID].m_Score = 1;
+
+	// Send a connection ready message to the client
+	SendConnectionReady(ClientID);
 }

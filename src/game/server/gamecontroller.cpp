@@ -33,11 +33,6 @@ IGameController::IGameController(class CGameContext *pGameServer)
 	m_aNumSpawnPoints[0] = 0;
 	m_aNumSpawnPoints[1] = 0;
 	m_aNumSpawnPoints[2] = 0;
-
-	GameServer()->Collision()->GenerateWaypoints();
-	
-	char aBuf[128]; str_format(aBuf, sizeof(aBuf), "%d waypoints generated, %d connections created", GameServer()->Collision()->WaypointCount(), GameServer()->Collision()->ConnectionCount());
-	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cstt", aBuf);
 }
 
 IGameController::~IGameController() {}
@@ -353,17 +348,13 @@ int IGameController::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *
 	return 0;
 }
 
-void IGameController::OnCharacterSpawn(class CCharacter *pChr, bool RequestAI)
+void IGameController::OnCharacterSpawn(class CCharacter *pChr)
 {
 	// default health
 	pChr->IncreaseHealth(10);
-
+	
 	// give default weapons
 	pChr->GiveWeapon(WEAPON_HAMMER, -1);
-	pChr->GiveWeapon(WEAPON_GUN, 10);
-
-	if (pChr->GetPlayer()->m_pAI)
-		pChr->GetPlayer()->m_pAI->Reset();
 }
 
 void IGameController::DoWarmup(int Seconds)

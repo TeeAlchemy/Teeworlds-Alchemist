@@ -17,9 +17,6 @@
 
 #include "gamemodes/mod.h"
 
-#include <game/server/ai_protocol.h>
-#include <game/server/ai.h>
-
 #include <game/mapitems.h>
 
 enum
@@ -525,7 +522,7 @@ void CGameContext::OnClientPredictedInput(int ClientID, void *pInput)
 void CGameContext::OnClientEnter(int ClientID)
 {
 	CPlayer* pPlayer = m_apPlayers[ClientID];
-	if(!pPlayer || pPlayer->m_IsBot)
+	if(!pPlayer)
 		return;
 
 	m_pController->OnPlayerConnect(pPlayer);
@@ -546,7 +543,7 @@ void CGameContext::KillCharacter(int ClientID)
 	}
 }
 
-void CGameContext::OnClientConnected(int ClientID, bool AI)
+void CGameContext::OnClientConnected(int ClientID)
 {
 	// Check which team the player should be on
 	const int StartTeam = g_Config.m_SvTournamentMode ? TEAM_SPECTATORS : m_pController->GetAutoTeam(ClientID);
@@ -556,8 +553,6 @@ void CGameContext::OnClientConnected(int ClientID, bool AI)
 		const int AllocMemoryCell = ClientID + m_WorldID * MAX_CLIENTS;
 		m_apPlayers[ClientID] = new(AllocMemoryCell) CPlayer(this, ClientID, StartTeam);
 	}
-
-	m_apPlayers[ClientID]->m_IsBot = AI;
 
 	// send active vote
 	if (m_VoteCloseTime)
@@ -571,7 +566,7 @@ void CGameContext::OnClientConnected(int ClientID, bool AI)
 
 void CGameContext::OnClientDrop(int ClientID, const char *pReason)
 {
-	if(!m_apPlayers[ClientID] || m_apPlayers[ClientID]->m_IsBot)
+	if(!m_apPlayers[ClientID])
 		return;
 
 	AbortVoteKickOnDisconnect(ClientID);
@@ -1709,6 +1704,9 @@ void CGameContext::OnInit(int WorldID)
 			}
 		}
 	}
+
+	for (int i = 0; i < 16; i++)
+		AddBot();
 }
 
 void CGameContext::OnShutdown()
@@ -1793,11 +1791,6 @@ bool CGameContext::IsPlayersNearby(vec2 Pos, float Distance) const
 	return false;
 }
 
-int CPlayer::GetPlayerWorldID() const
-{
-	return Server()->GetClientWorldID(m_ClientID);
-}
-
 // change the world
 void CGameContext::OnClientPrepareChangeWorld(int ClientID)
 {
@@ -1822,61 +1815,21 @@ const char *CGameContext::GetClientLanguage(int ClientID)
 	return Server()->GetClientLanguage(ClientID);
 }
 
-void CGameContext::KickBots()
-{
-	Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "engine", "Kicking bots...");
-
-	for(int i = 0; i < MAX_CLIENTS; i++)
-	{
-		if(IsBot(i))
-			Server()->Kick(i, "");
-	}
-}
-
-
-void CGameContext::KickBot(int ClientID)
-{
-	if(IsBot(ClientID))
-		Server()->Kick(ClientID, "");
-}
-
 void CGameContext::AddBot()
 {
-	Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "engine", "Adding a bot...");
-
-	Server()->AddBot(GetWorldID());
-}
-
-bool CGameContext::AIInputUpdateNeeded(int ClientID)
-{
-	if(m_apPlayers[ClientID])
-		return m_apPlayers[ClientID]->AIInputChanged();
-		
-	return false;
-}
-
-
-void CGameContext::UpdateAI()
-{
-	for(int i = 0; i < MAX_CLIENTS; i++)
+	int BotClientID = MAX_PLAYERS;
+	while(m_apPlayers[BotClientID])
 	{
-		if(m_apPlayers[i] && IsBot(i))
-			m_apPlayers[i]->AITick();
+		BotClientID++;
+		if(BotClientID >= MAX_CLIENTS)
+			return;
 	}
-}
 
-void CGameContext::AIUpdateInput(int ClientID, int *Data)
-{
-	if(m_apPlayers[ClientID] && m_apPlayers[ClientID]->m_pAI)
-		m_apPlayers[ClientID]->m_pAI->UpdateInput(Data);
-}
-
-bool CGameContext::IsBot(int ClientID)
-{
-	if(m_apPlayers[ClientID] && m_apPlayers[ClientID]->m_pAI)
-		return true;
-	
-	return false;
+	Server()->InitClientBot(BotClientID);
+	const int AllocMemoryCell = BotClientID + m_WorldID * MAX_CLIENTS;
+	m_apPlayers[BotClientID] = new(AllocMemoryCell) CPlayer(this, BotClientID, 0);
+	m_apPlayers[BotClientID]->m_BotWorldID = GetWorldID();
+	return;
 }
 
 bool CGameContext::IsPlayerInWorld(int ClientID, int WorldID) const
@@ -1898,6 +1851,13 @@ bool CGameContext::ArePlayersNearby(vec2 Pos, float Distance) const
 	}
 
 	return false;
+}
+
+int CGameContext::GetBotWorldID(int ClientID)
+{
+	if (GetPlayer(ClientID))
+		return GetPlayer(ClientID)->m_BotWorldID;
+	return MAIN_WORLD_ID;
 }
 
 const char *CGameContext::GameType() { return m_pController && m_pController->m_pGameType ? m_pController->m_pGameType : ""; }

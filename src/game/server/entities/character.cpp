@@ -55,7 +55,7 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 	m_EmoteStop = -1;
 	m_LastAction = -1;
 	m_LastNoAmmoSound = -1;
-	m_ActiveWeapon = WEAPON_GUN;
+	m_ActiveWeapon = WEAPON_HAMMER;
 	m_LastWeapon = WEAPON_HAMMER;
 	m_QueuedWeapon = -1;
 
@@ -74,15 +74,7 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 	GameServer()->m_World.InsertEntity(this);
 	m_Alive = true;
 
-	m_IsBot = false;
-
-	GameServer()->m_pController->OnCharacterSpawn(this, pPlayer->m_IsBot);
-
-	if (pPlayer->m_pAI)
-	{
-		pPlayer->m_pAI->OnCharacterSpawn(this);
-		m_IsBot = true;
-	}
+	GameServer()->m_pController->OnCharacterSpawn(this);
 
 	return true;
 }
@@ -255,9 +247,6 @@ void CCharacter::FireWeapon()
 	vec2 Direction = normalize(vec2(m_LatestInput.m_TargetX, m_LatestInput.m_TargetY));
 
 	bool FullAuto = false;
-	
-	if (m_IsBot)
-		FullAuto = true;
 
 	if (m_ActiveWeapon == WEAPON_GRENADE || m_ActiveWeapon == WEAPON_SHOTGUN || m_ActiveWeapon == WEAPON_RIFLE)
 		FullAuto = true;
@@ -706,10 +695,6 @@ void CCharacter::Die(int Killer, int Weapon)
 bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 {
 	m_Core.m_Vel += Force;
-
-	// signal AI
-	if (Dmg > 0 && GetPlayer()->m_pAI && Weapon >= 0)
-		GetPlayer()->m_pAI->ReceiveDamage(From, Dmg);
 
 	if (GameServer()->m_pController->IsFriendlyFire(m_pPlayer->GetCID(), From) && !g_Config.m_SvTeamdamage)
 		return false;

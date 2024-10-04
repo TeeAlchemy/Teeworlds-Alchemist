@@ -183,7 +183,7 @@ public:
 
 	void OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID) override;
 
-	void OnClientConnected(int ClientID, bool AI) override;
+	void OnClientConnected(int ClientID) override;
 	void OnClientEnter(int ClientID) override;
 	void KillCharacter(int ClientID) override;
 	void OnClientDrop(int ClientID, const char *pReason) override;
@@ -202,15 +202,6 @@ public:
 	int GetClientVersion(int ClientId) const;
 
 	void AddBot();
-	void KickBots();
-	void KickBot(int ClientID);
-	
-	bool IsBot(int ClientID);
-
-	void UpdateAI();
-
-	bool AIInputUpdateNeeded(int ClientID) override;
-	void AIUpdateInput(int ClientID, int *Data) override;
 
 	bool IsPlayerEqualWorld(int ClientID, int WorldID = -1) const;
 	bool IsPlayersNearby(vec2 Pos, float Distance) const;
@@ -223,6 +214,8 @@ public:
 	int GetWorldID() const { return m_WorldID; }
 	bool IsPlayerInWorld(int ClientID, int WorldID = -1) const;
 	bool ArePlayersNearby(vec2 Pos, float Distance) const;
+
+	int GetBotWorldID(int ClientID) override;
 
 public:
 	template <class Tm, typename... Ts>

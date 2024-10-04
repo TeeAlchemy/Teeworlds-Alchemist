@@ -7,8 +7,6 @@
 #include "entities/character.h"
 #include "gamecontext.h"
 
-#include "ai.h"
-
 // player object
 class CPlayer
 {
@@ -103,11 +101,7 @@ public:
 
 	int m_Authed;
 
-	CAI *m_pAI;
-	bool m_IsBot;
-	
-	void AITick();
-	bool AIInputChanged();
+	int m_BotWorldID;
 
 private:
 	CCharacter *m_pCharacter;

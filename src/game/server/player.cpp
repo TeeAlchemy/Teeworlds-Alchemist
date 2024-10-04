@@ -4,7 +4,7 @@
 #include <engine/shared/config.h>
 #include "player.h"
 
-MACRO_ALLOC_POOL_ID_IMPL(CPlayer, MAX_CLIENTS *ENGINE_MAX_WORLDS + MAX_CLIENTS)
+MACRO_ALLOC_POOL_ID_IMPL(CPlayer, MAX_CLIENTS * ENGINE_MAX_WORLDS + MAX_CLIENTS)
 
 IServer *CPlayer::Server() const { return m_pGameServer->Server(); }
 
@@ -27,17 +27,11 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, int Team)
 	m_PrevTuningParams = *pGameServer->Tuning();
 	m_NextTuningParams = m_PrevTuningParams;
 
-	m_IsBot = false;
-	m_pAI = NULL;
-
 	m_WantSpawn = true;
 }
 
 CPlayer::~CPlayer()
 {
-	if (m_pAI)
-		delete m_pAI;
-
 	delete m_pCharacter;
 	m_pCharacter = 0;
 }
@@ -188,7 +182,7 @@ void CPlayer::OnPredictedInput(CNetObj_PlayerInput *NewInput)
 
 void CPlayer::OnDirectInput(CNetObj_PlayerInput *NewInput)
 {
-	if (NewInput->m_PlayerFlags & PLAYERFLAG_CHATTING && !m_pAI)
+	if (NewInput->m_PlayerFlags & PLAYERFLAG_CHATTING)
 	{
 		// skip the input if chat is active
 		if (m_PlayerFlags & PLAYERFLAG_CHATTING)
@@ -283,7 +277,6 @@ void CPlayer::TryRespawn()
 {
 	vec2 SpawnPos;
 
-	Server()->ChangeWorld(GetCID(), GameServer()->GetRespawnWorld());
 	if (GameServer()->m_pController->CanSpawn(m_Team, &SpawnPos))
 	{
 		m_Spawning = false;
@@ -311,20 +304,6 @@ int CPlayer::GetClientVersion() const
 	return m_pGameServer->GetClientVersion(GetCID());
 }
 
-void CPlayer::AITick()
-{
-	if (m_pAI)
-		m_pAI->Tick();
-}
-
-bool CPlayer::AIInputChanged()
-{
-	if (m_pAI)
-		return m_pAI->m_InputChanged;
-
-	return false;
-}
-
 void CPlayer::HandleTuningParams()
 {
 	if (!(m_PrevTuningParams == m_NextTuningParams))
@@ -342,4 +321,12 @@ void CPlayer::HandleTuningParams()
 	}
 
 	m_NextTuningParams = *GameServer()->Tuning();
+}
+
+int CPlayer::GetPlayerWorldID() const
+{	
+	if(false)
+		return m_BotWorldID;
+
+	return Server()->GetClientWorldID(m_ClientID);
 }
