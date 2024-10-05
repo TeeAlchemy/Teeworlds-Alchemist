@@ -298,6 +298,7 @@ public:
 	static bool ConLogout(IConsole::IResult *pResult, void *pUser);
 	static bool ConReload(IConsole::IResult* pResult, void* pUser);
 	static bool ConChangeWorld(IConsole::IResult* pResult, void* pUser);
+	static bool ConRedirectClient(IConsole::IResult* pResult, void* pUser);
 	
 	static void ConchainSpecialInfoupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ConchainMaxclientsperipUpdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);

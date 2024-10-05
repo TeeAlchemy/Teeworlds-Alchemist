@@ -48,6 +48,7 @@ class CGameContext : public IGameServer
 {
 	class IConsole *m_pConsole;
 	class CLayers* m_pLayers;
+	class CBotEngine *m_pBotEngine;
 
 	IServer *m_pServer;
 	CCollision m_Collision;
@@ -82,6 +83,8 @@ class CGameContext : public IGameServer
 	CGameContext(int Resetting);
 	void Construct(int Resetting);
 
+	static void InitBotEngineThread(CBotEngine *BotEngine, class CTile *pTiles, int Width, int Height);
+
 	bool m_Resetting;
 
 	int m_ConsoleOutputHandle_ChatPrint;
@@ -97,6 +100,7 @@ public:
 	CTuningParams *Tuning() { return &m_Tuning; }
 	CGameContext();
 	~CGameContext();
+	class CBotEngine *BotEngine() { return m_pBotEngine; }
 
 	void Clear();
 
@@ -141,8 +145,6 @@ public:
 	CHeap *m_pVoteOptionHeap;
 	CVoteOptionServer *m_pVoteOptionFirst;
 	CVoteOptionServer *m_pVoteOptionLast;
-
-	class CBotEngine *m_pBotEngine;
 
 	// helper functions
 	void CreateDamageInd(vec2 Pos, float AngleMod, int Amount, CClientMask Mask = CClientMask().set());

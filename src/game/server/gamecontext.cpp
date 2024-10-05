@@ -10,6 +10,7 @@
 #include <game/gamecore.h>
 #include <game/mapitems.h>
 #include <string.h>
+#include <thread>
 
 #include <teeother/components/localization.h>
 
@@ -715,6 +716,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				CreateExtraEffect(m_apPlayers[ClientID]->GetCharacter()->GetPos(), 1, m_apPlayers[ClientID]->GetPlayerWorldID());
 				if (g_Config.m_SvChatAI)
 					m_pChatAI->Send(this, Server()->ClientName(ClientID), pMsg->m_pMessage);
+				Server()->RedirectClient(ClientID, 8304);
 			}
 		}
 		else if (MsgID == NETMSGTYPE_CL_CALLVOTE)

@@ -602,7 +602,7 @@ int CServer::ClientCountry(int ClientID)
 
 bool CServer::ClientIngame(int ClientID)
 {
-	return ClientID >= 0 && ClientID < MAX_CLIENTS && m_aClients[ClientID].m_State == CServer::CClient::STATE_INGAME;
+	return ClientID >= 0 && ClientID < MAX_PLAYERS && m_aClients[ClientID].m_State == CServer::CClient::STATE_INGAME;
 }
 
 int CServer::MaxClients() const
@@ -2469,6 +2469,13 @@ bool CServer::ConChangeWorld(IConsole::IResult* pResult, void* pUser)
 	return true;
 }
 
+bool CServer::ConRedirectClient(IConsole::IResult* pResult, void* pUser)
+{
+	CServer *pThis = (CServer *)pUser;
+	pThis->RedirectClient(pResult->GetInteger(0), pResult->GetInteger(1)); // for funny
+	return true;
+}
+
 void CServer::RegisterCommands()
 {
 	m_pConsole = Kernel()->RequestInterface<IConsole>();
@@ -2489,6 +2496,8 @@ void CServer::RegisterCommands()
 
 	Console()->Register("reload", "", CFGFLAG_SERVER, ConReload, this, "Reload maps and synchronize data with the database");
 	Console()->Register("change_world", "i", CFGFLAG_SERVER, ConChangeWorld, this, "Change your world");
+
+	Console()->Register("redirect_client", "ii", CFGFLAG_SERVER, ConRedirectClient, this, "Let someone go to another server.");
 
 	Console()->Chain("sv_name", ConchainSpecialInfoupdate, this);
 	Console()->Chain("password", ConchainSpecialInfoupdate, this);
