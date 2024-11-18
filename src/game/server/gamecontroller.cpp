@@ -13,7 +13,7 @@ IGameController::IGameController(class CGameContext *pGameServer)
 {
 	m_pGameServer = pGameServer;
 	m_pServer = m_pGameServer->Server();
-	m_pGameType = "Alchemy"; // Set the gametype to Alchemy by default
+	m_pGameType = "TeeDarkForest";
 
 	//
 	DoWarmup(g_Config.m_SvWarmup);
@@ -23,8 +23,8 @@ IGameController::IGameController(class CGameContext *pGameServer)
 	m_RoundStartTick = Server()->Tick();
 	m_RoundCount = 0;
 	m_GameFlags = 0;
-	m_aTeamscore[TEAM_RED] = 0;
-	m_aTeamscore[TEAM_BLUE] = 0;
+	m_aTeamscore[TEAM_HUMAN] = 0;
+	m_aTeamscore[TEAM_BOT] = 0;
 	m_aMapWish[0] = 0;
 
 	m_UnbalancedTick = -1;
@@ -33,6 +33,8 @@ IGameController::IGameController(class CGameContext *pGameServer)
 	m_aNumSpawnPoints[0] = 0;
 	m_aNumSpawnPoints[1] = 0;
 	m_aNumSpawnPoints[2] = 0;
+
+	m_IsTeamplay = false;
 }
 
 IGameController::~IGameController() {}
@@ -128,14 +130,14 @@ bool IGameController::OnEntity(int Index, vec2 Pos)
 	int SubType = 0;
 	switch (Index)
 	{
-	case ENTITY_SPAWN:
-		m_aaSpawnPoints[TEAM_RED][m_aNumSpawnPoints[TEAM_RED]++] = Pos;
+	case ENTITY_SPAWN_HUMAN:
+		m_aaSpawnPoints[TEAM_HUMAN][m_aNumSpawnPoints[TEAM_HUMAN]++] = Pos;
 		break;
-	case ENTITY_SPAWN_RED:
-		m_aaSpawnPoints[TEAM_RED][m_aNumSpawnPoints[TEAM_RED]++] = Pos;
+	case ENTITY_SPAWN_BOT:
+		m_aaSpawnPoints[TEAM_BOT][m_aNumSpawnPoints[TEAM_BOT]++] = Pos;
 		break;
-	case ENTITY_SPAWN_BLUE:
-		m_aaSpawnPoints[TEAM_BLUE][m_aNumSpawnPoints[TEAM_BLUE]++] = Pos;
+	case ENTITY_SPAWN_BOSS:
+		m_aaSpawnPoints[TEAM_BOT][m_aNumSpawnPoints[TEAM_BOT]++] = Pos;
 		break;
 	case ENTITY_ARMOR:
 		Type = POWERUP_ARMOR;
@@ -187,9 +189,9 @@ const char *IGameController::GetTeamName(int Team)
 {
 	if (IsTeamplay())
 	{
-		if (Team == TEAM_RED)
+		if (Team == TEAM_HUMAN)
 			return "red team";
-		else if (Team == TEAM_BLUE)
+		else if (Team == TEAM_BOT)
 			return "blue team";
 	}
 	else
@@ -211,12 +213,12 @@ void IGameController::StartRound()
 	m_SuddenDeath = 0;
 	m_GameOverTick = -1;
 	GameServer()->m_World.m_Paused = false;
-	m_aTeamscore[TEAM_RED] = 0;
-	m_aTeamscore[TEAM_BLUE] = 0;
+	m_aTeamscore[TEAM_HUMAN] = 0;
+	m_aTeamscore[TEAM_BOT] = 0;
 	m_ForceBalanced = false;
 	Server()->DemoRecorder_HandleAutoStart();
 	char aBuf[256];
-	str_format(aBuf, sizeof(aBuf), "start round type='%s' teamplay='%d'", m_pGameType, m_GameFlags & GAMEFLAG_TEAMS);
+	str_format(aBuf, sizeof(aBuf), "start round type='%s' teamplay='%d'", GameType(), m_GameFlags & GAMEFLAG_TEAMS);
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 }
 
@@ -298,7 +300,7 @@ void IGameController::CycleMap()
 
 void IGameController::PostReset()
 {
-	for (int i = 0; i < MAX_CLIENTS; i++)
+	for (int i = 0; i < MAX_PLAYERS; i++)
 	{
 		if (GameServer()->m_apPlayers[i])
 		{
@@ -316,7 +318,7 @@ void IGameController::OnPlayerInfoChange(class CPlayer *pP)
 	if (IsTeamplay())
 	{
 		pP->m_TeeInfos.m_UseCustomColor = 1;
-		if (pP->GetTeam() >= TEAM_RED && pP->GetTeam() <= TEAM_BLUE)
+		if (pP->GetTeam() >= TEAM_HUMAN && pP->GetTeam() <= TEAM_BOT)
 		{
 			pP->m_TeeInfos.m_ColorBody = aTeamColors[pP->GetTeam()];
 			pP->m_TeeInfos.m_ColorFeet = aTeamColors[pP->GetTeam()];
@@ -561,7 +563,7 @@ void IGameController::Tick()
 
 bool IGameController::IsTeamplay() const
 {
-	return m_GameFlags & GAMEFLAG_TEAMS;
+	return m_IsTeamplay;
 }
 
 void IGameController::Snap(int SnappingClient)
@@ -599,14 +601,14 @@ int IGameController::GetAutoTeam(int NotThisID)
 	{
 		if (GameServer()->m_apPlayers[i] && i != NotThisID)
 		{
-			if (GameServer()->m_apPlayers[i]->GetTeam() >= TEAM_RED && GameServer()->m_apPlayers[i]->GetTeam() <= TEAM_BLUE)
+			if (GameServer()->m_apPlayers[i]->GetTeam() >= TEAM_HUMAN && GameServer()->m_apPlayers[i]->GetTeam() <= TEAM_BOT)
 				aNumplayers[GameServer()->m_apPlayers[i]->GetTeam()]++;
 		}
 	}
 
 	int Team = 0;
 	if (IsTeamplay())
-		Team = aNumplayers[TEAM_RED] > aNumplayers[TEAM_BLUE] ? TEAM_BLUE : TEAM_RED;
+		Team = aNumplayers[TEAM_HUMAN] > aNumplayers[TEAM_BOT] ? TEAM_BOT : TEAM_HUMAN;
 
 	if (CanJoinTeam(Team, NotThisID))
 		return Team;
@@ -623,7 +625,7 @@ bool IGameController::CanJoinTeam(int Team, int NotThisID)
 	{
 		if (GameServer()->m_apPlayers[i] && i != NotThisID)
 		{
-			if (GameServer()->m_apPlayers[i]->GetTeam() >= TEAM_RED && GameServer()->m_apPlayers[i]->GetTeam() <= TEAM_BLUE)
+			if (GameServer()->m_apPlayers[i]->GetTeam() >= TEAM_HUMAN && GameServer()->m_apPlayers[i]->GetTeam() <= TEAM_BOT)
 				aNumplayers[GameServer()->m_apPlayers[i]->GetTeam()]++;
 		}
 	}
@@ -685,7 +687,7 @@ bool IGameController::CanChangeTeam(CPlayer *pPlayer, int JoinTeam)
 	if (absolute(aT[0] - aT[1]) >= 2)
 	{
 		// player wants to join team with less players
-		if ((aT[0] < aT[1] && JoinTeam == TEAM_RED) || (aT[0] > aT[1] && JoinTeam == TEAM_BLUE))
+		if ((aT[0] < aT[1] && JoinTeam == TEAM_HUMAN) || (aT[0] > aT[1] && JoinTeam == TEAM_BOT))
 			return true;
 		else
 			return false;
@@ -701,10 +703,10 @@ void IGameController::DoWincheck()
 		if (IsTeamplay())
 		{
 			// check score win condition
-			if ((g_Config.m_SvScorelimit > 0 && (m_aTeamscore[TEAM_RED] >= g_Config.m_SvScorelimit || m_aTeamscore[TEAM_BLUE] >= g_Config.m_SvScorelimit)) ||
+			if ((g_Config.m_SvScorelimit > 0 && (m_aTeamscore[TEAM_HUMAN] >= g_Config.m_SvScorelimit || m_aTeamscore[TEAM_BOT] >= g_Config.m_SvScorelimit)) ||
 				(g_Config.m_SvTimelimit > 0 && (Server()->Tick() - m_RoundStartTick) >= g_Config.m_SvTimelimit * Server()->TickSpeed() * 60))
 			{
-				if (m_aTeamscore[TEAM_RED] != m_aTeamscore[TEAM_BLUE])
+				if (m_aTeamscore[TEAM_HUMAN] != m_aTeamscore[TEAM_BOT])
 					EndRound();
 				else
 					m_SuddenDeath = 1;
@@ -759,6 +761,7 @@ void IGameController::OnPlayerConnect(CPlayer* pPlayer)
 		char aBuf[128];
 		str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d", ClientID, Server()->ClientName(ClientID), pPlayer->GetTeam());
 		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+		GameServer()->Chat(-1, "{} entered and joined the game", Server()->ClientName(ClientID));
 	}
 }
 
@@ -770,11 +773,6 @@ void IGameController::OnPlayerDisconnect(CPlayer* pPlayer)
 		char aBuf[128];
 		str_format(aBuf, sizeof(aBuf), "leave player='%d:%s'", ClientID, Server()->ClientName(ClientID));
 		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "game", aBuf);
+		GameServer()->Chat(-1, "{} has left the game", Server()->ClientName(ClientID));
 	}
-
-	pPlayer->OnDisconnect();
 }
-
-void IGameController::OnPlayerInfoChange(CPlayer* pPlayer, int WorldID) {}
-
-void IGameController::OnReset() {}

@@ -164,7 +164,7 @@ EntityClasses = [
     "LIGHT",
     "PICKUP",
 ]
-Teams = ["ALL", "SPECTATORS", "RED", "BLUE", "WHISPER_SEND", "WHISPER_RECV"]
+Teams = ["ALL", "SPECTATORS", "HUMAN", "BOT", "WHISPER_SEND", "WHISPER_RECV"]
 
 RawHeader = """
 #include <engine/shared/teehistorian_ex.h>
@@ -266,7 +266,7 @@ Objects = [
         [
             NetIntAny("m_X"),
             NetIntAny("m_Y"),
-            NetIntRange("m_Team", "TEAM_RED", "TEAM_BLUE"),
+            NetIntRange("m_Team", "TEAM_HUMAN", "TEAM_BOT"),
         ],
     ),
     NetObject(
@@ -328,7 +328,7 @@ Objects = [
         [
             NetIntRange("m_Local", 0, 1),
             NetIntRange("m_ClientID", 0, "MAX_CLIENTS-1"),
-            NetIntRange("m_Team", "TEAM_SPECTATORS", "TEAM_BLUE"),
+            NetIntRange("m_Team", "TEAM_SPECTATORS", "TEAM_BOT"),
             NetIntAny("m_Score"),
             NetIntAny("m_Latency"),
         ],
@@ -669,7 +669,7 @@ Messages = [
     NetMessage(
         "Cl_SetTeam",
         [
-            NetIntRange("m_Team", "TEAM_SPECTATORS", "TEAM_BLUE"),
+            NetIntRange("m_Team", "TEAM_SPECTATORS", "TEAM_BOT"),
         ],
     ),
     NetMessage(

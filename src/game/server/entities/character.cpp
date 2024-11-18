@@ -76,6 +76,7 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 
 	GameServer()->m_pController->OnCharacterSpawn(this);
 
+	m_SpawnProtect = true;
 	return true;
 }
 
@@ -685,6 +686,13 @@ void CCharacter::Die(int Killer, int Weapon)
 	GameServer()->m_World.m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
 	m_pPlayer->m_WantSpawn = true;
 	GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCID());
+
+	if (m_pPlayer->m_NeedDestroy)
+	{
+		GameServer()->OnZombieKill(m_pPlayer->GetCID());
+		GetPlayer()->m_WantSpawn = false;
+		GetPlayer()->m_CanSnap = false;
+	}
 }
 
 bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)

@@ -35,6 +35,7 @@ public:
 	virtual ~IEngine() = default;
 
 	virtual void Init() = 0;
+	virtual void InitLogfile() = 0;
 	virtual void AddJob(std::shared_ptr<IJob> pJob) = 0;
 	static void RunJobBlocking(IJob *pJob);
 };

@@ -19,7 +19,7 @@ public:
 	void TryRespawn();
 	void Respawn();
 	void SetTeam(int Team, bool DoChatMsg = true);
-	int GetTeam() const { return m_Team; };
+	int GetTeam() const { return m_IsBot; };
 	int GetCID() const { return m_ClientID; };
 	int GetClientVersion() const;
 	int GetPlayerWorldID() const;
@@ -109,6 +109,24 @@ public:
 
 	int m_BotWorldID;
 
+	struct SAccData
+	{
+		int m_UserID;
+		char m_aUsername[64];
+		char m_aPassword[64];
+
+		int m_Holding[NUM_ITYPE];
+		SPlayerItemData m_aItems[NUM_ITEM];
+	};
+
+	SAccData m_AccData;
+
+	bool LoggedIn()
+	{
+		return (m_AccData.m_UserID > 0);
+	}
+
+	bool m_NeedDestroy;
 private:
 	CCharacter *m_pCharacter;
 	CGameContext *m_pGameServer;
@@ -119,7 +137,6 @@ private:
 	//
 	bool m_Spawning;
 	int m_ClientID;
-	int m_Team;
 
 	char m_aLanguage[16];
 
@@ -133,6 +150,8 @@ public:
 	CTuningParams *GetNextTuningParams() { return &m_NextTuningParams; };
 
 	bool m_WantSpawn;
+	bool m_CanSnap;
+	int m_Team;
 };
 
 #endif

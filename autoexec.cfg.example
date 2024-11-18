@@ -1,0 +1,7 @@
+sv_name "My TeeDarkForest Server name"
+sv_motd "My motd"
+
+sv_rcon_password rcon_password
+sv_sql_user username
+sv_sql_pw password
+sv_sql_database database

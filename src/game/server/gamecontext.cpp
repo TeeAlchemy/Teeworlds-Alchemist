@@ -14,8 +14,11 @@
 
 #include <teeother/components/localization.h>
 
+#include "GameCore/Account/account.h"
+#include "Item/item.h"
 #include "chatai.h"
-#include "gamemodes/mod.h"
+#include "gamemodes/main.h"
+#include "gamemodes/teedefense.h"
 #include "bot.h"
 
 #include "gamecontext.h"
@@ -28,6 +31,7 @@ enum
 
 void CGameContext::Construct(int Resetting)
 {
+	m_pItemF = new CItem_F(this);
 	m_Resetting = 0;
 	m_pServer = 0;
 
@@ -47,6 +51,7 @@ void CGameContext::Construct(int Resetting)
 		m_pVoteOptionHeap = new CHeap();
 
 	m_pBotEngine = new CBotEngine(this);
+	m_pDB = new CDB();
 }
 
 CGameContext::CGameContext(int Resetting)
@@ -81,6 +86,8 @@ void CGameContext::Clear()
 	CVoteOptionServer *pVoteOptionLast = m_pVoteOptionLast;
 	int NumVoteOptions = m_NumVoteOptions;
 	CTuningParams Tuning = m_Tuning;
+
+	delete m_pDB;
 
 	m_Resetting = true;
 	this->~CGameContext();
@@ -550,7 +557,6 @@ void CGameContext::OnClientEnter(int ClientID)
 	m_pController->OnPlayerConnect(pPlayer);
 
 	m_apPlayers[ClientID]->Respawn();
-	Chat(-1, "'{}' entered and joined the game", Server()->ClientName(ClientID));
 
 	m_VoteUpdate = true;
 }
@@ -595,12 +601,7 @@ void CGameContext::OnClientDrop(int ClientID, const char *pReason)
 
 	// update clients on drop
 	m_pController->OnPlayerDisconnect(m_apPlayers[ClientID]);
-
-	if((Server()->ClientIngame(ClientID) || Server()->IsClientChangingWorld(ClientID)) && IsPlayerInWorld(ClientID))
-	{
-		Chat(-1, "{} has left the game", Server()->ClientName(ClientID));
-		dbg_msg("game", "leave player='%d:%s'", ClientID, Server()->ClientName(ClientID));
-	}
+	m_apPlayers[ClientID]->OnDisconnect();
 
 	(void)m_pController->CheckTeamBalance();
 	m_VoteUpdate = true;
@@ -708,16 +709,9 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				m_ConsoleOutput_Target = -1;
 
 				Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_ADMIN);
-				CreateExtraEffect(m_apPlayers[ClientID]->GetCharacter()->GetPos(), 0, m_apPlayers[ClientID]->GetPlayerWorldID());
 			}
 			else
-			{
 				SendChat(ClientID, Team, pMsg->m_pMessage);
-				CreateExtraEffect(m_apPlayers[ClientID]->GetCharacter()->GetPos(), 1, m_apPlayers[ClientID]->GetPlayerWorldID());
-				if (g_Config.m_SvChatAI)
-					m_pChatAI->Send(this, Server()->ClientName(ClientID), pMsg->m_pMessage);
-				Server()->RedirectClient(ClientID, 8304);
-			}
 		}
 		else if (MsgID == NETMSGTYPE_CL_CALLVOTE)
 		{
@@ -754,25 +748,13 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 			if (str_comp_nocase(pMsg->m_pType, "option") == 0)
 			{
-				CVoteOptionServer *pOption = m_pVoteOptionFirst;
-				while (pOption)
+				for (int i = 0; i < m_PlayerVotes[ClientID].size(); ++i)
 				{
-					if (str_comp_nocase(pMsg->m_pValue, pOption->m_aDescription) == 0)
+					if (str_comp_nocase(pMsg->m_pValue, m_PlayerVotes[ClientID][i].m_aDescription) == 0)
 					{
-						str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s' (%s)", Server()->ClientName(ClientID),
-								   pOption->m_aDescription, pReason);
-						str_format(aDesc, sizeof(aDesc), "%s", pOption->m_aDescription);
-						str_format(aCmd, sizeof(aCmd), "%s", pOption->m_aCommand);
-						break;
+						str_format(aDesc, sizeof(aDesc), "%s", m_PlayerVotes[ClientID][i].m_aDescription);
+						str_format(aCmd, sizeof(aCmd), "%s", m_PlayerVotes[ClientID][i].m_aCommand);
 					}
-
-					pOption = pOption->m_pNext;
-				}
-
-				if (!pOption)
-				{
-					Chat(ClientID, "'{}' isn't an option on this server", pMsg->m_pValue);
-					return;
 				}
 			}
 			else if (str_comp_nocase(pMsg->m_pType, "kick") == 0)
@@ -1243,19 +1225,19 @@ bool CGameContext::ConShuffleTeams(IConsole::IResult *pResult, void *pUserData)
 		if (pSelf->m_apPlayers[i] && pSelf->m_apPlayers[i]->GetTeam() != TEAM_SPECTATORS)
 		{
 			if (CounterRed == PlayerTeam)
-				pSelf->m_apPlayers[i]->SetTeam(TEAM_BLUE, false);
+				pSelf->m_apPlayers[i]->SetTeam(TEAM_BOT, false);
 			else if (CounterBlue == PlayerTeam)
-				pSelf->m_apPlayers[i]->SetTeam(TEAM_RED, false);
+				pSelf->m_apPlayers[i]->SetTeam(TEAM_HUMAN, false);
 			else
 			{
 				if (rand() % 2)
 				{
-					pSelf->m_apPlayers[i]->SetTeam(TEAM_BLUE, false);
+					pSelf->m_apPlayers[i]->SetTeam(TEAM_BOT, false);
 					++CounterBlue;
 				}
 				else
 				{
-					pSelf->m_apPlayers[i]->SetTeam(TEAM_RED, false);
+					pSelf->m_apPlayers[i]->SetTeam(TEAM_HUMAN, false);
 					++CounterRed;
 				}
 			}
@@ -1421,29 +1403,7 @@ bool CGameContext::ConForceVote(IConsole::IResult *pResult, void *pUserData)
 	const char *pReason = pResult->NumArguments() > 2 && pResult->GetString(2)[0] ? pResult->GetString(2) : "No reason given";
 	char aBuf[128] = {0};
 
-	if (str_comp_nocase(pType, "option") == 0)
-	{
-		CVoteOptionServer *pOption = pSelf->m_pVoteOptionFirst;
-		while (pOption)
-		{
-			if (str_comp_nocase(pValue, pOption->m_aDescription) == 0)
-			{
-				pSelf->Chat(-1, "admin forced server option '{}' ({})", pValue, pReason);
-				pSelf->Console()->ExecuteLine(pOption->m_aCommand, -1);
-				break;
-			}
-
-			pOption = pOption->m_pNext;
-		}
-
-		if (!pOption)
-		{
-			str_format(aBuf, sizeof(aBuf), "'%s' isn't an option on this server", pValue);
-			pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
-			return true;
-		}
-	}
-	else if (str_comp_nocase(pType, "kick") == 0)
+	if (str_comp_nocase(pType, "kick") == 0)
 	{
 		int KickID = str_toint(pValue);
 		if (KickID < 0 || KickID >= MAX_CLIENTS || !pSelf->m_apPlayers[KickID])
@@ -1655,10 +1615,63 @@ bool CGameContext::ConChatAI(IConsole::IResult *pResult, void *pUserData)
 	return true;
 }
 
+bool CGameContext::ConRegister(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+
+	if (pSelf->GetPlayer(pResult->GetClientID())->LoggedIn())
+	{
+		pSelf->Chat(pResult->GetClientID(), "You're already logged in.");
+		return false;
+	}
+
+	if (pResult->NumArguments() != 2)
+	{
+		pSelf->Chat(pResult->GetClientID(), "Usage: /register <username> <password>");
+		return false;
+	}
+
+	char Username[512];
+	char Password[512];
+	str_copy(Username, pResult->GetString(0), sizeof(Username));
+	str_copy(Password, pResult->GetString(1), sizeof(Password));
+
+	pSelf->TW()->Account()->Register(pResult->GetClientID(), Username, Password);
+
+	return true;
+}
+
+bool CGameContext::ConLogin(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	if (pSelf->GetPlayer(pResult->GetClientID())->LoggedIn())
+	{
+		pSelf->Chat(pResult->GetClientID(), "You're already logged in.");
+		return false;
+	}
+
+	if (pResult->NumArguments() != 2)
+	{
+		pSelf->Chat(pResult->GetClientID(), "usage: /login <username> <password>");
+		return false;
+	}
+
+	char Username[512];
+	char Password[512];
+	str_copy(Username, pResult->GetString(0), sizeof(Username));
+	str_copy(Password, pResult->GetString(1), sizeof(Password));
+
+	pSelf->TW()->Account()->Login(pResult->GetClientID(), Username, Password);
+	pSelf->ClearVotes(pResult->GetClientID());
+
+	return true;
+}
+
 void CGameContext::OnConsoleInit()
 {
 	m_pServer = Kernel()->RequestInterface<IServer>();
 	m_pConsole = Kernel()->RequestInterface<IConsole>();
+	m_pStorage = Kernel()->RequestInterface<IStorage>();
 
 	m_ConsoleOutputHandle_ChatPrint = Console()->RegisterPrintCallback(0, ChatConsolePrintCallback, this);
 
@@ -1686,6 +1699,9 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("language", "?s", CFGFLAG_CHAT, ConLanguage, this, "[language code] - Select your language");
 	Console()->Register("askai", "s", CFGFLAG_CHAT, ConChatAI, this, "[ask] - Ask Chat AI");
 
+	Console()->Register("register", "ss", CFGFLAG_CHAT, ConRegister, this, "[username] [password] - Register account");
+	Console()->Register("login", "ss", CFGFLAG_CHAT, ConLogin, this, "[username] [password] - Login your account");
+
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
 
 	m_pChatAI = new CChatAI(Kernel()->RequestInterface<IEngine>());
@@ -1695,6 +1711,7 @@ void CGameContext::OnInit(int WorldID)
 {
 	m_pServer = Kernel()->RequestInterface<IServer>();
 	m_pConsole = Kernel()->RequestInterface<IConsole>();
+	m_pStorage = Kernel()->RequestInterface<IStorage>();
 	m_World.SetGameServer(this);
 	m_Events.SetGameServer(this);
 	m_WorldID = WorldID;
@@ -1707,8 +1724,10 @@ void CGameContext::OnInit(int WorldID)
 	m_pLayers->Init(Kernel(), WorldID);
 	m_Collision.Init(m_pLayers);
 
+	m_pTWorldController = new TWorldController(this);
+
 	// select gametype
-	m_pController = new CGameControllerMOD(this); // force TeeDefense
+	m_pController = new CGameControllerTeeDefense(this); // force TeeDefense
 
 	// create all entities from the game layer
 	// initialize cores
@@ -1728,9 +1747,7 @@ void CGameContext::OnInit(int WorldID)
 	}
 
 	m_pBotEngine->Init(pTiles, pTileMap->m_Width, pTileMap->m_Height);
-
-	for (int i = 0; i < 16; i++)
-		AddBot();
+	m_pController->InitBots();
 }
 
 void CGameContext::OnShutdown()
@@ -1825,7 +1842,7 @@ void CGameContext::OnClientPrepareChangeWorld(int ClientID)
 		m_apPlayers[ClientID] = nullptr;
 	}
 	const int AllocMemoryCell = ClientID + m_WorldID * MAX_CLIENTS;
-	m_apPlayers[ClientID] = new (AllocMemoryCell) CPlayer(this, ClientID, TEAM_RED);
+	m_apPlayers[ClientID] = new (AllocMemoryCell) CPlayer(this, ClientID, TEAM_HUMAN);
 }
 
 // clearing all data at the exit of the client necessarily call once enough
@@ -1887,8 +1904,91 @@ int CGameContext::GetBotWorldID(int ClientID)
 	return MAIN_WORLD_ID;
 }
 
-const char *CGameContext::GameType() { return m_pController && m_pController->m_pGameType ? m_pController->m_pGameType : ""; }
+const char *CGameContext::GameType() { return m_pController && m_pController->GameType() ? m_pController->GameType() : ""; }
 const char *CGameContext::Version() { return GAME_VERSION; }
 const char *CGameContext::NetVersion() { return GAME_NETVERSION; }
 
 IGameServer *CreateGameServer() { return new CGameContext; }
+
+int CGameContext::CountBots()
+{
+	int Count = 0;
+	for(const auto& Player : m_apPlayers)
+	{
+		if(!Player)
+			continue;
+		
+		Count += Player->IsBot();
+	}
+
+	return Count;
+}
+
+
+// MMOTee
+void CGameContext::AddVote(const char *Desc, const char *Cmd, int ClientID)
+{
+	while (*Desc && *Desc == ' ')
+		Desc++;
+
+	if (ClientID == -2)
+		return;
+
+	CVoteOptions Vote;
+	str_copy(Vote.m_aDescription, Desc, sizeof(Vote.m_aDescription));
+	str_copy(Vote.m_aCommand, Cmd, sizeof(Vote.m_aCommand));
+	m_PlayerVotes[ClientID].add(Vote);
+
+	// inform clients about added option
+	CNetMsg_Sv_VoteOptionAdd OptionMsg;
+	OptionMsg.m_pDescription = Vote.m_aDescription;
+	Server()->SendPackMsg(&OptionMsg, MSGFLAG_VITAL, ClientID, -1);
+}
+
+void CGameContext::InitVotes(int ClientID)
+{
+	if (!m_apPlayers[ClientID])
+		return;
+
+	CPlayer::SAccData Data = m_apPlayers[ClientID]->m_AccData;
+	AddVote_VL(ClientID, "skip", "==== ⚠玩家菜单⚠ =");
+	AddVote_VL(ClientID, "skip", "账号ID: {}", Data.m_UserID);
+	AddVote_VL(ClientID, "skip", "派别: #尚未完成#");
+	AddVote_VL(ClientID, "skip", " ");
+	AddVote_VL(ClientID, "skip", " ");
+	AddVote_VL(ClientID, "skip", "-=== - = 物品列表 = - ===-");
+}
+
+void CGameContext::ClearVotes(int ClientID)
+{
+	m_PlayerVotes[ClientID].clear();
+
+	// send vote options
+	CNetMsg_Sv_VoteClearOptions ClearMsg;
+	Server()->SendPackMsg(&ClearMsg, MSGFLAG_VITAL, ClientID, -1);
+
+	InitVotes(ClientID);
+}
+
+void CGameContext::OnZombie(int ClientID, int Zomb)
+{
+	if(ClientID >= MAX_CLIENTS || ClientID < MAX_PLAYERS || !m_apPlayers[ClientID])
+		return;
+	
+	m_apPlayers[ClientID]->m_CanSnap = true;
+	m_apPlayers[ClientID]->m_WantSpawn = true;
+	m_apPlayers[ClientID]->Respawn();
+}
+
+void CGameContext::OnZombieKill(int ClientID)
+{
+	if(!m_apPlayers[ClientID])
+		return;
+
+	// update spectator modes
+	for(int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		if(m_apPlayers[i] && m_apPlayers[i]->m_SpectatorID == ClientID)
+			m_apPlayers[i]->m_SpectatorID = SPEC_FREEVIEW;
+	}
+}

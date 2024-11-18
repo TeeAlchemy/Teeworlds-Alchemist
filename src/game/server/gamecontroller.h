@@ -60,9 +60,9 @@ protected:
 	int m_UnbalancedTick;
 	bool m_ForceBalanced;
 
-public:
 	const char *m_pGameType;
 
+public:
 	bool IsTeamplay() const;
 	bool IsGameOver() const { return m_GameOverTick != -1; }
 
@@ -74,8 +74,8 @@ public:
 	void DoWarmup(int Seconds);
 	void TogglePause();
 
-	void StartRound();
-	void EndRound();
+	virtual void StartRound();
+	virtual void EndRound();
 
 	bool IsFriendlyFire(int ClientID1, int ClientID2);
 
@@ -130,22 +130,29 @@ public:
 	//
 	virtual bool CanSpawn(int Team, vec2 *pPos);
 
+	//
+	virtual void InitBots() {};
+
 	/*
 
 	*/
 	virtual const char *GetTeamName(int Team);
 	virtual int GetAutoTeam(int NotThisID);
 	virtual bool CanJoinTeam(int Team, int NotThisID);
-	bool CheckTeamBalance();
+	virtual bool CheckTeamBalance();
 	bool CanChangeTeam(CPlayer *pPplayer, int JoinTeam);
 	int ClampTeam(int Team);
 
 	virtual void PostReset();
 
-	void OnPlayerConnect(class CPlayer *pPlayer);
-	void OnPlayerDisconnect(class CPlayer *pPlayer);
-	void OnPlayerInfoChange(class CPlayer *pPlayer, int WorldID);
-	void OnReset();
+	virtual void OnPlayerConnect(class CPlayer *pPlayer);
+	virtual void OnPlayerDisconnect(class CPlayer *pPlayer);
+	virtual void OnPlayerInfoChange(class CPlayer *pPlayer, int WorldID) {};
+	virtual void OnReset() {};
+
+	const char *GameType() { return m_pGameType; }
+
+	bool m_IsTeamplay;
 };
 
 #endif

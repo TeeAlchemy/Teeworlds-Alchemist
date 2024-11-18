@@ -89,6 +89,7 @@ public:
 	CNetObj_PlayerInput m_LatestPrevInput;
 	CNetObj_PlayerInput m_LatestInput;
 
+	bool m_SpawnProtect;
 private:
 	// player controlling this character
 	class CPlayer *m_pPlayer;

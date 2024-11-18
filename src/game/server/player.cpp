@@ -32,6 +32,8 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, int Team)
 	m_WantSpawn = true;
 
 	m_IsBot = false;
+	m_NeedDestroy = false;
+	m_CanSnap = true;
 }
 
 CPlayer::~CPlayer()
@@ -160,6 +162,9 @@ void CPlayer::Snap(int SnappingClient)
 	pPlayerInfo->m_ClientID = m_ClientID;
 	pPlayerInfo->m_Score = m_Score;
 	pPlayerInfo->m_Team = m_Team;
+	
+	if (!m_CanSnap)
+		pPlayerInfo->m_Team = 999;
 
 	if (m_ClientID == SnappingClient)
 		pPlayerInfo->m_Local = 1;

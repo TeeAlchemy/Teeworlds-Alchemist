@@ -99,6 +99,13 @@ public:
 		m_pConsole->Register("dbg_lognetwork", "", CFGFLAG_SERVER | CFGFLAG_CLIENT, Con_DbgLognetwork, this, "Log the network");
 	}
 
+	void InitLogfile()
+	{
+		// open logfile if needed
+		if(g_Config.m_Logfile[0])
+			dbg_logger_file(g_Config.m_Logfile);
+	}
+
 	void AddJob(std::shared_ptr<IJob> pJob) override
 	{
 		if (g_Config.m_Debug)

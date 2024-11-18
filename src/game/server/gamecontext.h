@@ -6,6 +6,7 @@
 #include <engine/server.h>
 #include <engine/console.h>
 #include <engine/shared/memheap.h>
+#include <engine/storage.h>
 
 #include <teeother/components/localization.h>
 
@@ -14,12 +15,15 @@
 
 #include <vector>
 
+#include "Item/item.h"
 #include "eventhandler.h"
 #include "gamecontroller.h"
 #include "gameworld.h"
 #include "player.h"
-
 #include "botengine.h"
+
+#include "GameCore/TWorldController.h"
+#include "GameCore/Database/DB.h"
 
 class CChatAI;
 
@@ -47,13 +51,16 @@ class CChatAI;
 class CGameContext : public IGameServer
 {
 	class IConsole *m_pConsole;
-	class CLayers* m_pLayers;
+	class CLayers *m_pLayers;
 	class CBotEngine *m_pBotEngine;
-
+	class TWorldController *m_pTWorldController;
+	
 	IServer *m_pServer;
+	IStorage *m_pStorage;
 	CCollision m_Collision;
 	CNetObjHandler m_NetObjHandler;
 	CTuningParams m_Tuning;
+	CDB *m_pDB;
 
 	static bool ConTuneParam(IConsole::IResult *pResult, void *pUserData);
 	static bool ConTuneReset(IConsole::IResult *pResult, void *pUserData);
@@ -80,6 +87,9 @@ class CGameContext : public IGameServer
 	static bool ConAbout(IConsole::IResult *pResult, void *pUserData);
 	static bool ConChatAI(IConsole::IResult *pResult, void *pUserData);
 
+	static bool ConRegister(IConsole::IResult *pResult, void *pUserData);
+	static bool ConLogin(IConsole::IResult *pResult, void *pUserData);
+
 	CGameContext(int Resetting);
 	void Construct(int Resetting);
 
@@ -95,6 +105,7 @@ class CGameContext : public IGameServer
 
 public:
 	IServer *Server() const { return m_pServer; }
+	IStorage *Storage() const { return m_pStorage; }
 	class IConsole *Console() { return m_pConsole; }
 	CCollision *Collision() { return &m_Collision; }
 	CTuningParams *Tuning() { return &m_Tuning; }
@@ -156,6 +167,32 @@ public:
 	void CreateExtraEffect(vec2 Pos, int Effect, CClientMask Mask = CClientMask().set());
 	void CreateMapSound(vec2 Pos, int MapSoundID, CClientMask Mask = CClientMask().set());
 	void CreateMapSoundGlobal(int MapSoundID, int Target = -1);
+
+	// MMOTee
+	struct CVoteOptions
+	{
+		char m_aDescription[VOTE_DESC_LENGTH] = {0};
+		char m_aCommand[VOTE_CMD_LENGTH] = {0};
+	};
+	array<CVoteOptions> m_PlayerVotes[MAX_CLIENTS];
+
+	int m_SelectPageItem;
+
+	template <typename... Ts>
+	void AddVote_VL(int ClientID, const char *pCmd, const char *pText, Ts &&...args)
+	{
+		const int Start = (ClientID < 0 ? 0 : ClientID);
+		const int End = (ClientID < 0 ? MAX_CLIENTS : ClientID + 1);
+
+		for (int i = Start; i < End; i++)
+		{
+			std::string endText = Server()->Localization()->Format(GetClientLanguage(i), pText, std::forward<Ts>(args)...);
+			AddVote(endText.c_str(), pCmd, i);
+		}
+	}
+	void AddVote(const char *pDesc, const char *pCmd, int ClientID = -1);
+	void InitVotes(int ClientID);
+	void ClearVotes(int ClientID);
 
 	enum
 	{
@@ -222,6 +259,27 @@ public:
 	bool ArePlayersNearby(vec2 Pos, float Distance) const;
 
 	int GetBotWorldID(int ClientID) override;
+	int CountBots();
+
+	/* SQL */
+	CDB *DB() { return m_pDB; }
+	TWorldController *TW() const { return m_pTWorldController; };
+
+	enum
+	{
+		TABLE_ACCOUNT = 0,
+		TABLE_ITEM,
+	};
+
+public:
+	CItem_F *m_pItemF;
+	CItem_F *ItemF() { return m_pItemF; }
+	CItem *Items(int i) { return ItemF()->Items(i); };
+
+
+	//Zomb2
+	void OnZombie(int ClientID, int Zomb);
+	void OnZombieKill(int ClientID);
 
 public:
 	template <class Tm, typename... Ts>
@@ -240,7 +298,7 @@ public:
 			}
 		}
 	}
-	
+
 	template <typename... Ts>
 	void Chat(int ClientID, const char *pText, Ts &&...args)
 	{

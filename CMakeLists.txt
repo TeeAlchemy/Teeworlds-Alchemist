@@ -72,7 +72,6 @@ if(TARGET_OS STREQUAL "windows")
   set(AUTO_DEPENDENCIES_DEFAULT ON)
 endif()
 
-option(MYSQL "Enable mysql support" OFF) # TODO
 option(PREFER_BUNDLED_LIBS "Prefer bundled libraries over system libraries" ${AUTO_DEPENDENCIES_DEFAULT})
 option(DEV "Don't generate stuff necessary for packaging" OFF)
 
@@ -229,12 +228,7 @@ find_package(ZLIB)
 find_package(Git)
 find_package(Python3)
 find_package(Curl)
-
-if(MYSQL)
-  find_package(MySQL)
-else()
-  set(MYSQL_LIBRARIES)
-endif()
+find_package(MySQL)
 
 if(TARGET_OS AND TARGET_OS STREQUAL "mac")
   find_program(DMG dmg)
@@ -279,14 +273,12 @@ endif()
 
 show_dependency_status("Python3" PYTHON3)
 show_dependency_status("Zlib" ZLIB)
-if(MYSQL)
-  show_dependency_status("MySQL" MYSQL)
-endif()
+show_dependency_status("MySQL" MYSQL)
 
 if(NOT(PYTHON3_FOUND))
   message(SEND_ERROR "You must install Python3 to compile ${PROJECT_NAME}")
 endif()
-if(NOT(MYSQL_FOUND) AND MYSQL)
+if(NOT(MYSQL_FOUND))
   message(SEND_ERROR "You must install MySQL to compile the ${PROJECT_NAME}")
 endif()
 
@@ -512,7 +504,6 @@ list(APPEND TARGETS_OWN engine-shared game-shared)
 
 # Sources
 set_glob(ENGINE_SERVER GLOB src/engine/server
-  database/connection_pool.h
   multi_worlds.cpp
   multi_worlds.h
   register.cpp
@@ -542,8 +533,19 @@ set_glob(GAME_SERVER GLOB_RECURSE src/game/server
   entities/pickup.h
   entities/projectile.cpp
   entities/projectile.h
-  gamemodes/mod.cpp
-  gamemodes/mod.h
+  GameCore/Account/account.cpp
+  GameCore/Account/account.h
+  GameCore/Database/DB.cpp
+  GameCore/Database/DB.h
+  GameCore/TWorldComponent.h
+  GameCore/TWorldController.cpp
+  GameCore/TWorldController.h
+  gamemodes/main.cpp
+  gamemodes/main.h
+  gamemodes/teedefense.cpp
+  gamemodes/teedefense.h
+  Item/item.cpp
+  Item/item.h
   alloc.h
   bot.cpp
   bot.h
@@ -923,10 +925,8 @@ foreach(target ${TARGETS_OWN})
   target_include_directories(${target} PRIVATE ${ZLIB_INCLUDE_DIRS})
   target_include_directories(${target} PRIVATE ${CURL_INCLUDE_DIRS})
 
-  if(MYSQL)
-    target_compile_definitions(${target} PRIVATE CONF_SQL)
-    target_include_directories(${target} SYSTEM PRIVATE ${MYSQL_INCLUDE_DIRS})
-  endif()
+  target_compile_definitions(${target} PRIVATE CONF_SQL)
+  target_include_directories(${target} SYSTEM PRIVATE ${MYSQL_INCLUDE_DIRS})
 
   set_target_properties(${target} PROPERTIES CXX_STANDARD_REQUIRED ON)
   target_compile_features(${target} PUBLIC cxx_std_14)

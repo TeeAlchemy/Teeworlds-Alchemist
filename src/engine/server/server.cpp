@@ -2601,6 +2601,8 @@ int main(int argc, const char **argv) // ignore_convention
 	// restore empty config strings to their defaults
 	pConfig->RestoreStrings();
 
+	pEngine->InitLogfile();
+
 	// run the server
 	dbg_msg("server", "starting...");
 	pServer->Run();

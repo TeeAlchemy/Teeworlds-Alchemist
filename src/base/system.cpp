@@ -70,12 +70,15 @@ extern "C"
 
 	static DBG_LOGGER loggers[16];
 	static int num_loggers = 0;
+	static int id_logger_file = 0;
 
 	static NETSTATS network_stats = {0};
 	static MEMSTATS memory_stats = {0};
 
-	void dbg_logger(DBG_LOGGER logger)
+	void dbg_logger(DBG_LOGGER logger, bool file)
 	{
+		if (file)
+			id_logger_file = num_loggers;
 		loggers[num_loggers++] = logger;
 	}
 
@@ -131,7 +134,27 @@ extern "C"
 		va_end(args);
 
 		for (i = 0; i < num_loggers; i++)
-			loggers[i](str);
+			if(!id_logger_file)
+				loggers[i](str);
+			else if (id_logger_file != i)
+				loggers[i](str);
+
+		if (id_logger_file)
+		{
+			str_format(str, sizeof(str), "%d-%d-%d %d:%d:%d | [%s]: ", 1900 + pTime->tm_year, pTime->tm_mon, pTime->tm_mday, pTime->tm_hour, pTime->tm_min, pTime->tm_sec, sys);
+			len = strlen(str);
+			msg = (char *)str + len;
+
+			va_start(args, fmt);
+#if defined(CONF_FAMILY_WINDOWS)
+		_vsnprintf(msg, sizeof(str) - len, fmt, args);
+#else
+	vsnprintf(msg, sizeof(str) - len, fmt, args);
+#endif
+			va_end(args);
+
+			loggers[id_logger_file](str);
+		}
 	}
 
 	static IOHANDLE logfile = 0;
@@ -148,7 +171,7 @@ extern "C"
 	{
 		logfile = io_open(filename, IOFLAG_WRITE);
 		if (logfile)
-			dbg_logger(logger_file);
+			dbg_logger(logger_file, true);
 		else
 			dbg_msg("dbg/logger", "failed to open '%s' for logging", filename);
 	}

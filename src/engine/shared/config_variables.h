@@ -147,4 +147,17 @@ MACRO_CONFIG_INT(SvBotAllowFire, sv_bot_allow_fire, 1, 0, 1, CFGFLAG_SERVER, "Bo
 // Heavy reset
 MACRO_CONFIG_INT(SvHardresetAfterDays, sv_hard_reset_after_days, 7, 1, 14, CFGFLAG_SAVE | CFGFLAG_SERVER, "Reset the server when it has been idle for a specified number of days without players")
 
+/* SQL */
+MACRO_CONFIG_STR(SvSqlUser, sv_sql_user, 256, "nameless", CFGFLAG_SERVER, "SQL User")
+MACRO_CONFIG_STR(SvSqlPw, sv_sql_pw, 256, "tee", CFGFLAG_SERVER, "SQL Password")
+MACRO_CONFIG_STR(SvSqlIp, sv_sql_ip, 256, "127.0.0.1", CFGFLAG_SERVER, "SQL Database IP")
+MACRO_CONFIG_INT(SvSqlPort, sv_sql_port, 0, 65535, 3306, CFGFLAG_SERVER, "SQL Database port")
+MACRO_CONFIG_STR(SvSqlDatabase, sv_sql_database, 256, "tdf", CFGFLAG_SERVER, "SQL Database name")
+MACRO_CONFIG_STR(SvSqlPrefix, sv_sql_prefix, 16, "tw", CFGFLAG_SERVER, "SQL Database table prefix")
+
+//Zomb2
+MACRO_CONFIG_INT(SvZombWarmup, sv_zomb_warmup, 10, 0, 30, CFGFLAG_SERVER, "Number of seconds to do warmup before wave starts")
+MACRO_CONFIG_INT(SvLives, sv_lives, 10, 0, 0, CFGFLAG_SERVER, "Number of the human deaths until the round ends")
+MACRO_CONFIG_INT(SvAllowSpecVote, sv_spec_vote, 0, 1, 1, CFGFLAG_SERVER, "Allow spec voting or not")
+MACRO_CONFIG_INT(SvMaxZombieSpawn, sv_max_zombie_spawn, 1, 100, 20, CFGFLAG_SERVER, "Number of the max spawn tries of all zombies per tick")
 #endif
