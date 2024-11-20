@@ -1,6 +1,7 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <game/generated/protocol.h>
+#include <game/server/bot.h>
 #include <game/server/gamecontext.h>
 #include <engine/shared/protocol.h>
 #include <engine/shared/config.h>
@@ -22,14 +23,14 @@ void CGameControllerTeeDefense::InitBots()
 
 	for (auto &pPlayer : GameServer()->m_apPlayers)
 	{
-		if (!pPlayer)
+		if (!pPlayer || !pPlayer->m_pBot)
 			continue;
 
-		if(pPlayer->IsBot())
-		{
-			pPlayer->m_WantSpawn = false;
-			pPlayer->m_CanSnap = false;
-		}
+		GameServer()->AsleepBot(pPlayer->GetCID());
+		for (int i = 0; i < ETarget::NUM_TARGETS; i++)
+			pPlayer->m_pBot->m_aTargetAllow[i] = false;
+
+		pPlayer->m_pBot->m_aTargetAllow[ETarget::TARGET_PLAYER] = true;
 	}
 }
 
@@ -39,7 +40,7 @@ void CGameControllerTeeDefense::StartRound()
 	m_GameOverTick = -1;
 	// Zomb2
 	for (int i = MAX_PLAYERS; i < MAX_CLIENTS; i++) // bugfix
-		GameServer()->OnZombieKill(i);
+		OnZombieKill(i);
 	m_Wave++;
 	StartWave(m_Wave);
 }
@@ -63,7 +64,7 @@ int CGameControllerTeeDefense::OnCharacterDeath(class CCharacter *pVictim, class
 		if (pKiller && pKiller->GetTeam() == TEAM_HUMAN)
 			m_aTeamscore[TEAM_BOT]++;
 		DoZombMessage(m_ZombLeft--);
-		pVictim->GetPlayer()->m_NeedDestroy = true;
+		GameServer()->AsleepBot(pVictim->GetPlayer()->GetCID());
 	}
 	else if (pKiller->GetTeam() == TEAM_HUMAN && pVictim->GetPlayer() && pVictim->GetPlayer()->GetTeam() == TEAM_BOT)
 		DoLifeMessage(m_aTeamscore[TEAM_HUMAN]--);
@@ -89,23 +90,23 @@ int CGameControllerTeeDefense::OnCharacterDeath(class CCharacter *pVictim, class
 void CGameControllerTeeDefense::Tick()
 {
 	int Players = 0;
-	for(int i = 0;i < MAX_PLAYERS; i++)
+	for (int i = 0; i < MAX_PLAYERS; i++)
 	{
-		if(GameServer()->m_apPlayers[Players])
+		if (GameServer()->m_apPlayers[Players])
 		{
-			if(GameServer()->m_apPlayers[Players]->GetTeam() == TEAM_HUMAN)
+			if (GameServer()->m_apPlayers[Players]->GetTeam() == TEAM_HUMAN)
 				Players++;
 		}
 	}
 
-	if(Players >= 1 && !m_Wave)
+	if (Players >= 1 && !m_Wave)
 		StartRound();
 
 	// do warmup
-	if(!GameServer()->m_World.m_Paused && m_Warmup)
+	if (!GameServer()->m_World.m_Paused && m_Warmup)
 	{
 		m_Warmup--;
-		if(!m_Warmup)
+		if (!m_Warmup)
 		{
 			StartRound();
 			GameServer()->m_World.m_Paused = false;
@@ -123,7 +124,7 @@ void CGameControllerTeeDefense::Tick()
 
 			// Zomb2: Do this ONLY when the Game ended, that must be BEFORE the round restarts
 			for (int i = MAX_PLAYERS; i < MAX_CLIENTS; i++)
-				GameServer()->OnZombieKill(i);
+				OnZombieKill(i);
 			DoWarmup(g_Config.m_SvWarmup);
 			m_GameOverTick = -1;
 			m_RoundStartTick = Server()->Tick();
@@ -207,7 +208,10 @@ void CGameControllerTeeDefense::CheckZombie()
 			int Random = RandZomb();
 			if (Random == -1)
 				break;
-			GameServer()->OnZombie(i, Random + 1);
+
+			if (GameServer()->AwakenBot(i))
+				GameServer()->m_apPlayers[i]->m_Zomb = Random + 1;
+
 			m_Zombie[Random]--;
 		}
 	}
@@ -243,7 +247,7 @@ bool CGameControllerTeeDefense::EndWave()
 	if (!PlayerCount) // No Players - reset round
 	{
 		for (int i = MAX_PLAYERS; i < MAX_CLIENTS; i++)
-			GameServer()->OnZombieKill(i);
+			OnZombieKill(i);
 		// HandleTop();
 		m_Wave = 0;
 		return true;
@@ -258,7 +262,7 @@ bool CGameControllerTeeDefense::EndWave()
 		if (GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->m_CanSnap)
 			return false;
 	}
-	DoWarmup(g_Config.m_SvZombWarmup+5*m_Wave);
+	DoWarmup(g_Config.m_SvZombWarmup + 5 * m_Wave);
 	return true;
 }
 
@@ -346,4 +350,18 @@ int CGameControllerTeeDefense::GetZombieReihenfolge(int wavedrittel) // Was heiï
 		return 1;
 	else // shouldnt be needed
 		return 0;
+}
+
+void CGameControllerTeeDefense::OnZombieKill(int ClientID)
+{
+	CPlayer *pPlayer = GameServer()->m_apPlayers[ClientID];
+	if (!pPlayer)
+		return;
+
+	// update spectator modes
+	for (int i = 0; i < MAX_CLIENTS; ++i)
+	{
+		if (pPlayer && pPlayer->m_SpectatorID == ClientID)
+			pPlayer->m_SpectatorID = SPEC_FREEVIEW;
+	}
 }

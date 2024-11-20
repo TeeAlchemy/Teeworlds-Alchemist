@@ -37,5 +37,7 @@ public:
 	void DoLifeMessage(int Life);
 	void SetWaveAlg(int modulus, int wavedrittel);
 	int GetZombieReihenfolge(int wavedrittel);
+
+	void OnZombieKill(int ClientID);
 };
 #endif

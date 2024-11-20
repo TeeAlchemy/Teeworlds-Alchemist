@@ -32,7 +32,6 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, int Team)
 	m_WantSpawn = true;
 
 	m_IsBot = false;
-	m_NeedDestroy = false;
 	m_CanSnap = true;
 }
 

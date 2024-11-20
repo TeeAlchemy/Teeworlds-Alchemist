@@ -1970,25 +1970,23 @@ void CGameContext::ClearVotes(int ClientID)
 	InitVotes(ClientID);
 }
 
-void CGameContext::OnZombie(int ClientID, int Zomb)
+bool CGameContext::AwakenBot(int ClientID)
 {
 	if(ClientID >= MAX_CLIENTS || ClientID < MAX_PLAYERS || !m_apPlayers[ClientID])
-		return;
-	
+		return false;
+
 	m_apPlayers[ClientID]->m_CanSnap = true;
 	m_apPlayers[ClientID]->m_WantSpawn = true;
 	m_apPlayers[ClientID]->Respawn();
+	return true;
 }
 
-void CGameContext::OnZombieKill(int ClientID)
+bool CGameContext::AsleepBot(int ClientID)
 {
-	if(!m_apPlayers[ClientID])
-		return;
+	if(ClientID >= MAX_CLIENTS || ClientID < MAX_PLAYERS || !m_apPlayers[ClientID])
+		return false;
 
-	// update spectator modes
-	for(int i = 0; i < MAX_CLIENTS; ++i)
-	{
-		if(m_apPlayers[i] && m_apPlayers[i]->m_SpectatorID == ClientID)
-			m_apPlayers[i]->m_SpectatorID = SPEC_FREEVIEW;
-	}
+	m_apPlayers[ClientID]->m_CanSnap = false;
+	m_apPlayers[ClientID]->m_WantSpawn = false;
+	return true;
 }

@@ -126,7 +126,7 @@ public:
 		return (m_AccData.m_UserID > 0);
 	}
 
-	bool m_NeedDestroy;
+	int m_Zomb;
 private:
 	CCharacter *m_pCharacter;
 	CGameContext *m_pGameServer;

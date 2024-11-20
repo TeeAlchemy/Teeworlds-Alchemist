@@ -9,28 +9,42 @@
 #include "ai/genetics.h"
 #include "ai/strategy.h"
 
-const int g_aBotPriority[MAX_CLIENTS][8] = {
-	{0,0,0,0,0,0,0,1},
-	{0,0,0,0,0,0,0,1},
-	{0,0,0,0,0,0,0,1},
-	{0,0,0,0,0,0,0,1},
-	{0,8,7,7,6,0,0,1},
-	{0,8,7,7,6,0,0,1},
-	{6,2,7,7,0,8,0,1},
-	{6,2,7,7,0,8,0,1},
-	{6,2,7,7,8,0,0,1},
-	{6,2,7,7,8,0,0,1},
-	{6,2,7,7,0,0,8,1},
-	{6,2,7,7,0,0,8,1},
-	{3,5,6,6,4,4,4,0},
-	{3,5,6,6,4,4,4,0},
-	{8,1,5,5,4,4,4,0},
-	{8,1,5,5,4,4,4,0}
+const int g_aBotPriority[16][8] = {
+	{0, 0, 0, 0, 0, 0, 0, 1},
+	{0, 0, 0, 0, 0, 0, 0, 1},
+	{0, 0, 0, 0, 0, 0, 0, 1},
+	{0, 0, 0, 0, 0, 0, 0, 1},
+	{0, 8, 7, 7, 6, 0, 0, 1},
+	{0, 8, 7, 7, 6, 0, 0, 1},
+	{6, 2, 7, 7, 0, 8, 0, 1},
+	{6, 2, 7, 7, 0, 8, 0, 1},
+	{6, 2, 7, 7, 8, 0, 0, 1},
+	{6, 2, 7, 7, 8, 0, 0, 1},
+	{6, 2, 7, 7, 0, 0, 8, 1},
+	{6, 2, 7, 7, 0, 0, 8, 1},
+	{3, 5, 6, 6, 4, 4, 4, 0},
+	{3, 5, 6, 6, 4, 4, 4, 0},
+	{8, 1, 5, 5, 4, 4, 4, 0},
+	{8, 1, 5, 5, 4, 4, 4, 0}};
+
+enum ETarget
+{
+	TARGET_EMPTY = -1,
+	TARGET_PLAYER = 0,
+	TARGET_FLAG,
+	TARGET_ARMOR,
+	TARGET_HEALTH,
+	TARGET_WEAPON_SHOTGUN,
+	TARGET_WEAPON_GRENADE,
+	// TARGET_POWERUP_NINJA,
+	TARGET_WEAPON_LASER,
+	TARGET_AIR,
+	NUM_TARGETS
 };
 
-#define	BOT_HOOK_DIRS	32
+#define BOT_HOOK_DIRS 32
 
-#define BOT_CHECK_TIME (20*60*1000000)
+#define BOT_CHECK_TIME (20 * 60 * 1000000)
 
 class CBot
 {
@@ -39,7 +53,6 @@ class CBot
 	class CGameContext *m_pGameServer;
 
 protected:
-
 	class CBotEngine *BotEngine() { return m_pBotEngine; }
 	class CGameContext *GameServer() { return BotEngine()->GameServer(); }
 
@@ -48,34 +61,23 @@ protected:
 
 	CBotEngine::CPath *m_pPath;
 
-	enum {
-		BFLAG_LOST	= 0,
-		BFLAG_LEFT	= 1,
-		BFLAG_RIGHT	= 2,
-		BFLAG_JUMP	= 4,
-		BFLAG_HOOK	= 8,
-		BFLAG_FIRE	= 16
+	enum
+	{
+		BFLAG_LOST = 0,
+		BFLAG_LEFT = 1,
+		BFLAG_RIGHT = 2,
+		BFLAG_JUMP = 4,
+		BFLAG_HOOK = 8,
+		BFLAG_FIRE = 16
 	};
 
 	int m_Flags;
 
 	vec2 m_Target;
 	vec2 m_RealTarget;
-	struct CTarget {
+	struct CTarget
+	{
 		vec2 m_Pos;
-		enum {
-			TARGET_EMPTY=-1,
-			TARGET_PLAYER=0,
-			TARGET_FLAG,
-			TARGET_ARMOR,
-			TARGET_HEALTH,
-			TARGET_WEAPON_SHOTGUN,
-			TARGET_WEAPON_GRENADE,
-			//TARGET_POWERUP_NINJA,
-			TARGET_WEAPON_LASER,
-			TARGET_AIR,
-			NUM_TARGETS
-		};
 		int m_Type;
 		int m_PlayerCID;
 		bool m_NeedUpdate;
@@ -83,9 +85,9 @@ protected:
 	} m_ComputeTarget;
 
 	class CGenetics m_Genetics;
-	int m_aTargetOrder[CTarget::NUM_TARGETS];
+	int m_aTargetOrder[ETarget::NUM_TARGETS];
 
-	CStrategyPosition* m_pStrategyPosition;
+	CStrategyPosition *m_pStrategyPosition;
 
 	void UpdateTargetOrder();
 
@@ -112,7 +114,7 @@ protected:
 	void UpdateEdge();
 	void MakeChoice(bool UseTarget);
 
-	int GetTile(int x, int y) { return BotEngine()->GetTile(x/32,y/32);}
+	int GetTile(int x, int y) { return BotEngine()->GetTile(x / 32, y / 32); }
 
 	vec2 ClosestCharacter();
 
@@ -120,15 +122,21 @@ public:
 	CBot(class CBotEngine *m_pBotEngine, CPlayer *pPlayer);
 	virtual ~CBot();
 
-
 	int m_GenomeTick;
 
 	void Tick();
 
 	virtual void OnReset();
 
-	CNetObj_PlayerInput GetInputData() { Tick(); return m_InputData; };
+	CNetObj_PlayerInput GetInputData()
+	{
+		Tick();
+		return m_InputData;
+	};
 	CNetObj_PlayerInput GetLastInputData() { return m_LastData; }
+
+	int m_ForceTarget;
+	bool m_aTargetAllow[ETarget::NUM_TARGETS];
 };
 
 #endif

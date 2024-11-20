@@ -276,10 +276,8 @@ public:
 	CItem_F *ItemF() { return m_pItemF; }
 	CItem *Items(int i) { return ItemF()->Items(i); };
 
-
-	//Zomb2
-	void OnZombie(int ClientID, int Zomb);
-	void OnZombieKill(int ClientID);
+	bool AwakenBot(int ClientID);
+	bool AsleepBot(int ClientID);
 
 public:
 	template <class Tm, typename... Ts>

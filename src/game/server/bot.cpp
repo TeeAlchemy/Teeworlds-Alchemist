@@ -14,7 +14,7 @@
 
 #include "ai/defence.h"
 
-CBot::CBot(CBotEngine *pBotEngine, CPlayer *pPlayer) : m_Genetics(CTarget::NUM_TARGETS,10)
+CBot::CBot(CBotEngine *pBotEngine, CPlayer *pPlayer) : m_Genetics(ETarget::NUM_TARGETS,10)
 {
 	m_pBotEngine = pBotEngine;
 	m_pPlayer = pPlayer;
@@ -23,7 +23,7 @@ CBot::CBot(CBotEngine *pBotEngine, CPlayer *pPlayer) : m_Genetics(CTarget::NUM_T
 	mem_zero(&m_InputData, sizeof(m_InputData));
 	m_LastData = m_InputData;
 
-	m_ComputeTarget.m_Type = CTarget::TARGET_EMPTY;
+	m_ComputeTarget.m_Type = ETarget::TARGET_EMPTY;
 
 	m_pPath = &(pBotEngine->m_aPaths[pPlayer->GetCID()]);
 	UpdateTargetOrder();
@@ -31,6 +31,10 @@ CBot::CBot(CBotEngine *pBotEngine, CPlayer *pPlayer) : m_Genetics(CTarget::NUM_T
 	BotEngine()->RegisterBot(m_pPlayer->GetCID(), this);
 
 	m_pStrategyPosition = NULL;
+
+	m_ForceTarget = ETarget::TARGET_EMPTY; // nothing
+	for (int i = 0; i < ETarget::NUM_TARGETS; i++)
+		m_aTargetAllow[i] = true;
 }
 
 CBot::~CBot()
@@ -44,7 +48,7 @@ void CBot::OnReset()
 {
 	m_Flags = 0;
 	m_pPath->m_Size = 0;
-	m_ComputeTarget.m_Type = CTarget::TARGET_HEALTH;
+	m_ComputeTarget.m_Type = ETarget::TARGET_HEALTH;
 	//m_Genetics.SetFitness(m_GenomeTick);
 	//m_Genetics.NextGenome();
 	//m_GenomeTick = 0;
@@ -55,8 +59,8 @@ void CBot::OnReset()
 void CBot::UpdateTargetOrder()
 {
 	//int *pGenome = m_Genetics.GetGenome();
-	const int *pGenome = &g_aBotPriority[m_pPlayer->GetCID()][0];
-	for(int i = 0 ; i < CTarget::NUM_TARGETS ; i++)
+	const int *pGenome = &g_aBotPriority[m_pPlayer->GetCID()%16][0];
+	for(int i = 0 ; i < ETarget::NUM_TARGETS ; i++)
 	{
 		int j = i;
 		while(j > 0 && pGenome[i] > pGenome[m_aTargetOrder[j-1]])
@@ -84,20 +88,20 @@ vec2 CBot::ClosestCharacter()
 void CBot::UpdateTarget()
 {
 	//m_GenomeTick++;
-	bool FindNewTarget = m_ComputeTarget.m_Type == CTarget::TARGET_EMPTY;// || !m_pPath->m_Size;
-	if(m_ComputeTarget.m_Type == CTarget::TARGET_PLAYER && !(GameServer()->m_apPlayers[m_ComputeTarget.m_PlayerCID] && GameServer()->m_apPlayers[m_ComputeTarget.m_PlayerCID]->GetCharacter()))
+	bool FindNewTarget = m_ComputeTarget.m_Type == ETarget::TARGET_EMPTY;// || !m_pPath->m_Size;
+	if(m_ComputeTarget.m_Type == ETarget::TARGET_PLAYER && !(GameServer()->m_apPlayers[m_ComputeTarget.m_PlayerCID] && GameServer()->m_apPlayers[m_ComputeTarget.m_PlayerCID]->GetCharacter()))
 		FindNewTarget = true;
 	// Timeout: 30s
 	if(m_ComputeTarget.m_StartTick + 30 * GameServer()->Server()->TickSpeed() < GameServer()->Server()->Tick())
 		FindNewTarget = true;
 
-	if(m_ComputeTarget.m_Type == CTarget::TARGET_AIR)
+	if(m_ComputeTarget.m_Type == ETarget::TARGET_AIR)
 	{
 		float dist = distance(m_pPlayer->GetCharacter()->GetPos(), m_ComputeTarget.m_Pos);
 		if(dist < 60)
 			FindNewTarget = true;
 	}
-	if(m_ComputeTarget.m_Type > CTarget::TARGET_PLAYER)
+	if(m_ComputeTarget.m_Type > ETarget::TARGET_PLAYER)
 	{
 		float dist = distance(m_pPlayer->GetCharacter()->GetPos(), m_ComputeTarget.m_Pos);
 		if(dist < 28)
@@ -107,13 +111,18 @@ void CBot::UpdateTarget()
 	{
 		m_ComputeTarget.m_StartTick = GameServer()->Server()->Tick();
 		m_ComputeTarget.m_NeedUpdate = true;
-		m_ComputeTarget.m_Type = CTarget::TARGET_EMPTY;
+		m_ComputeTarget.m_Type = ETarget::TARGET_EMPTY;
 		vec2 NewTarget;
-		for(int i = 0 ; i < CTarget::NUM_TARGETS ; i++)
+		for(int i = 0 ; i < ETarget::NUM_TARGETS ; i++)
 		{
-			switch(m_aTargetOrder[i])
+			int Target = (m_ForceTarget == ETarget::TARGET_EMPTY) ? m_aTargetOrder[i] : m_ForceTarget;
+
+			if(!m_aTargetAllow[Target])
+				continue;
+
+			switch(Target)
 			{
-			/*case CTarget::TARGET_FLAG:
+			/*case ETarget::TARGET_FLAG:
 				if(GameServer()->m_pController->IsFlagGame()) {
 					int Team = m_pPlayer->GetTeam();
 					CGameControllerCTF *pController = (CGameControllerCTF*)GameServer()->m_pController;
@@ -124,14 +133,14 @@ void CBot::UpdateTarget()
 						if(!apFlags[Team]->IsAtStand() && !apFlags[Team]->GetCarrier())
 						{
 							m_ComputeTarget.m_Pos = apFlags[Team]->GetPos();
-							m_ComputeTarget.m_Type = CTarget::TARGET_FLAG;
+							m_ComputeTarget.m_Type = ETarget::TARGET_FLAG;
 							return;
 						}
 						// Target flag carrier
 						if(!apFlags[Team]->IsAtStand() && apFlags[Team]->GetCarrier())
 						{
 							m_ComputeTarget.m_Pos = apFlags[Team]->GetPos();
-							m_ComputeTarget.m_Type = CTarget::TARGET_PLAYER;
+							m_ComputeTarget.m_Type = ETarget::TARGET_PLAYER;
 							m_ComputeTarget.m_PlayerCID = apFlags[Team]->GetCarrier()->GetPlayer()->GetCID();
 							return;
 						}
@@ -142,34 +151,34 @@ void CBot::UpdateTarget()
 						if(apFlags[Team^1]->IsAtStand())
 						{
 							m_ComputeTarget.m_Pos = BotEngine()->GetFlagStandPos(Team^1);
-							m_ComputeTarget.m_Type = CTarget::TARGET_FLAG;
+							m_ComputeTarget.m_Type = ETarget::TARGET_FLAG;
 							return;
 						}
 						// Go to base carrying flag
 						if(apFlags[Team^1]->GetCarrier() == m_pPlayer->GetCharacter() && (!apFlags[Team] || apFlags[Team]->IsAtStand()))
 						{
 							m_ComputeTarget.m_Pos = BotEngine()->GetFlagStandPos(Team);
-							m_ComputeTarget.m_Type = CTarget::TARGET_FLAG;
+							m_ComputeTarget.m_Type = ETarget::TARGET_FLAG;
 							return;
 						}
 					}
 				}
 				break;*/
-			case CTarget::TARGET_ARMOR:
-			case CTarget::TARGET_HEALTH:
-			case CTarget::TARGET_WEAPON_SHOTGUN:
-			case CTarget::TARGET_WEAPON_GRENADE:
-			case CTarget::TARGET_WEAPON_LASER:
+			case ETarget::TARGET_ARMOR:
+			case ETarget::TARGET_HEALTH:
+			case ETarget::TARGET_WEAPON_SHOTGUN:
+			case ETarget::TARGET_WEAPON_GRENADE:
+			case ETarget::TARGET_WEAPON_LASER:
 				{
 					float Radius = distance(m_pPlayer->GetCharacter()->GetPos(), ClosestCharacter());
-					if(NeedPickup(m_aTargetOrder[i]) && FindPickup(m_aTargetOrder[i], &m_ComputeTarget.m_Pos, Radius))
+					if(NeedPickup(Target) && FindPickup(Target, &m_ComputeTarget.m_Pos, Radius))
 					{
-						m_ComputeTarget.m_Type = m_aTargetOrder[i];
+						m_ComputeTarget.m_Type = Target;
 						return;
 					}
 				}
 				break;
-			case CTarget::TARGET_PLAYER:
+			case ETarget::TARGET_PLAYER:
 				{
 					int Team = m_pPlayer->GetTeam();
 					int Count = 0;
@@ -185,13 +194,13 @@ void CBot::UpdateTarget()
 								Count--;
 						c--;
 						m_ComputeTarget.m_Pos = GameServer()->m_apPlayers[c]->GetCharacter()->GetPos();
-						m_ComputeTarget.m_Type = CTarget::TARGET_PLAYER;
+						m_ComputeTarget.m_Type = ETarget::TARGET_PLAYER;
 						m_ComputeTarget.m_PlayerCID = c;
 						return;
 					}
 				}
 				break;
-			case CTarget::TARGET_AIR:
+			case ETarget::TARGET_AIR:
 				{
 					// Random destination
 					int Count = 0;
@@ -206,7 +215,7 @@ void CBot::UpdateTarget()
 							if(m_pStrategyPosition->IsInsideZone(BotEngine()->GetGraph()->m_pVertices[v].m_Pos))
 								Count--;
 						m_ComputeTarget.m_Pos = BotEngine()->GetGraph()->m_pVertices[--v].m_Pos;
-						m_ComputeTarget.m_Type = CTarget::TARGET_AIR;
+						m_ComputeTarget.m_Type = ETarget::TARGET_AIR;
 						return;
 					}
 				}
@@ -214,7 +223,7 @@ void CBot::UpdateTarget()
 		}
 	}
 
-	if(m_ComputeTarget.m_Type == CTarget::TARGET_PLAYER && m_pPlayer->GetCharacter()->GetHealth() > 7 && m_pPlayer->GetCharacter()->GetArmor() > 7)
+	if(m_ComputeTarget.m_Type == ETarget::TARGET_PLAYER && m_pPlayer->GetCharacter()->GetHealth() > 7 && m_pPlayer->GetCharacter()->GetArmor() > 7)
 	{
 		CPlayer *pPlayer = GameServer()->m_apPlayers[m_ComputeTarget.m_PlayerCID];
 		if(Collision()->FastIntersectLine(m_ComputeTarget.m_Pos, pPlayer->GetCharacter()->GetPos(), 0, 0))
@@ -229,15 +238,15 @@ bool CBot::NeedPickup(int Type)
 {
 	switch(Type)
 	{
-	case CTarget::TARGET_HEALTH:
+	case ETarget::TARGET_HEALTH:
 		return m_pPlayer->GetCharacter()->GetHealth() < 10;
-	case CTarget::TARGET_ARMOR:
+	case ETarget::TARGET_ARMOR:
 		return m_pPlayer->GetCharacter()->GetArmor() < 10;
-	case CTarget::TARGET_WEAPON_SHOTGUN:
+	case ETarget::TARGET_WEAPON_SHOTGUN:
 		return m_pPlayer->GetCharacter()->GetAmmoCount(WEAPON_SHOTGUN) < 10;
-	case CTarget::TARGET_WEAPON_GRENADE:
+	case ETarget::TARGET_WEAPON_GRENADE:
 		return m_pPlayer->GetCharacter()->GetAmmoCount(WEAPON_GRENADE) < 10;
-	case CTarget::TARGET_WEAPON_LASER:
+	case ETarget::TARGET_WEAPON_LASER:
 		return m_pPlayer->GetCharacter()->GetAmmoCount(WEAPON_RIFLE) < 10;
 	}
 	return false;
@@ -248,21 +257,21 @@ bool CBot::FindPickup(int Type, vec2 *pPos, float Radius)
 	int SubType = 0;
 	switch(Type)
 	{
-		case CTarget::TARGET_ARMOR:
+		case ETarget::TARGET_ARMOR:
 			Type = POWERUP_ARMOR;
 			break;
-		case CTarget::TARGET_HEALTH:
+		case ETarget::TARGET_HEALTH:
 			Type = POWERUP_HEALTH;
 			break;
-		case CTarget::TARGET_WEAPON_SHOTGUN:
+		case ETarget::TARGET_WEAPON_SHOTGUN:
 			Type = POWERUP_WEAPON;
 			SubType = WEAPON_SHOTGUN;
 			break;
-		case CTarget::TARGET_WEAPON_GRENADE:
+		case ETarget::TARGET_WEAPON_GRENADE:
 			Type = POWERUP_WEAPON;
 			SubType = WEAPON_GRENADE;
 			break;
-		case CTarget::TARGET_WEAPON_LASER:
+		case ETarget::TARGET_WEAPON_LASER:
 			Type = POWERUP_WEAPON;
 			SubType = WEAPON_RIFLE;
 			break;
@@ -310,7 +319,7 @@ void CBot::Tick()
 	vec2 Pos = pMe->m_Pos;
 
 	bool InSight = false;
-	if(m_ComputeTarget.m_Type == CTarget::TARGET_PLAYER)
+	if(m_ComputeTarget.m_Type == ETarget::TARGET_PLAYER)
 	{
 		const CCharacterCore *pClosest = GameServer()->m_apPlayers[m_ComputeTarget.m_PlayerCID]->GetCharacter()->GetCore();
 		InSight = !Collision()->FastIntersectLine(Pos, pClosest->m_Pos, 0, 0);
@@ -466,6 +475,9 @@ void CBot::HandleWeapon(bool SeeTarget)
 	if(!pMe)
 		return;
 
+	if(!m_aTargetAllow[ETarget::TARGET_PLAYER])
+		return;
+
 	int Team = m_pPlayer->GetTeam();
 	vec2 Pos = pMe->GetCore()->m_Pos;
 
@@ -611,11 +623,9 @@ void CBot::HandleWeapon(bool SeeTarget)
 void CBot::UpdateEdge()
 {
 	vec2 Pos = m_pPlayer->GetCharacter()->GetPos();
-	if(m_ComputeTarget.m_Type == CTarget::TARGET_EMPTY)
-	{
-		dbg_msg("bot", "no edge");
+	if(m_ComputeTarget.m_Type == ETarget::TARGET_EMPTY)
 		return;
-	}
+
 	if(m_ComputeTarget.m_NeedUpdate)
 	{
 		m_pPath->m_Size = 0;
