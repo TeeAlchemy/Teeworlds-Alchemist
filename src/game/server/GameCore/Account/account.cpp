@@ -14,9 +14,7 @@ static void register_thread(void *user)
 {
     FaBao *Data = (FaBao *)user;
     int ClientID = Data->m_ClientID;
-    dbg_msg("test", "reg wait lock");
     lock_wait(Data->m_pGameServer->DB()->SQL_Lock);
-    dbg_msg("test", "reg none lock");
     char aBuf[512];
     str_format(aBuf, sizeof(aBuf), "SELECT * from tw_Accounts WHERE Username = '%s';", Data->m_AccData.m_aUsername);
     sql::ResultSet *Result;
@@ -95,7 +93,7 @@ static void login_thread(void *user)
 
                     Data->m_pGameServer->Chat(ClientID, "You are now logged in.");
                     Data->m_pGameServer->Broadcast(ClientID, "Welcome {}!", Data->m_pGameServer->Server()->ClientName(ClientID));
-                    //P->m_InitAcc = true;
+                    P->m_InitAcc = true;
                 }
                 else
                 {
@@ -171,6 +169,7 @@ static void sync_accdata_thread(void *user)
                     str_copy(P->m_AccData.m_aUsername, Result->getString("Username").c_str(), sizeof(P->m_AccData.m_aUsername));
                     str_copy(P->m_AccData.m_aPassword, Result->getString("Password").c_str(), sizeof(P->m_AccData.m_aPassword));
                     P->SetLanguage(Result->getString("Language").c_str());
+                    Data->m_pGameServer->ClearVotes(ClientID);
                 }
                 break;
 
@@ -210,17 +209,12 @@ static void sync_accdata_thread(void *user)
     lock_unlock(Data->m_pGameServer->DB()->SQL_Lock);
 }
 
-void CAccount::SyncAccountData(int ClientID, int Table, CPlayer::SAccData AccData)
+void CAccount::SyncAccountData(int ClientID, int Table)
 {
     FaBao *data = new FaBao();
     data->m_pGameServer = GameServer();
     data->m_ClientID = ClientID;
     data->m_Table = Table;
-    data->m_AccData = AccData;
-    for (int i = 0; i < NUM_ITYPE; i++)
-        data->m_AccData.m_Holding[i] = GameServer()->GetPlayer(ClientID)->m_AccData.m_Holding[i];
-    for (int i = 1; i < NUM_ITEM; i++)
-        data->m_aItems[i] = GameServer()->GetPlayer(ClientID)->m_AccData.m_aItems[i];
     str_copy(data->m_Language, GameServer()->GetPlayer(ClientID)->GetLanguage(), sizeof(data->m_Language));
     data->m_Type = TYPE::SYNC;
 

@@ -2,6 +2,7 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <new>
 #include <base/math.h>
+#include <algorithm>
 #include <engine/shared/config.h>
 #include <engine/map.h>
 #include <engine/console.h>
@@ -715,6 +716,49 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 		}
 		else if (MsgID == NETMSGTYPE_CL_CALLVOTE)
 		{
+			char aChatmsg[512] = {0};
+			char aDesc[VOTE_DESC_LENGTH] = {0};
+			char aCmd[VOTE_CMD_LENGTH] = {0};
+			CNetMsg_Cl_CallVote *pMsg = (CNetMsg_Cl_CallVote *)pRawMsg;
+			const char *pReason = pMsg->m_pReason[0] ? pMsg->m_pReason : "No reason given";
+
+			if (str_comp_nocase(pMsg->m_pType, "option") == 0)
+			{
+				for (int i = 0; i < m_aPlayerVotes[ClientID].m_aVoteOptions.size(); ++i)
+				{
+					if (str_comp_nocase(pMsg->m_pValue, m_aPlayerVotes[ClientID].m_aVoteOptions[i].m_aDescription) == 0)
+					{
+						str_format(aDesc, sizeof(aDesc), "%s", m_aPlayerVotes[ClientID].m_aVoteOptions[i].m_aDescription);
+						str_format(aCmd, sizeof(aCmd), "%s", m_aPlayerVotes[ClientID].m_aVoteOptions[i].m_aCommand);
+					}
+				}
+			}
+
+			std::string Command(aCmd);
+			if (str_comp(aCmd, "ccv_null") == 0)
+			{
+				return;
+			}
+			else if (Command.find("ccv_") == 0)
+			{
+				switch (m_apPlayers[ClientID]->m_Authed)
+				{
+				case IServer::AUTHED_ADMIN:
+					Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_ADMIN);
+					break;
+				case IServer::AUTHED_MOD:
+					Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_MOD);
+					break;
+				default:
+					Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_USER);
+				}
+
+				Console()->ExecuteLineFlag(aCmd + 4, ClientID, CFGFLAG_VOTE);
+				Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_ADMIN);
+
+				return;
+			}
+
 			if (g_Config.m_SvSpamprotection && pPlayer->m_LastVoteTry && pPlayer->m_LastVoteTry + Server()->TickSpeed() * 3 > Server()->Tick())
 				return;
 
@@ -740,24 +784,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				return;
 			}
 
-			char aChatmsg[512] = {0};
-			char aDesc[VOTE_DESC_LENGTH] = {0};
-			char aCmd[VOTE_CMD_LENGTH] = {0};
-			CNetMsg_Cl_CallVote *pMsg = (CNetMsg_Cl_CallVote *)pRawMsg;
-			const char *pReason = pMsg->m_pReason[0] ? pMsg->m_pReason : "No reason given";
-
-			if (str_comp_nocase(pMsg->m_pType, "option") == 0)
-			{
-				for (int i = 0; i < m_PlayerVotes[ClientID].size(); ++i)
-				{
-					if (str_comp_nocase(pMsg->m_pValue, m_PlayerVotes[ClientID][i].m_aDescription) == 0)
-					{
-						str_format(aDesc, sizeof(aDesc), "%s", m_PlayerVotes[ClientID][i].m_aDescription);
-						str_format(aCmd, sizeof(aCmd), "%s", m_PlayerVotes[ClientID][i].m_aCommand);
-					}
-				}
-			}
-			else if (str_comp_nocase(pMsg->m_pType, "kick") == 0)
+			if (str_comp_nocase(pMsg->m_pType, "kick") == 0)
 			{
 				if (!g_Config.m_SvVoteKick)
 				{
@@ -1667,6 +1694,34 @@ bool CGameContext::ConLogin(IConsole::IResult *pResult, void *pUserData)
 	return true;
 }
 
+bool CGameContext::VotGiveItem(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	if(!pSelf->GetPlayer(pResult->GetInteger(0)))
+		return false;
+	
+	pSelf->GetPlayer(pResult->GetInteger(0))->m_AccData.m_aItems[pResult->GetInteger(1)].m_Num += pResult->GetInteger(2);
+	pSelf->TW()->Account()->SaveAccountData(pResult->GetInteger(0), CGameContext::TABLE_ITEM, pSelf->GetPlayer(pResult->GetInteger(0))->m_AccData);
+	pSelf->ClearVotes(pResult->GetInteger(0));
+	return true;
+}
+
+bool CGameContext::VotSelectItem(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	pSelf->GetPlayer(pResult->GetClientID())->m_SelectItemList = pResult->GetInteger(0);
+	pSelf->ClearVotes(pResult->GetClientID());
+	return true;
+}
+
+bool CGameContext::VotGoto(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	pSelf->m_aPlayerVotes[pResult->GetClientID()].m_Page = pResult->GetInteger(0);
+	pSelf->ClearVotes(pResult->GetClientID());
+	return true;
+}
+
 void CGameContext::OnConsoleInit()
 {
 	m_pServer = Kernel()->RequestInterface<IServer>();
@@ -1701,6 +1756,11 @@ void CGameContext::OnConsoleInit()
 
 	Console()->Register("register", "ss", CFGFLAG_CHAT, ConRegister, this, "[username] [password] - Register account");
 	Console()->Register("login", "ss", CFGFLAG_CHAT, ConLogin, this, "[username] [password] - Login your account");
+
+	Console()->Register("giveitem", "iii", CFGFLAG_CHAT, VotGiveItem, this, "[clientid] [itemid] [numitem] - Give item");
+
+	Console()->Register("selectitem", "i", CFGFLAG_VOTE, VotSelectItem, this, "[item] - Select");
+	Console()->Register("goto", "i", CFGFLAG_VOTE, VotGoto, this, "[page] - Go to a vote page");
 
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
 
@@ -1748,6 +1808,8 @@ void CGameContext::OnInit(int WorldID)
 
 	m_pBotEngine->Init(pTiles, pTileMap->m_Width, pTileMap->m_Height);
 	m_pController->InitBots();
+
+	ItemF()->LoadIndex();
 }
 
 void CGameContext::OnShutdown()
@@ -1934,10 +1996,10 @@ void CGameContext::AddVote(const char *Desc, const char *Cmd, int ClientID)
 	if (ClientID == -2)
 		return;
 
-	CVoteOptions Vote;
+	SPlayerVote::SVoteOptions Vote;
 	str_copy(Vote.m_aDescription, Desc, sizeof(Vote.m_aDescription));
 	str_copy(Vote.m_aCommand, Cmd, sizeof(Vote.m_aCommand));
-	m_PlayerVotes[ClientID].add(Vote);
+	m_aPlayerVotes[ClientID].m_aVoteOptions.add(Vote);
 
 	// inform clients about added option
 	CNetMsg_Sv_VoteOptionAdd OptionMsg;
@@ -1945,23 +2007,115 @@ void CGameContext::AddVote(const char *Desc, const char *Cmd, int ClientID)
 	Server()->SendPackMsg(&OptionMsg, MSGFLAG_VITAL, ClientID, -1);
 }
 
+void CGameContext::AddVote_ListInventory(int ItemType)
+{
+	CPlayer *pP = GetPlayer(m_VoteClientID);
+	if (!pP)
+		return;
+	
+	if(pP->m_SelectItemList == ItemType)
+	{
+		bool Got = false;
+		for (int i = 0; i < NUM_ITEM; i++)
+		{
+			if(ItemF()->GetType(i) == ItemType && pP->m_AccData.m_aItems[i].m_Num)
+			{
+				AddVote_VL("ccv_null", "➳ {} x{}", ItemF()->GetItemName(i), pP->m_AccData.m_aItems[i].m_Num);
+				Got = true;
+			}
+		}
+		if (!Got)
+			AddVote_Text("( ´・∧・`)空空如也");
+	}
+}
+
+void CGameContext::AddVote_Goto(int Page, const char *pDesc)
+{
+	if (!PlayerExists(m_VoteClientID))
+		return;
+	
+	char aPageFormat[64];
+	str_format(aPageFormat, sizeof(aPageFormat), "ccv_goto %d", Page);
+	AddVote_VL(aPageFormat, pDesc);
+}
+
+void CGameContext::AddVote_Back()
+{
+	if (!PlayerExists(m_VoteClientID))
+		return;
+	
+	AddVote_Goto(m_aPlayerVotes[m_VoteClientID].m_LastPage, "⏎ 返回上一页");
+}
+
+void CGameContext::AddVote_Space(int Num)
+{
+	if (!PlayerExists(m_VoteClientID))
+		return;
+	
+	for (int i = 0; i < Num; i++)
+		AddVote_VL("ccv_null", " ");
+}
+
 void CGameContext::InitVotes(int ClientID)
 {
-	if (!m_apPlayers[ClientID])
+	CPlayer *pP = GetPlayer(ClientID);
+	if (!pP)
 		return;
+	
+	SetVoteClientID(ClientID);
 
-	CPlayer::SAccData Data = m_apPlayers[ClientID]->m_AccData;
-	AddVote_VL(ClientID, "skip", "==== ⚠玩家菜单⚠ =");
-	AddVote_VL(ClientID, "skip", "账号ID: {}", Data.m_UserID);
-	AddVote_VL(ClientID, "skip", "派别: #尚未完成#");
-	AddVote_VL(ClientID, "skip", " ");
-	AddVote_VL(ClientID, "skip", " ");
-	AddVote_VL(ClientID, "skip", "-=== - = 物品列表 = - ===-");
+	CPlayer::SAccData Data = pP->m_AccData;
+
+	int Page = m_aPlayerVotes[ClientID].m_Page;
+
+	switch (Page)
+	{
+	case PAGE_MENU:
+		{
+			SetVoteLastPage(Page);
+			AddVote_Text("==== ⚠玩家菜单⚠ =");
+			AddVote_Text("账号ID: {}", Data.m_UserID);
+			AddVote_Text("派别: #尚未完成#");
+			AddVote_Space();
+			AddVote_Goto(PAGE_INVENTORY, "☞ 物品栏/背包 ✪");
+		}
+		break;
+
+	case PAGE_INVENTORY:
+		{
+			TW()->Account()->SyncAccountData(ClientID, TABLE_ITEM);
+			SetVoteLastPage(PAGE_MENU);
+			AddVote_Text("---------------------");
+			AddVote_Back();
+			AddVote_Space();
+			std::string ItemLists[NUM_ITYPE] = {"Pickaxe", "Axe", "Sword", "Turret", "Material", "Card"};
+			CountItemNum(ClientID);
+			for (int i = 0; i < NUM_ITYPE; i++)
+			{
+				if(pP->m_SelectItemList != i)
+				{
+					char aCmd[64];
+					str_format(aCmd, sizeof(aCmd), "ccv_selectitem %d", i);
+					AddVote_VL(aCmd, "▹ {} ({})", ItemLists[i], pP->m_AccData.m_ItemCount[i]);
+				}
+				else
+					AddVote_Text("▾ {} ({}) ", ItemLists[i], pP->m_AccData.m_ItemCount[i]);
+			}
+			AddVote_Space();
+			AddVote_Text("---------------------");
+			AddVote_ListInventory(pP->m_SelectItemList);
+		}
+		break;
+	default:
+		break;
+	}
+
+	SetVoteClientID(-1);
 }
 
 void CGameContext::ClearVotes(int ClientID)
 {
-	m_PlayerVotes[ClientID].clear();
+	m_aPlayerVotes[ClientID].m_aVoteOptions.clear();
 
 	// send vote options
 	CNetMsg_Sv_VoteClearOptions ClearMsg;
@@ -1989,4 +2143,20 @@ bool CGameContext::AsleepBot(int ClientID)
 	m_apPlayers[ClientID]->m_CanSnap = false;
 	m_apPlayers[ClientID]->m_WantSpawn = false;
 	return true;
+}
+
+void CGameContext::CountItemNum(int ClientID)
+{
+	if (!PlayerExists(ClientID))
+		return;
+
+	int ItemCount[NUM_ITYPE] = {0, 0, 0, 0, 0, 0};
+	
+	for (int i = 0; i < NUM_ITEM; i++)
+	{
+		if(m_apPlayers[ClientID]->m_AccData.m_aItems[i].m_Num > 0)
+			ItemCount[ItemF()->GetType(i)]++;
+	}
+	
+	std::copy(std::begin(ItemCount), std::end(ItemCount), m_apPlayers[ClientID]->m_AccData.m_ItemCount);
 }

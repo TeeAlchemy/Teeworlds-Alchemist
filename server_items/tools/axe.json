@@ -1,0 +1,56 @@
+{
+    "item": {
+        "type": 1,
+        "multiple": [
+            {
+                "id": 10,
+                "name": "Wooden Axe",
+                "proba": 90,
+                "damage": 200,
+                "formula": {
+                    "Log": 10
+                }
+            },
+            {
+                "id": 12,
+                "name": "Copper Axe",
+                "damage": 700,
+                "proba": 90,
+                "formula": {
+                    "Log": 60,
+                    "Copper": 25
+                }
+            },
+            {
+                "id": 15,
+                "name": "Iron Axe",
+                "damage": 1400,
+                "proba": 90,
+                "formula": {
+                    "Log": 1780,
+                    "Iron": 25
+                }
+            },
+            {
+                "id": 18,
+                "name": "Golden Axe",
+                "damage": 2000,
+                "proba": 90,
+                "formula": {
+                    "Log": 2300,
+                    "Golden": 10
+                }
+            },
+            {
+                "id": 21,
+                "name": "Diamond Axe",
+                "damage": 8000,
+                "proba": 100,
+                "formula": {
+                    "Log": 4000,
+                    "Diamond": 25
+                }
+            }
+        ]
+    }
+}

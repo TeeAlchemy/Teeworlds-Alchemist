@@ -159,12 +159,7 @@ bool CGameControllerTeeDefense::CanSpawn(int Team, vec2 *pPos)
 		// first try own team spawn, then normal spawn and then enemy
 		EvaluateSpawnType(&Eval, 1 + (Team & 1));
 		if (!Eval.m_Got)
-		{
 			EvaluateSpawnType(&Eval, 0);
-			/* BITCH PLEASE DONT USE ENEMY SPAWN!
-			if(!Eval.m_Got)
-				EvaluateSpawnType(&Eval, 1+((Team+1)&1));*/
-		}
 	}
 	else
 	{

@@ -1,0 +1,17 @@
+{
+    "item indices": [
+        "server_items/cks/log.json",
+        "server_items/cks/coal.json",
+        "server_items/cks/copper.json",
+        "server_items/cks/iron.json",
+        "server_items/cks/golden.json",
+        "server_items/cks/diamond.json",
+        "server_items/cks/enegry.json",
+        "server_items/tools/sword.json",
+        "server_items/tools/axe.json",
+        "server_items/tools/pickaxe.json",
+        "server_items/special/cards.json",
+        "server_items/special/turret.json",
+        "server_items/special/zombie-heart.json"
+    ]
+}

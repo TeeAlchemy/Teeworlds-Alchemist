@@ -797,7 +797,7 @@ void CConsole::Register(const char *pName, const char *pParams,
 	if (DoAdd)
 		AddCommandSorted(pCommand);
 
-	if (Flags & CFGFLAG_CHAT)
+	if (Flags & CFGFLAG_CHAT || Flags & CFGFLAG_VOTE)
 		pCommand->SetAccessLevel(IConsole::ACCESS_LEVEL_USER);
 }
 

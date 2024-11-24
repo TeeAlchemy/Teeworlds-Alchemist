@@ -1,0 +1,57 @@
+{
+    "item": {
+        "type": 2,
+        "multiple": [
+            {
+                "id": 9,
+                "name": "Wooden Sword",
+                "damage": 2,
+                "proba": 90,
+                "formula": {
+                    "Log": 25
+                }
+            },
+            {
+                "id": 12,
+                "name": "Iron Sword",
+                "damage": 7,
+                "proba": 90,
+                "formula": {
+                    "Log": 1900,
+                    "Iron": 25
+                }
+            },
+            {
+                "id": 17,
+                "name": "Golden Sword",
+                "damage": 10,
+                "proba": 90,
+                "formula": {
+                    "Log": 2400,
+                    "Golden": 25
+                }
+            },
+            {
+                "id": 20,
+                "name": "Diamond Sword",
+                "damage": 20,
+                "proba": 80,
+                "formula": {
+                    "Log": 4400,
+                    "Diamond": 25
+                }
+            },
+            {
+                "id": 23,
+                "name": "Enegry Sword",
+                "damage": 40,
+                "proba": 100,
+                "formula": {
+                    "Log": 5000,
+                    "Diamond": 50,
+                    "Enegry": 100
+                }
+            }
+        ]
+    }
+}

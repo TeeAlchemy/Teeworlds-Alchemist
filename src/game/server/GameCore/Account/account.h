@@ -38,7 +38,7 @@ public:
     virtual void OnInit();
     bool Register(int ClientID, const char *Username, const char *Password);
     bool Login(int ClientID, const char *Username, const char *Password);
-    void SyncAccountData(int ClientID, int Table, CPlayer::SAccData AccData);
+    void SyncAccountData(int ClientID, int Table);
     void SaveAccountData(int ClientID, int Table, CPlayer::SAccData AccData);
 
 public:

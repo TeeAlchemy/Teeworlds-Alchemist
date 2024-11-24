@@ -110,7 +110,6 @@ void CItem_F::LoadItem(const char *FileName)
                 str_copy(m_aItems[ID]->m_ItemName, rMultiple["name"], sizeof(m_aItems[ID]->m_ItemName));
                 m_aItems[ID]->m_Proba = rMultiple["proba"].u.integer;
                 m_aItems[ID]->m_MaxHealth = rMultiple["health"].u.integer;
-                dbg_msg("test", "%s", m_aItems[ID]->m_ItemName);
             }
         }
         else
@@ -143,7 +142,6 @@ void CItem_F::LoadItem(const char *FileName)
             str_copy(m_aItems[ID]->m_ItemName, rStart["name"], sizeof(m_aItems[ID]->m_ItemName));
             m_aItems[ID]->m_Proba = rStart["proba"].u.integer;
             m_aItems[ID]->m_MaxHealth = rStart["health"].u.integer;
-            dbg_msg("test", "%s", m_aItems[ID]->m_ItemName);
         }
     }
 }

@@ -1,0 +1,67 @@
+{
+    "item": {
+        "type": 0,
+        "multiple": [
+            {
+                "id": 11,
+                "name": "Wooden Pickaxe",
+                "proba": 90,
+                "damage": 150,
+                "formula": {
+                    "Log": 20
+                }
+            },
+            {
+                "id": 13,
+                "name": "Copper Pickaxe",
+                "damage": 700,
+                "proba": 90,
+                "formula": {
+                    "Log": 70,
+                    "Copper": 25
+                }
+            },
+            {
+                "id": 16,
+                "name": "Iron Pickaxe",
+                "damage": 1400,
+                "proba": 90,
+                "formula": {
+                    "Log": 1800,
+                    "Iron": 25
+                }
+            },
+            {
+                "id": 19,
+                "name": "Golden Pickaxe",
+                "damage": 2000,
+                "proba": 90,
+                "formula": {
+                    "Log": 2300,
+                    "Golden": 25
+                }
+            },
+            {
+                "id": 22,
+                "name": "Diamond Pickaxe",
+                "damage": 8000,
+                "proba": 80,
+                "formula": {
+                    "Log": 4200,
+                    "Diamond": 25
+                }
+            },
+            {
+                "id": 24,
+                "name": "Enegry Pickaxe",
+                "damage": 25000,
+                "proba": 100,
+                "formula": {
+                    "Log": 4666,
+                    "Diamond": 35,
+                    "Enegry": 10
+                }
+            }
+        ]
+    }
+}

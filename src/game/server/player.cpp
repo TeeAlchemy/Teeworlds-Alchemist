@@ -4,6 +4,7 @@
 #include <engine/shared/config.h>
 #include "player.h"
 
+#include "GameCore/Account/account.h"
 #include "bot.h"
 
 MACRO_ALLOC_POOL_ID_IMPL(CPlayer, MAX_CLIENTS *ENGINE_MAX_WORLDS + MAX_CLIENTS)
@@ -33,6 +34,9 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, int Team)
 
 	m_IsBot = false;
 	m_CanSnap = true;
+	m_InitAcc = false;
+
+	m_SelectItemList = -1;
 }
 
 CPlayer::~CPlayer()
@@ -112,6 +116,19 @@ void CPlayer::Tick()
 	}
 
 	HandleTuningParams();
+
+	if (!LoggedIn() && !IsBot())
+	{
+		SetTeam(TEAM_SPECTATORS, false);
+		if (Server()->Tick() % (int)(Server()->TickSpeed() * 3) == 0)
+			GameServer()->Broadcast(GetCID(), "\n\n\n\n\n\nEnter '/register username password' to register\nEnter '/login username password' to login");
+	}
+	else if (m_InitAcc && !IsBot())
+	{
+		SetTeam(TEAM_HUMAN, false);
+		GameServer()->TW()->Account()->SyncAccountData(m_ClientID, CGameContext::TABLE_ITEM);
+		m_InitAcc = false;
+	}
 }
 
 void CPlayer::PostTick()

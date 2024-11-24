@@ -1,0 +1,42 @@
+{
+    "item": {
+        "type": 3,
+        "multiple": [
+            {
+                "id": 25,
+                "name": "Beginner Turret",
+                "capacity": 25,
+                "Max": 1,
+                "formula": {
+                    "Log": 70
+                }
+            },
+            {
+                "id": 26,
+                "name": "Intermediate Turret",
+                "capacity": 50,
+                "Max": 1,
+                "formula": {
+                    "Beginner Turret": 1,
+                    "Log": 70,
+                    "Copper": 200,
+                    "Iron": 50
+                }
+            },
+            {
+                "id": 27,
+                "name": "Advanced Turret",
+                "capacity": 100,
+                "Max": 1,
+                "formula": {
+                    "Intermediate Turret": 1,
+                    "Log": 70,
+                    "Copper": 40,
+                    "Golden": 200,
+                    "Diamond": 50,
+                    "Enegry": 5
+                }
+            }
+        ]
+    }
+}

@@ -1,0 +1,105 @@
+{
+    "item": {
+        "type": 5,
+        "multiple": [
+            {
+                "id": 28,
+                "name": "Card: Quickly-Fire",
+                "capacity": 10,
+                "placeable": [0, 1, 2, 3],
+                "formula": {
+                    "Log": 70,
+                    "Golden": 40,
+                    "Zombie's Heart": 50
+                }
+            },
+            {
+                "id": 29,
+                "name": "Card: Quickly-Loading",
+                "capacity": 10,
+                "placeable": [2, 3],
+                "formula": {
+                    "Log": 70,
+                    "Golden": 40,
+                    "Zombie's Heart": 50
+                }
+            },
+            {
+                "id": 30,
+                "name": "Card: Damage",
+                "capacity": 10,
+                "placeable": [0, 1, 2, 3],
+                "formula": {
+                    "Log": 70,
+                    "Iron": 40,
+                    "Zombie's Heart": 100
+                }
+            },
+            {
+                "id": 31,
+                "name": "Card: Explosion",
+                "capacity": 15,
+                "placeable": [2, 3],
+                "formula": {
+                    "Log": 70,
+                    "Iron": 30,
+                    "Coal": 100,
+                    "Zombie's Heart": 50
+                }
+            },
+            {
+                "id": 32,
+                "name": "Card: Electron",
+                "capacity": 30,
+                "placeable": [2, 3],
+                "formula": {
+                    "Log": 70,
+                    "Copper": 200,
+                    "Iron": 30,
+                    "Coal": 100,
+                    "Zombie's Heart": 50
+                }
+            },
+            {
+                "id": 33,
+                "name": "Card: Fusion",
+                "capacity": 55,
+                "placeable": [2, 3],
+                "formula": {
+                    "Log": 70,
+                    "Copper": 200,
+                    "Iron": 200,
+                    "Coal": 400,
+                    "Enegry": 400,
+                    "Zombie's Heart": 50
+                }
+            },
+            {
+                "id": 34,
+                "name": "Card: Force",
+                "capacity": 10,
+                "placeable": [2, 3],
+                "formula": {
+                    "Log": 70,
+                    "Zombie's Heart": 50
+                }
+            },
+            {
+                "id": 35,
+                "name": "Card: Manual Control",
+                "capacity": 0,
+                "placeable": [3],
+                "formula": {
+                    "Log": 100,
+                    "Coal": 100,
+                    "Copper": 100,
+                    "Iron": 100,
+                    "Golden": 100,
+                    "Diamond": 10,
+                    "Enegry": 5,
+                    "Zombie's Heart": 1000
+                }
+            }
+        ]
+    }
+}

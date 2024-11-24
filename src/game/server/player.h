@@ -116,10 +116,12 @@ public:
 		char m_aPassword[64];
 
 		int m_Holding[NUM_ITYPE];
+		int m_ItemCount[NUM_ITYPE];
 		SPlayerItemData m_aItems[NUM_ITEM];
 	};
 
 	SAccData m_AccData;
+	bool m_InitAcc;
 
 	bool LoggedIn()
 	{
@@ -127,6 +129,8 @@ public:
 	}
 
 	int m_Zomb;
+
+	int m_SelectItemList;
 private:
 	CCharacter *m_pCharacter;
 	CGameContext *m_pGameServer;

@@ -27,6 +27,14 @@
 
 class CChatAI;
 
+enum EVotePages
+{
+	PAGE_MENU = 0,
+	PAGE_INVENTORY,
+	PAGE_CRAFT,
+
+};
+
 /*
 	Tick
 		Game Context (CGameContext::OnTick)
@@ -89,6 +97,11 @@ class CGameContext : public IGameServer
 
 	static bool ConRegister(IConsole::IResult *pResult, void *pUserData);
 	static bool ConLogin(IConsole::IResult *pResult, void *pUserData);
+
+
+	static bool VotGiveItem(IConsole::IResult *pResult, void *pUserData);
+	static bool VotSelectItem(IConsole::IResult *pResult, void *pUserData);
+	static bool VotGoto(IConsole::IResult *pResult, void *pUserData);
 
 	CGameContext(int Resetting);
 	void Construct(int Resetting);
@@ -167,32 +180,6 @@ public:
 	void CreateExtraEffect(vec2 Pos, int Effect, CClientMask Mask = CClientMask().set());
 	void CreateMapSound(vec2 Pos, int MapSoundID, CClientMask Mask = CClientMask().set());
 	void CreateMapSoundGlobal(int MapSoundID, int Target = -1);
-
-	// MMOTee
-	struct CVoteOptions
-	{
-		char m_aDescription[VOTE_DESC_LENGTH] = {0};
-		char m_aCommand[VOTE_CMD_LENGTH] = {0};
-	};
-	array<CVoteOptions> m_PlayerVotes[MAX_CLIENTS];
-
-	int m_SelectPageItem;
-
-	template <typename... Ts>
-	void AddVote_VL(int ClientID, const char *pCmd, const char *pText, Ts &&...args)
-	{
-		const int Start = (ClientID < 0 ? 0 : ClientID);
-		const int End = (ClientID < 0 ? MAX_CLIENTS : ClientID + 1);
-
-		for (int i = Start; i < End; i++)
-		{
-			std::string endText = Server()->Localization()->Format(GetClientLanguage(i), pText, std::forward<Ts>(args)...);
-			AddVote(endText.c_str(), pCmd, i);
-		}
-	}
-	void AddVote(const char *pDesc, const char *pCmd, int ClientID = -1);
-	void InitVotes(int ClientID);
-	void ClearVotes(int ClientID);
 
 	enum
 	{
@@ -279,6 +266,8 @@ public:
 	bool AwakenBot(int ClientID);
 	bool AsleepBot(int ClientID);
 
+	void CountItemNum(int ClientID);
+
 public:
 	template <class Tm, typename... Ts>
 	void SendNetworkMessage(Tm Msg, int WorldID, int ClientID, const char *pText, Ts &&...args)
@@ -319,6 +308,58 @@ public:
 		CNetMsg_Sv_Broadcast Msg;
 		SendNetworkMessage<CNetMsg_Sv_Broadcast>(Msg, -1, ClientID, pText, std::forward<Ts>(args)...);
 	}
+
+// Vote
+public:
+	struct SPlayerVote
+	{
+		struct SVoteOptions
+		{
+			char m_aDescription[VOTE_DESC_LENGTH] = {0};
+			char m_aCommand[VOTE_CMD_LENGTH] = {0};
+		};
+		array<SVoteOptions> m_aVoteOptions;
+		int m_LastPage;
+		int m_Page;
+	};
+	
+	SPlayerVote m_aPlayerVotes[MAX_CLIENTS];
+
+	template <typename... Ts>
+	void AddVote_VL(const char *pCmd, const char *pText, Ts &&...args)
+	{
+		int ClientID = m_VoteClientID;
+		const int Start = (ClientID < 0 ? 0 : ClientID);
+		const int End = (ClientID < 0 ? MAX_CLIENTS : ClientID + 1);
+
+		for (int i = Start; i < End; i++)
+		{
+			std::string endText = Server()->Localization()->Format(GetClientLanguage(i), pText, std::forward<Ts>(args)...);
+			AddVote(endText.c_str(), pCmd, i);
+		}
+	}
+	void AddVote(const char *pDesc, const char *pCmd, int ClientID = -1);
+
+	// Pack
+	void AddVote_ListInventory(int ItemType);
+	void AddVote_Make(int ItemType);
+
+	// Helper functions
+	void AddVote_Goto(int Page, const char *pDesc);
+	void AddVote_Back();
+	void AddVote_Space(int Num = 1);
+	template <typename... Ts>
+	void AddVote_Text(const char *pText, Ts &&...args) { AddVote_VL("ccv_null", pText, std::forward<Ts>(args)...); }
+	void SetVoteLastPage(int Page) { m_aPlayerVotes[m_VoteClientID].m_LastPage = Page; }
+	void SetVoteClientID(int CID) { m_VoteClientID = CID; }
+
+
+	// Vote Engine
+	void InitVotes(int ClientID);
+	void ClearVotes(int ClientID);
+
+private:
+	int m_VoteClientID;
 };
 
 inline int CmaskAll() { return -1; }
