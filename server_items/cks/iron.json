@@ -1,8 +1,9 @@
 {
     "item": {
         "type": 4,
-        "id": 4,
+        "id": 3,
         "name": "Iron",
+        "desc": "That could be you first step.",
         "health": 8000
     }
 }

@@ -1,6 +1,14 @@
 {
     "translation": [
         {
+            "key": "",
+            "value": " "
+        },
+        {
+            "key": "# {} {}/{}",
+            "value": "# {} {}/{} "
+        },
+        {
             "key": "'{}' called for vote to kick you",
             "value": "'{}' 发起投票要踢出你"
         },
@@ -9,48 +17,268 @@
             "value": "'{}' 将名称更改为 '{}'"
         },
         {
-            "key": "'{}' entered the game",
-            "value": "'{}' 进入了游戏"
-        },
-        {
-            "key": "'{}' has left the game",
-            "value": "'{}' 退出了游戏"
-        },
-        {
-            "key": "'{}' has left the game ({})",
-            "value": "'{}' 退出了游戏 ({})"
-        },
-        {
-            "key": "'{}' isn't an option on this server",
-            "value": "'{}' 不是服务器的一个选项"
-        },
-        {
             "key": "'{}' joined the {}",
             "value": "'{}' 加入了 {}"
         },
         {
+            "key": "( ´・∧・`)Empty",
+            "value": "( ´・∧・`)空空如也"
+        },
+        {
+            "key": "- Craft!",
+            "value": "- 合成!"
+        },
+        {
+            "key": "---",
+            "value": "--- "
+        },
+        {
+            "key": "---------------------",
+            "value": "--------------------- "
+        },
+        {
+            "key": "==== ⚠Player Menu⚠ =",
+            "value": "==== ⚠玩家菜单⚠ ="
+        },
+        {
             "key": "Access for command /{} denied.",
-            "value": "你们没有调用指令 /{} 的权限."
+            "value": "你们没有调用指令 /{} 的权限。"
         },
         {
             "key": "Access for command {} denied.",
-            "value": "你们没有调用指令 {} 的权限."
+            "value": "你们没有调用指令 {} 的权限。"
+        },
+        {
+            "key": "Account was created successfully.",
+            "value": "账号注册成功！"
+        },
+        {
+            "key": "Advanced Turret",
+            "value": "高级炮塔"
         },
         {
             "key": "All players were moved to the {}",
             "value": "所有玩家已被移动到 {}"
         },
         {
+            "key": "An axe made of copper.",
+            "value": "用铜制成的斧头。"
+        },
+        {
+            "key": "An axe made of diamond.",
+            "value": "用钻石制成的斧头。"
+        },
+        {
+            "key": "An axe made of gold.",
+            "value": "用金子制成的斧头。"
+        },
+        {
+            "key": "An axe made of iron.",
+            "value": "用铁制成的斧头。"
+        },
+        {
+            "key": "An axe made of wood.",
+            "value": "用木头制成的斧头。"
+        },
+        {
+            "key": "An pickaxe made of copper.",
+            "value": "用铜制成的镐子。"
+        },
+        {
+            "key": "An pickaxe made of diamond.",
+            "value": "用钻石制成的镐子。"
+        },
+        {
+            "key": "An pickaxe made of enegry.",
+            "value": "用能量制成的镐子。"
+        },
+        {
+            "key": "An pickaxe made of gold.",
+            "value": "用金子制成的镐子。"
+        },
+        {
+            "key": "An pickaxe made of iron.",
+            "value": "用铁制成的镐子。"
+        },
+        {
+            "key": "An pickaxe made of wood.",
+            "value": "用木头制成的镐子。"
+        },
+        {
+            "key": "An sword made of diamond.",
+            "value": "用钻石制成的剑。"
+        },
+        {
+            "key": "An sword made of enegry.",
+            "value": "用能量制成的剑。"
+        },
+        {
+            "key": "An sword made of gold.",
+            "value": "用金子制成的剑。"
+        },
+        {
+            "key": "An sword made of iron.",
+            "value": "用铁制成的剑。"
+        },
+        {
+            "key": "An sword made of wood.",
+            "value": "用木头制成的剑。"
+        },
+        {
             "key": "Available languages: {}",
             "value": "可用语言: {}"
         },
         {
-            "key": "ChatGLM has received your message and is currently processing it.",
-            "value": "ChatGLM已接收到了您的消息，正在处理中"
+            "key": "Axe",
+            "value": "斧头"
+        },
+        {
+            "key": "BOOM!",
+            "value": "爆！"
+        },
+        {
+            "key": "Be your own.",
+            "value": "做你自己。"
+        },
+        {
+            "key": "Beginner Turret",
+            "value": "初学者炮塔"
+        },
+        {
+            "key": "Card",
+            "value": "模块"
+        },
+        {
+            "key": "Card: Damage",
+            "value": "模块: 伤害"
+        },
+        {
+            "key": "Card: Electron",
+            "value": "模块: 电子"
+        },
+        {
+            "key": "Card: Explosion",
+            "value": "模块: 爆炸"
+        },
+        {
+            "key": "Card: Force",
+            "value": "模块: 推力"
+        },
+        {
+            "key": "Card: Fusion",
+            "value": "模块: 核聚变"
+        },
+        {
+            "key": "Card: Manual Control",
+            "value": "模块: 手动控制"
+        },
+        {
+            "key": "Card: Quickly-Fire",
+            "value": "模块: 快射"
+        },
+        {
+            "key": "Card: Quickly-Loading",
+            "value": "模块: 快冲"
+        },
+        {
+            "key": "Chat AI(module: {}) has received your message and is currently processing it.",
+            "value": "聊天AI(模型: {})已经接收到了您的消息，正在处理中。"
+        },
+        {
+            "key": "Coal",
+            "value": "煤炭"
+        },
+        {
+            "key": "Contains enormous energy.",
+            "value": "蕴含巨大能量。"
+        },
+        {
+            "key": "Copper",
+            "value": "铜"
+        },
+        {
+            "key": "Copper Axe",
+            "value": "铜斧"
+        },
+        {
+            "key": "Copper Pickaxe",
+            "value": "铜镐"
         },
         {
             "key": "Credits: {}",
             "value": "开发者: {}"
+        },
+        {
+            "key": "DIAMOND!",
+            "value": "钻石！"
+        },
+        {
+            "key": "Description: {}",
+            "value": "描述: {}"
+        },
+        {
+            "key": "Diamond",
+            "value": "钻石"
+        },
+        {
+            "key": "Diamond Axe",
+            "value": "钻石斧"
+        },
+        {
+            "key": "Diamond Pickaxe",
+            "value": "钻石镐"
+        },
+        {
+            "key": "Diamond Sword",
+            "value": "钻石剑"
+        },
+        {
+            "key": "Enegry",
+            "value": "能量"
+        },
+        {
+            "key": "Enegry Pickaxe",
+            "value": "能量镐"
+        },
+        {
+            "key": "Enegry Sword",
+            "value": "能量剑"
+        },
+        {
+            "key": "Fire! Fire! Fire!",
+            "value": "你热爱火的呼啸？"
+        },
+        {
+            "key": "Fly away.",
+            "value": "装逼让你飞起来！"
+        },
+        {
+            "key": "Formula:",
+            "value": "配方:"
+        },
+        {
+            "key": "Golden",
+            "value": "金子"
+        },
+        {
+            "key": "Golden Axe",
+            "value": "金斧"
+        },
+        {
+            "key": "Golden Pickaxe",
+            "value": "金镐"
+        },
+        {
+            "key": "Golden Sword",
+            "value": "金剑"
+        },
+        {
+            "key": "Haste makes apple.",
+            "value": "欲速则达。"
+        },
+        {
+            "key": "Intermediate Turret",
+            "value": "中级炮塔"
         },
         {
             "key": "Invalid arguments.",
@@ -69,6 +297,26 @@
             "value": "无效的观众ID"
         },
         {
+            "key": "Iron",
+            "value": "铁"
+        },
+        {
+            "key": "Iron Axe",
+            "value": "铁斧"
+        },
+        {
+            "key": "Iron Pickaxe",
+            "value": "铁镐"
+        },
+        {
+            "key": "Iron Sword",
+            "value": "铁剑"
+        },
+        {
+            "key": "Item: {}",
+            "value": "物品名: {}"
+        },
+        {
             "key": "Kick voting requires {} players on the server",
             "value": "投票踢人需要服务器上有 {} 名玩家"
         },
@@ -77,16 +325,48 @@
             "value": "语言成功切换为中文"
         },
         {
+            "key": "Log",
+            "value": "木头"
+        },
+        {
+            "key": "Material",
+            "value": "材料"
+        },
+        {
+            "key": "Maybe they can make wires.",
+            "value": "提示：不要空手挖掘！"
+        },
+        {
             "key": "No such command: /{}.",
-            "value": "找不到指令: /{}."
+            "value": "找不到指令: /{}"
         },
         {
             "key": "No such command: {}.",
-            "value": "找不到指令: {}."
+            "value": "找不到指令: {}"
+        },
+        {
+            "key": "Numb.",
+            "value": "麻了。"
+        },
+        {
+            "key": "Oh, that hurt!",
+            "value": "噢，那是疼痛的（"
         },
         {
             "key": "Only {} active players are allowed",
             "value": "服务器限制最多 {} 名玩家可以活动"
+        },
+        {
+            "key": "Party: #Under development#",
+            "value": "党派: #开发中#"
+        },
+        {
+            "key": "Pickaxe",
+            "value": "镐子"
+        },
+        {
+            "key": "Please register first. (/register <user> <pass>)",
+            "value": "请先注册. (/register 用户名 密码)"
         },
         {
             "key": "Server does not allow voting to kick players",
@@ -95,6 +375,10 @@
         {
             "key": "Server does not allow voting to move players to spectators",
             "value": "服务器不允许投票将玩家移动到旁观"
+        },
+        {
+            "key": "Shining and Sparkling!",
+            "value": "亮闪闪！"
         },
         {
             "key": "Sorry, I can't answer your question.",
@@ -107,6 +391,10 @@
         {
             "key": "Spectators aren't allowed to start a vote.",
             "value": "旁观者不允许发起投票"
+        },
+        {
+            "key": "Sword",
+            "value": "剑"
         },
         {
             "key": "Teams are locked",
@@ -141,12 +429,60 @@
             "value": "感谢: {}"
         },
         {
+            "key": "That could be you first step.",
+            "value": "这可以是你的起步。"
+        },
+        {
+            "key": "The End.",
+            "value": "最终。'"
+        },
+        {
+            "key": "The beginning.",
+            "value": "'开始"
+        },
+        {
+            "key": "The intermediate.",
+            "value": "，过程，"
+        },
+        {
+            "key": "The most basic material.",
+            "value": "最基础的材料(折磨之路)"
+        },
+        {
+            "key": "The password you entered is wrong.",
+            "value": "密码输入错误。"
+        },
+        {
+            "key": "They are going to report bloody violence.",
+            "value": "要被家长举报血腥暴力了。"
+        },
+        {
+            "key": "This Account does not exists.",
+            "value": "账号不存在。"
+        },
+        {
+            "key": "This server has disabled chat AI.",
+            "value": "此服务器关闭了聊天AI."
+        },
+        {
+            "key": "This username is already in use.",
+            "value": "用户名已使用。"
+        },
+        {
             "key": "Time to wait before changing team: {}:{}",
             "value": "更换队伍前的等待时间: {}:{}"
         },
         {
+            "key": "Turret",
+            "value": "炮塔"
+        },
+        {
             "key": "Unknown language",
             "value": "未知语言"
+        },
+        {
+            "key": "Usage: /register <username> <password>",
+            "value": "用法: /register 用户名 密码"
         },
         {
             "key": "Usage: /{} {}",
@@ -155,6 +491,10 @@
         {
             "key": "Usage: {} {}",
             "value": "使用方法: {} {}"
+        },
+        {
+            "key": "User ID: {}",
+            "value": "用户ID: {}"
         },
         {
             "key": "Vote aborted",
@@ -171,6 +511,42 @@
         {
             "key": "Wait for current vote to end before calling a new one.",
             "value": "在发起新的投票前请等待当前的投票结束"
+        },
+        {
+            "key": "Wave {} started with {} Zombies!",
+            "value": "+ 回合 {} 已开始！+\n- 僵尸数量：{} -"
+        },
+        {
+            "key": "Wave {}: 1 zombie is left",
+            "value": "回合 {}: 剩余一个僵尸"
+        },
+        {
+            "key": "Wave {}: {} zombies are left",
+            "value": "回合 {}: 剩余{}个僵尸"
+        },
+        {
+            "key": "Welcome {}!",
+            "value": "欢迎回来，{}!"
+        },
+        {
+            "key": "Wooden Axe",
+            "value": "木斧"
+        },
+        {
+            "key": "Wooden Pickaxe",
+            "value": "木镐"
+        },
+        {
+            "key": "Wooden Sword",
+            "value": "木剑"
+        },
+        {
+            "key": "World War III",
+            "value": "第三次世界大战"
+        },
+        {
+            "key": "You are now logged in.",
+            "value": "登录成功！"
         },
         {
             "key": "You can't kick admins",
@@ -193,8 +569,20 @@
             "value": "你因为队伍平衡被移动到 {}"
         },
         {
-            "key": "admin forced server option '{}' ({})",
-            "value": "强制发起投票 '{}' ({})"
+            "key": "You're already logged in.",
+            "value": "你已经登录了一个账号！"
+        },
+        {
+            "key": "You're dead",
+            "value": "你死了"
+        },
+        {
+            "key": "Zombie's Heart",
+            "value": "僵尸之心"
+        },
+        {
+            "key": "\\n\\n\\n\\n\\n\\nEnter '/register username password' to register\\nEnter '/login username password' to login",
+            "value": "\\n\\n\\n\\n\\n\\n输入 '/register 用户名 密码' 注册账号\\n输入 '/login 用户名 密码' 登录账号"
         },
         {
             "key": "admin forced vote {}",
@@ -205,8 +593,68 @@
             "value": "管理员将玩家 '{}' 移动到旁观 ({})"
         },
         {
+            "key": "usage: /login <username> <password>",
+            "value": "用法: /login 用户名 密码"
+        },
+        {
+            "key": "{} entered and joined the game",
+            "value": "{} 进入了游戏"
+        },
+        {
+            "key": "{} has left the game",
+            "value": "{} 退出了游戏"
+        },
+        {
             "key": "{} {} by {}",
             "value": "{} {} by.{}"
+        },
+        {
+            "key": "⏎ Back",
+            "value": "⏎ 返回上一页"
+        },
+        {
+            "key": "▹ {}",
+            "value": "▹ {} "
+        },
+        {
+            "key": "▹ {} ({})",
+            "value": "▹ {} ({}) "
+        },
+        {
+            "key": "▾ {}",
+            "value": "▾ {} "
+        },
+        {
+            "key": "▾ {} ({})",
+            "value": "▾ {} ({}) "
+        },
+        {
+            "key": "☞ Craft ☺",
+            "value": "☞ 合成 ☺"
+        },
+        {
+            "key": "☞ Inventory ✪",
+            "value": "☞ 物品栏 ✪"
+        },
+        {
+            "key": "☪ Craft",
+            "value": "☪ 合成"
+        },
+        {
+            "key": "☪ Inventory",
+            "value": "☪ 物品栏"
+        },
+        {
+            "key": "☪ Item Info",
+            "value": "☪ 物品信息"
+        },
+        {
+            "key": "➳ {} - {}",
+            "value": "➳ {} - {} "
+        },
+        {
+            "key": "➳ {} x{}",
+            "value": "➳ {} x{} "
         }
     ]
 }

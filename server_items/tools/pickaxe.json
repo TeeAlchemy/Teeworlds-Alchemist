@@ -3,8 +3,9 @@
         "type": 0,
         "multiple": [
             {
-                "id": 11,
+                "id": 10,
                 "name": "Wooden Pickaxe",
+                "desc": "An pickaxe made of wood.",
                 "proba": 90,
                 "damage": 150,
                 "formula": {
@@ -14,6 +15,7 @@
             {
                 "id": 13,
                 "name": "Copper Pickaxe",
+                "desc": "An pickaxe made of copper.",
                 "damage": 700,
                 "proba": 90,
                 "formula": {
@@ -22,8 +24,9 @@
                 }
             },
             {
-                "id": 16,
+                "id": 15,
                 "name": "Iron Pickaxe",
+                "desc": "An pickaxe made of iron.",
                 "damage": 1400,
                 "proba": 90,
                 "formula": {
@@ -32,8 +35,9 @@
                 }
             },
             {
-                "id": 19,
+                "id": 18,
                 "name": "Golden Pickaxe",
+                "desc": "An pickaxe made of gold.",
                 "damage": 2000,
                 "proba": 90,
                 "formula": {
@@ -42,8 +46,9 @@
                 }
             },
             {
-                "id": 22,
+                "id": 21,
                 "name": "Diamond Pickaxe",
+                "desc": "An pickaxe made of diamond.",
                 "damage": 8000,
                 "proba": 80,
                 "formula": {
@@ -52,8 +57,9 @@
                 }
             },
             {
-                "id": 24,
+                "id": 23,
                 "name": "Enegry Pickaxe",
+                "desc": "An pickaxe made of enegry.",
                 "damage": 25000,
                 "proba": 100,
                 "formula": {

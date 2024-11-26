@@ -1,0 +1,6 @@
+AddText("Pickaxe")
+AddText("Axe")
+AddText("Sword")
+AddText("Turret")
+AddText("Material")
+AddText("Card")

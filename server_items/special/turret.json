@@ -3,8 +3,9 @@
         "type": 3,
         "multiple": [
             {
-                "id": 25,
+                "id": 24,
                 "name": "Beginner Turret",
+                "desc": "The beginning.",
                 "capacity": 25,
                 "Max": 1,
                 "formula": {
@@ -12,8 +13,9 @@
                 }
             },
             {
-                "id": 26,
+                "id": 25,
                 "name": "Intermediate Turret",
+                "desc": "The intermediate.",
                 "capacity": 50,
                 "Max": 1,
                 "formula": {
@@ -24,8 +26,9 @@
                 }
             },
             {
-                "id": 27,
+                "id": 26,
                 "name": "Advanced Turret",
+                "desc": "The End.",
                 "capacity": 100,
                 "Max": 1,
                 "formula": {

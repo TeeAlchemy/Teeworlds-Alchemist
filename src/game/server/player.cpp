@@ -35,8 +35,6 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, int Team)
 	m_IsBot = false;
 	m_CanSnap = true;
 	m_InitAcc = false;
-
-	m_SelectItemList = -1;
 }
 
 CPlayer::~CPlayer()

@@ -1,8 +1,9 @@
 {
     "item": {
         "type": 4,
-        "id": 6,
+        "id": 5,
         "name": "Diamond",
+        "desc": "DIAMOND!",
         "health": 1200000
     }
 }

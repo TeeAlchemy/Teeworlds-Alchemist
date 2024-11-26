@@ -11,37 +11,46 @@ output_file_name = sys.argv[2]
 
 unique_labels = set()  # 使用集合来避免重复
 
-def help_localize(directory, tpattern):
+def help_localize(directory, endwith, tpattern):
     pattern = re.compile(tpattern, re.IGNORECASE)
-    for root, dirs, files in os.walk(directory):
-        for filename in files:
-            if filename.endswith('.cpp'):
-                # 获取完整文件路径
-                file_path = os.path.join(root, filename)
-                # 打开并读取文件内容
-                with open(file_path, 'r', encoding='utf-8') as file:
-                    content = file.read()
-                    # 查找所有匹配项
-                    matches = pattern.findall(content)
-                    # 将所有匹配的字符串添加到列表中
-                    for found in matches:
-                        if found not in unique_labels:  # 检查是否重复
-                            unique_labels.add(found + "\n")  # 添加到集合中
+
+    if directory.endswith("/*"):
+        base_directory = directory[:-2]  # 移除末尾的'/*'
+        directories = [base_directory]  # 仅包含基础目录
+    else:
+        directories = [directory]
+
+    for directory in directories:
+        for root, dirs, files in os.walk(directory):
+            for filename in files:
+                if filename.endswith(endwith):
+                    # 获取完整文件路径
+                    file_path = os.path.join(root, filename)
+                    # 打开并读取文件内容
+                    with open(file_path, 'r', encoding='utf-8') as file:
+                        content = file.read()
+                        # 查找所有匹配项
+                        matches = pattern.findall(content)
+                        # 将所有匹配的字符串添加到列表中
+                        for found in matches:
+                            if found not in unique_labels:  # 检查是否重复
+                                unique_labels.add(found + "\n")  # 添加到集合中
 
     with open(labelfile, "w") as fw:  # 使用 "w" 而不是 "a" 来覆盖旧文件
         fw.writelines(sorted(unique_labels))  # 对标签进行排序并写入文件
 
-help_localize("src/game/server/", 'Chat\([^,]*, "(.+?)"')
-help_localize("src/engine/shared/", 'Chat\([^,]*, "(.+?)"')
-help_localize("src/game/server/", 'Broadcast\([^,]*, "(.+?)"')
-help_localize("src/engine/shared/", 'Broadcast\([^,]*, "(.+?)"')
-help_localize("src/game/server/", 'Motd\([^,]*, "(.+?)"')
-help_localize("src/engine/shared/", 'Motd\([^,]*, "(.+?)"')
-help_localize("src/game/server/", 'Format\([^,]*, "(.+?)"')
-help_localize("src/engine/shared/", 'Format\([^,]*, "(.+?)"')
-help_localize("src/game/server/", 'Localize\([^,]*, "(.+?)"')
-help_localize("src/engine/shared/", 'Localize\([^,]*, "(.+?)"')
+help_localize("server_lang/", '.extra', 'AddText\("(.+?)"\)')
+help_localize("src/*", '.cpp', 'Chat\([^,]*, "(.+?)"')
+help_localize("src/*", '.cpp', 'Broadcast\([^,]*, "(.+?)"')
+help_localize("src/*", '.cpp', 'Motd\([^,]*, "(.+?)"')
+help_localize("src/*", '.cpp', 'Format\([^,]*, "(.+?)"')
+help_localize("src/*", '.cpp', 'Localize\([^,]*, "(.+?)"')
+help_localize("src/game/server/", '.cpp', 'AddVote_VL\([^,]*, "(.+?)"')
+help_localize("src/game/server/", '.cpp', 'AddVote_Text\("(.+?)"')
+help_localize("src/game/server/", '.cpp', 'AddVote_Goto\([^,]*, "(.+?)"')
 
+help_localize("server_items/*", '.json', '"name":\s*"(.+?)"')
+help_localize("server_items/*", '.json', '"desc":\s*"(.+?)"')
 
 with open(labelfile, "r") as file:
         lines = file.readlines()

@@ -129,8 +129,6 @@ public:
 	}
 
 	int m_Zomb;
-
-	int m_SelectItemList;
 private:
 	CCharacter *m_pCharacter;
 	CGameContext *m_pGameServer;

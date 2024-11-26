@@ -3,7 +3,7 @@
 
 enum
 {
-    ITEM_LOG = 1,
+    ITEM_LOG = 0,
     ITEM_COAL,
     ITEM_COPPER,
     ITEM_IRON,
@@ -12,33 +12,33 @@ enum
     ITEM_ENEGRY,
     ITEM_ZOMBIEHEART,
 
-    ITEM_SWORD_LOG = 9,
+    ITEM_SWORD_LOG = 8,
     ITEM_AXE_LOG,
     ITEM_PICKAXE_LOG,
 
-    ITEM_SWORD_IRON = 12,
+    ITEM_SWORD_IRON = 11,
     ITEM_AXE_COPPER,
     ITEM_PICKAXE_COPPER,
 
-    ITEM_AXE_IRON = 15,
+    ITEM_AXE_IRON = 14,
     ITEM_PICKAXE_IRON,
 
-    ITEM_SWORD_GOLDEN = 17,
+    ITEM_SWORD_GOLDEN = 16,
     ITEM_AXE_GOLDEN,
     ITEM_PICKAXE_GOLDEN,
 
-    ITEM_SWORD_DIAMOND = 20,
+    ITEM_SWORD_DIAMOND = 19,
     ITEM_AXE_DIAMOND,
     ITEM_PICKAXE_DIAMOND,
 
-    ITEM_SWORD_ENEGRY = 23,
+    ITEM_SWORD_ENEGRY = 22,
     ITEM_PICKAXE_ENEGRY,
 
-    ITEM_TURRET_BEGINNER = 25,
+    ITEM_TURRET_BEGINNER = 24,
     ITEM_TURRET_INTERMEDIATE,
     ITEM_TURRET_ADVANCED,
 
-    ITEM_CARD_QUICKLY_FIRE = 28,
+    ITEM_CARD_QUICKLY_FIRE = 27,
     ITEM_CARD_QUICKLY_LOADING,
     ITEM_CARD_DAMAGE,
     ITEM_CARD_EXPLOSION,
@@ -76,22 +76,26 @@ struct CItem
 {
     int m_Type;
     int m_ID;
-    char m_ItemName[128];
+    char m_aItemName[128];
+    char m_aItemDesc[128];
     int m_Proba;
     int m_Formula[NUM_ITEM];
     int m_Max;
     int m_MaxHealth;
+    bool m_HasFormula;
 
     CItem()
     {
         m_Type = 0;
         m_ID = 0;
-        strncpy(m_ItemName, "", sizeof(m_ItemName));
+        strncpy(m_aItemName, "", sizeof(m_aItemName));
+        strncpy(m_aItemDesc, "", sizeof(m_aItemDesc));
         m_Proba = 0;
         for (int i = 0; i < int(NUM_ITEM); i++)
             m_Formula[i] = 0;
         m_Max = 0;
-        m_MaxHealth = 0;        
+        m_MaxHealth = 0;
+        m_HasFormula = false;
     }
 };
 
@@ -124,7 +128,7 @@ struct SPlayerItemData
     int m_Cards;
 };
 
-class CItem_F
+class CItemHelper
 {
 private:
     class CGameContext *m_pGameServer;
@@ -135,7 +139,7 @@ private:
 
 public:
     CItem *Items(int ID) { return m_aItems[ID]; }
-    CItem_F(class CGameContext *pGameServer);
+    CItemHelper(class CGameContext *pGameServer);
     void LoadIndex();
     void LoadItem(const char *FileName);
     void LoadFormula(const char *FileName);

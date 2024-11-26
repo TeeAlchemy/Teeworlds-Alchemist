@@ -38,7 +38,7 @@ int CGameControllerMain::OnCharacterDeath(class CCharacter *pVictim, class CPlay
 		return 0;
 
 	if(!pVictim->GetPlayer()->IsBot())
-		GameServer()->Chat(pVictim->GetPlayer()->GetCID(), "你死了");
+		GameServer()->Chat(pVictim->GetPlayer()->GetCID(), "You're dead");
 
 	return 1;
 }

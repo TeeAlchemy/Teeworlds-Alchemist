@@ -3,8 +3,9 @@
         "type": 2,
         "multiple": [
             {
-                "id": 9,
+                "id": 8,
                 "name": "Wooden Sword",
+                "desc": "An sword made of wood.",
                 "damage": 2,
                 "proba": 90,
                 "formula": {
@@ -12,8 +13,9 @@
                 }
             },
             {
-                "id": 12,
+                "id": 11,
                 "name": "Iron Sword",
+                "desc": "An sword made of iron.",
                 "damage": 7,
                 "proba": 90,
                 "formula": {
@@ -22,8 +24,9 @@
                 }
             },
             {
-                "id": 17,
+                "id": 16,
                 "name": "Golden Sword",
+                "desc": "An sword made of gold.",
                 "damage": 10,
                 "proba": 90,
                 "formula": {
@@ -32,8 +35,9 @@
                 }
             },
             {
-                "id": 20,
+                "id": 19,
                 "name": "Diamond Sword",
+                "desc": "An sword made of diamond.",
                 "damage": 20,
                 "proba": 80,
                 "formula": {
@@ -42,8 +46,9 @@
                 }
             },
             {
-                "id": 23,
+                "id": 22,
                 "name": "Enegry Sword",
+                "desc": "An sword made of enegry.",
                 "damage": 40,
                 "proba": 100,
                 "formula": {

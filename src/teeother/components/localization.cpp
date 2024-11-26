@@ -126,20 +126,22 @@ bool CLocalization::Init()
 		return false;
 	}
 
-	const int FileSize = (int)io_length(File);
-	char* pFileData = (char*)malloc(FileSize);
+	int FileSize = (int)io_length(File);
+	char *pFileData = new char[FileSize+1];
 	io_read(File, pFileData, FileSize);
+	pFileData[FileSize] = 0;
 	io_close(File);
 
 	// parse json data
 	json_settings JsonSettings;
 	mem_zero(&JsonSettings, sizeof(JsonSettings));
 	char aError[256];
-	json_value* pJsonData = json_parse_ex(&JsonSettings, pFileData, aError);
-	free(pFileData);
-	if(pJsonData == nullptr)
-		return true; // return true because it's not a critical error
-
+	json_value *pJsonData = json_parse_ex(&JsonSettings, pFileData, aError);
+	if(pJsonData == 0)
+	{
+		delete[] pFileData;
+		return true; //return true because it's not a critical error
+	}
 	// extract data
 	m_pMainLanguage = nullptr;
 	const json_value& rStart = (*pJsonData)["language indices"];

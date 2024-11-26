@@ -3,8 +3,9 @@
         "type": 5,
         "multiple": [
             {
-                "id": 28,
+                "id": 27,
                 "name": "Card: Quickly-Fire",
+                "desc": "Haste makes apple.",
                 "capacity": 10,
                 "placeable": [0, 1, 2, 3],
                 "formula": {
@@ -14,8 +15,9 @@
                 }
             },
             {
-                "id": 29,
+                "id": 28,
                 "name": "Card: Quickly-Loading",
+                "desc": "Haste makes apple.",
                 "capacity": 10,
                 "placeable": [2, 3],
                 "formula": {
@@ -25,8 +27,9 @@
                 }
             },
             {
-                "id": 30,
+                "id": 29,
                 "name": "Card: Damage",
+                "desc": "Oh, that hurt!",
                 "capacity": 10,
                 "placeable": [0, 1, 2, 3],
                 "formula": {
@@ -36,8 +39,9 @@
                 }
             },
             {
-                "id": 31,
+                "id": 30,
                 "name": "Card: Explosion",
+                "desc": "BOOM!",
                 "capacity": 15,
                 "placeable": [2, 3],
                 "formula": {
@@ -48,8 +52,9 @@
                 }
             },
             {
-                "id": 32,
+                "id": 31,
                 "name": "Card: Electron",
+                "desc": "Numb.",
                 "capacity": 30,
                 "placeable": [2, 3],
                 "formula": {
@@ -61,8 +66,9 @@
                 }
             },
             {
-                "id": 33,
+                "id": 32,
                 "name": "Card: Fusion",
+                "desc": "World War III",
                 "capacity": 55,
                 "placeable": [2, 3],
                 "formula": {
@@ -75,8 +81,9 @@
                 }
             },
             {
-                "id": 34,
+                "id": 33,
                 "name": "Card: Force",
+                "desc": "Fly away.",
                 "capacity": 10,
                 "placeable": [2, 3],
                 "formula": {
@@ -85,8 +92,9 @@
                 }
             },
             {
-                "id": 35,
+                "id": 34,
                 "name": "Card: Manual Control",
+                "desc": "Be your own.",
                 "capacity": 0,
                 "placeable": [3],
                 "formula": {

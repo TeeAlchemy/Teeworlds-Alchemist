@@ -1,8 +1,9 @@
 {
     "item": {
         "type": 4,
-        "id": 2,
+        "id": 1,
         "name": "Coal",
+        "desc": "Fire! Fire! Fire!",
         "health": 8000
     }
 }

@@ -34,7 +34,6 @@ public:
 	int RandZomb();
 	bool EndWave();
 	void DoZombMessage(int Which);
-	void DoLifeMessage(int Life);
 	void SetWaveAlg(int modulus, int wavedrittel);
 	int GetZombieReihenfolge(int wavedrittel);
 

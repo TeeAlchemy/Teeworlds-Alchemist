@@ -1,7 +1,8 @@
 {
     "item": {
         "type": 4,
-        "id": 8,
-        "name": "Zombie's Heart"
+        "id": 7,
+        "name": "Zombie's Heart",
+        "desc": "They are going to report bloody violence."
     }
 }

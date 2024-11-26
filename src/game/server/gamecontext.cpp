@@ -32,7 +32,7 @@ enum
 
 void CGameContext::Construct(int Resetting)
 {
-	m_pItemF = new CItem_F(this);
+	m_pItemHelper = new CItemHelper(this);
 	m_Resetting = 0;
 	m_pServer = 0;
 
@@ -1709,7 +1709,7 @@ bool CGameContext::VotGiveItem(IConsole::IResult *pResult, void *pUserData)
 bool CGameContext::VotSelectItem(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->GetPlayer(pResult->GetClientID())->m_SelectItemList = pResult->GetInteger(0);
+	pSelf->GetPlayerVote(pResult->GetClientID())->m_Select[pResult->GetInteger(0)] = pResult->GetInteger(1);
 	pSelf->ClearVotes(pResult->GetClientID());
 	return true;
 }
@@ -1718,6 +1718,33 @@ bool CGameContext::VotGoto(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	pSelf->m_aPlayerVotes[pResult->GetClientID()].m_Page = pResult->GetInteger(0);
+	pSelf->ClearVotes(pResult->GetClientID());
+	return true;
+}
+
+bool CGameContext::VotCraft(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	pSelf->m_aPlayerVotes[pResult->GetClientID()].m_Page = PAGE_CRAFT_SELECTED;
+	pSelf->m_aPlayerVotes[pResult->GetClientID()].m_Select[SPlayerVote::ITEM] = pResult->GetInteger(0);
+	pSelf->ClearVotes(pResult->GetClientID());
+	return true;
+}
+
+bool CGameContext::VotMake(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	pSelf->m_aPlayerVotes[pResult->GetClientID()].m_Page = PAGE_CRAFT_SELECTED;
+	pSelf->m_aPlayerVotes[pResult->GetClientID()].m_Select[SPlayerVote::ITEM] = pResult->GetInteger(0);
+	pSelf->ClearVotes(pResult->GetClientID());
+	return true;
+}
+
+bool CGameContext::VotCheckItem(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	pSelf->m_aPlayerVotes[pResult->GetClientID()].m_Page = PAGE_CHECK_ITEM;
+	pSelf->m_aPlayerVotes[pResult->GetClientID()].m_Select[SPlayerVote::ITEM] = pResult->GetInteger(0);
 	pSelf->ClearVotes(pResult->GetClientID());
 	return true;
 }
@@ -1759,8 +1786,11 @@ void CGameContext::OnConsoleInit()
 
 	Console()->Register("giveitem", "iii", CFGFLAG_CHAT, VotGiveItem, this, "[clientid] [itemid] [numitem] - Give item");
 
-	Console()->Register("selectitem", "i", CFGFLAG_VOTE, VotSelectItem, this, "[item] - Select");
+	Console()->Register("selectitem", "ii", CFGFLAG_VOTE, VotSelectItem, this, "[][] - Select");
 	Console()->Register("goto", "i", CFGFLAG_VOTE, VotGoto, this, "[page] - Go to a vote page");
+	Console()->Register("craft", "i", CFGFLAG_VOTE, VotCraft, this, "[item] - Craft something");
+	Console()->Register("make", "i", CFGFLAG_VOTE, VotMake, this, "[item] - Confirm to make something");
+	Console()->Register("checkitem", "i", CFGFLAG_VOTE, VotCheckItem, this, "[item] - Confirm to make something");
 
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
 
@@ -1809,7 +1839,7 @@ void CGameContext::OnInit(int WorldID)
 	m_pBotEngine->Init(pTiles, pTileMap->m_Width, pTileMap->m_Height);
 	m_pController->InitBots();
 
-	ItemF()->LoadIndex();
+	ItemHelper()->LoadIndex();
 }
 
 void CGameContext::OnShutdown()
@@ -2012,31 +2042,69 @@ void CGameContext::AddVote_ListInventory(int ItemType)
 	CPlayer *pP = GetPlayer(m_VoteClientID);
 	if (!pP)
 		return;
-	
-	if(pP->m_SelectItemList == ItemType)
+
+	bool Got = false;
+	for (int i = 0; i < NUM_ITEM; i++)
 	{
-		bool Got = false;
-		for (int i = 0; i < NUM_ITEM; i++)
+		if(ItemHelper()->GetType(i) == ItemType && pP->m_AccData.m_aItems[i].m_Num)
 		{
-			if(ItemF()->GetType(i) == ItemType && pP->m_AccData.m_aItems[i].m_Num)
-			{
-				AddVote_VL("ccv_null", "➳ {} x{}", ItemF()->GetItemName(i), pP->m_AccData.m_aItems[i].m_Num);
-				Got = true;
-			}
+			char aCmd[32];
+			str_format(aCmd, sizeof(aCmd), "ccv_checkitem %d", i);
+			AddVote_VL(aCmd, "➳ {} x{}", ItemHelper()->GetItemName(i), pP->m_AccData.m_aItems[i].m_Num);
+			Got = true;
 		}
-		if (!Got)
-			AddVote_Text("( ´・∧・`)空空如也");
 	}
+	if (!Got)
+		AddVote_Text("( ´・∧・`)Empty");
 }
 
-void CGameContext::AddVote_Goto(int Page, const char *pDesc)
+void CGameContext::AddVote_ListCraft(int ItemType)
 {
-	if (!PlayerExists(m_VoteClientID))
+	CPlayer *pP = GetPlayer(m_VoteClientID);
+	if (!pP)
 		return;
 	
-	char aPageFormat[64];
-	str_format(aPageFormat, sizeof(aPageFormat), "ccv_goto %d", Page);
-	AddVote_VL(aPageFormat, pDesc);
+	bool Got = false;
+	for (int i = 0; i < NUM_ITEM; i++)
+	{
+		if(ItemHelper()->GetType(i) == ItemType && Items(i)->m_HasFormula)
+		{
+			AddVote_Craft(i);
+			Got = true;
+		}
+	}
+	if (!Got)
+		AddVote_Text("( ´・∧・`)Empty");
+}
+
+void CGameContext::AddVote_Craft(int ItemID)
+{
+	CPlayer *pP = GetPlayer(m_VoteClientID);
+	if (!pP)
+		return;
+	
+	char aCmd[64];
+	str_format(aCmd, sizeof(aCmd), "ccv_craft %d", ItemID);
+	AddVote_VL(aCmd, "➳ {} - {}", ItemHelper()->GetItemName(ItemID), Items(ItemID)->m_aItemDesc);
+}
+
+void CGameContext::AddVote_ListFormula(int Item)
+{
+	CPlayer *pP = GetPlayer(m_VoteClientID);
+	if (!pP)
+		return;
+
+	bool Got = false;
+	for (int i = 0; i < NUM_ITEM; i++)
+	{
+		if(Items(Item)->m_Formula[i])
+		{
+			AddVote_Text("# {} {}/{}", Items(i)->m_aItemName, pP->m_AccData.m_aItems[i].m_Num, Items(Item)->m_Formula[i]);
+			Got = true;
+		}
+	}
+	if (!Got)
+		AddVote_Text("( ´・∧・`)Empty");
 }
 
 void CGameContext::AddVote_Back()
@@ -2044,7 +2112,7 @@ void CGameContext::AddVote_Back()
 	if (!PlayerExists(m_VoteClientID))
 		return;
 	
-	AddVote_Goto(m_aPlayerVotes[m_VoteClientID].m_LastPage, "⏎ 返回上一页");
+	AddVote_Goto(m_aPlayerVotes[m_VoteClientID].m_LastPage, "⏎ Back");
 }
 
 void CGameContext::AddVote_Space(int Num)
@@ -2065,19 +2133,21 @@ void CGameContext::InitVotes(int ClientID)
 	SetVoteClientID(ClientID);
 
 	CPlayer::SAccData Data = pP->m_AccData;
-
-	int Page = m_aPlayerVotes[ClientID].m_Page;
+	SPlayerVote PlayerVote = m_aPlayerVotes[ClientID];
+	int Page = PlayerVote.m_Page;
+	std::string ItemLists[NUM_ITYPE] = {"Pickaxe", "Axe", "Sword", "Turret", "Material", "Card"};
 
 	switch (Page)
 	{
 	case PAGE_MENU:
 		{
 			SetVoteLastPage(Page);
-			AddVote_Text("==== ⚠玩家菜单⚠ =");
-			AddVote_Text("账号ID: {}", Data.m_UserID);
-			AddVote_Text("派别: #尚未完成#");
+			AddVote_Text("==== ⚠Player Menu⚠ =");
+			AddVote_Text("User ID: {}", Data.m_UserID);
+			AddVote_Text("Party: #Under development#");
 			AddVote_Space();
-			AddVote_Goto(PAGE_INVENTORY, "☞ 物品栏/背包 ✪");
+			AddVote_Goto(PAGE_INVENTORY, "☞ Inventory ✪");
+			AddVote_Goto(PAGE_CRAFT, "☞ Craft ☺");
 		}
 		break;
 
@@ -2088,14 +2158,15 @@ void CGameContext::InitVotes(int ClientID)
 			AddVote_Text("---------------------");
 			AddVote_Back();
 			AddVote_Space();
-			std::string ItemLists[NUM_ITYPE] = {"Pickaxe", "Axe", "Sword", "Turret", "Material", "Card"};
+			AddVote_Text("☪ Inventory");
+			AddVote_Space();
 			CountItemNum(ClientID);
 			for (int i = 0; i < NUM_ITYPE; i++)
 			{
-				if(pP->m_SelectItemList != i)
+				if(PlayerVote.m_Select[SPlayerVote::ITEMLIST] != i)
 				{
 					char aCmd[64];
-					str_format(aCmd, sizeof(aCmd), "ccv_selectitem %d", i);
+					str_format(aCmd, sizeof(aCmd), "ccv_selectitem %d %d", SPlayerVote::ITEMLIST, i);
 					AddVote_VL(aCmd, "▹ {} ({})", ItemLists[i], pP->m_AccData.m_ItemCount[i]);
 				}
 				else
@@ -2103,7 +2174,60 @@ void CGameContext::InitVotes(int ClientID)
 			}
 			AddVote_Space();
 			AddVote_Text("---------------------");
-			AddVote_ListInventory(pP->m_SelectItemList);
+			AddVote_ListInventory(PlayerVote.m_Select[SPlayerVote::EVoteSelect::ITEMLIST]);
+		}
+		break;
+
+	case PAGE_CHECK_ITEM:
+		{
+			SetVoteLastPage(PAGE_INVENTORY);
+			AddVote_Text("☪ Item Info");
+			AddVote_Space();
+			AddVote_Text("Item: {}", Items(PlayerVote.m_Select[SPlayerVote::ITEM])->m_aItemName);
+			AddVote_Text("Description: {}", Items(PlayerVote.m_Select[SPlayerVote::ITEM])->m_aItemDesc);
+			AddVote_Space();
+			AddVote_Back();
+		}
+		break;
+
+	case PAGE_CRAFT:
+		{
+			TW()->Account()->SyncAccountData(ClientID, TABLE_ITEM);
+			SetVoteLastPage(PAGE_MENU);
+			AddVote_Text("☪ Craft");
+			AddVote_Space();
+			for (int i = 0; i < NUM_ITYPE; i++)
+			{
+				if(PlayerVote.m_Select[SPlayerVote::ITEMLIST] != i)
+				{
+					char aCmd[64];
+					str_format(aCmd, sizeof(aCmd), "ccv_selectitem %d %d", SPlayerVote::ITEMLIST, i);
+					AddVote_VL(aCmd, "▹ {}", ItemLists[i]);
+				}
+				else
+					AddVote_Text("▾ {}", ItemLists[i]);
+			}
+			AddVote_Space();
+			AddVote_Back();
+			AddVote_Text("---------------------");
+			AddVote_ListCraft(PlayerVote.m_Select[SPlayerVote::ITEMLIST]);
+		}
+		break;
+
+	case PAGE_CRAFT_SELECTED:
+		{
+			SetVoteLastPage(PAGE_CRAFT);
+			AddVote_Text("☪ Craft");
+			AddVote_Space();
+			AddVote_Text("Item: {}", Items(PlayerVote.m_Select[SPlayerVote::ITEM])->m_aItemName);
+			AddVote_Text("Description: {}", Items(PlayerVote.m_Select[SPlayerVote::ITEM])->m_aItemDesc);
+			AddVote_Text("Formula:");
+			AddVote_Text("---");
+			AddVote_ListFormula(PlayerVote.m_Select[SPlayerVote::ITEM]);
+			AddVote_Text("---");
+			AddVote_VL("ccv_make", "- Craft!");
+			AddVote_Space(2);
+			AddVote_Back();
 		}
 		break;
 	default:
@@ -2155,7 +2279,7 @@ void CGameContext::CountItemNum(int ClientID)
 	for (int i = 0; i < NUM_ITEM; i++)
 	{
 		if(m_apPlayers[ClientID]->m_AccData.m_aItems[i].m_Num > 0)
-			ItemCount[ItemF()->GetType(i)]++;
+			ItemCount[ItemHelper()->GetType(i)]++;
 	}
 	
 	std::copy(std::begin(ItemCount), std::end(ItemCount), m_apPlayers[ClientID]->m_AccData.m_ItemCount);

@@ -2,12 +2,12 @@
 #include <game/server/gamecontext.h>
 #include <engine/external/json-parser/json.h>
 
-CItem_F::CItem_F(CGameContext *pGameServer)
+CItemHelper::CItemHelper(CGameContext *pGameServer)
 {
     m_pGameServer = pGameServer;
 }
 
-void CItem_F::LoadIndex()
+void CItemHelper::LoadIndex()
 {
     const char *pIndex = "./server_items/index.json";
     IOHANDLE File = GameServer()->Storage()->OpenFile(pIndex, IOFLAG_READ, IStorage::TYPE_ALL);
@@ -45,7 +45,7 @@ void CItem_F::LoadIndex()
     delete[] pFileData;
 }
 
-void CItem_F::LoadItem(const char *FileName)
+void CItemHelper::LoadItem(const char *FileName)
 {
     IOHANDLE File = GameServer()->Storage()->OpenFile(FileName, IOFLAG_READ, IStorage::TYPE_ALL);
     if (!File)
@@ -107,7 +107,8 @@ void CItem_F::LoadItem(const char *FileName)
 
                 m_aItems[ID]->m_Type = Type;
                 m_aItems[ID]->m_ID = ID;
-                str_copy(m_aItems[ID]->m_ItemName, rMultiple["name"], sizeof(m_aItems[ID]->m_ItemName));
+                str_copy(m_aItems[ID]->m_aItemName, rMultiple["name"], sizeof(m_aItems[ID]->m_aItemName));
+                str_copy(m_aItems[ID]->m_aItemDesc, rMultiple["desc"], sizeof(m_aItems[ID]->m_aItemDesc));
                 m_aItems[ID]->m_Proba = rMultiple["proba"].u.integer;
                 m_aItems[ID]->m_MaxHealth = rMultiple["health"].u.integer;
             }
@@ -139,14 +140,15 @@ void CItem_F::LoadItem(const char *FileName)
             }
             m_aItems[ID]->m_Type = rStart["type"].u.integer;
             m_aItems[ID]->m_ID = ID;
-            str_copy(m_aItems[ID]->m_ItemName, rStart["name"], sizeof(m_aItems[ID]->m_ItemName));
+            str_copy(m_aItems[ID]->m_aItemName, rStart["name"], sizeof(m_aItems[ID]->m_aItemName));
+            str_copy(m_aItems[ID]->m_aItemDesc, rStart["desc"], sizeof(m_aItems[ID]->m_aItemDesc));
             m_aItems[ID]->m_Proba = rStart["proba"].u.integer;
             m_aItems[ID]->m_MaxHealth = rStart["health"].u.integer;
         }
     }
 }
 
-void CItem_F::LoadFormula(const char *FileName)
+void CItemHelper::LoadFormula(const char *FileName)
 {
     IOHANDLE File = GameServer()->Storage()->OpenFile(FileName, IOFLAG_READ, IStorage::TYPE_ALL);
     if (!File)
@@ -181,7 +183,10 @@ void CItem_F::LoadFormula(const char *FileName)
                 int ID = rStart["multiple"][i]["id"].u.integer;
                 const json_value &rFormula = rStart["multiple"][i]["formula"];
                 for (size_t j = 0; j < rFormula.u.object.length; j++)
+                {
+                    m_aItems[ID]->m_HasFormula = true;
                     m_aItems[ID]->m_Formula[FindItem(rFormula.u.object.values[j].name)] = rFormula.u.object.values[j].value->u.integer;
+                }
             }
         }
         else if (rStart["formula"])
@@ -189,39 +194,42 @@ void CItem_F::LoadFormula(const char *FileName)
             int ID = rStart["id"].u.integer;
             const json_value &rFormula = rStart["formula"];
             for (size_t j = 0; j < rFormula.u.object.length; j++)
+            {
+                m_aItems[ID]->m_HasFormula = true;
                 m_aItems[ID]->m_Formula[FindItem(rFormula.u.object.values[j].name)] = rFormula.u.object.values[j].value->u.integer;
+            }
         }
     }
 }
 
-int CItem_F::FindItem(const char *ItemName)
+int CItemHelper::FindItem(const char *ItemName)
 {
-    for (int i = 1; i < int(NUM_ITEM); i++)
+    for (int i = 0; i < int(NUM_ITEM); i++)
     {
         if (!Items(i))
             continue;
 
-        if (str_comp(Items(i)->m_ItemName, ItemName) == 0)
+        if (str_comp(Items(i)->m_aItemName, ItemName) == 0)
             return Items(i)->m_ID;
     }
     return ITEM_LOG;
 }
 
-int CItem_F::GetType(int ID)
+int CItemHelper::GetType(int ID)
 {
     if (!CheckItemVaild(ID))
         return int(ITYPE_MATERIAL);
     return m_aItems[ID]->m_Type;
 }
 
-const char *CItem_F::GetItemName(int ID)
+const char *CItemHelper::GetItemName(int ID)
 {
     if (!CheckItemVaild(ID))
         return "Log";
-    return m_aItems[ID]->m_ItemName;
+    return m_aItems[ID]->m_aItemName;
 }
 
-int CItem_F::GetItemID(const char ItemName[64])
+int CItemHelper::GetItemID(const char ItemName[64])
 {
     short ID = FindItem(ItemName);
     if (!CheckItemVaild(ID))
@@ -229,46 +237,46 @@ int CItem_F::GetItemID(const char ItemName[64])
     return ID;
 }
 
-int CItem_F::GetDmg(int ID)
+int CItemHelper::GetDmg(int ID)
 {
     if (!CheckItemVaild(ID))
         return 0;
     return ((CItem_Tool *)m_aItems[ID])->m_Damage;
 }
 
-int CItem_F::GetProba(int ID)
+int CItemHelper::GetProba(int ID)
 {
     if (!CheckItemVaild(ID))
         return 0;
     return m_aItems[ID]->m_Proba;
 }
 
-int CItem_F::GetCapacity(int ID)
+int CItemHelper::GetCapacity(int ID)
 {
     if (!CheckItemVaild(ID))
         return 0;
     return ((CItem_Tool *)m_aItems[ID])->m_Capacity;
 }
 
-void CItem_F::GetFormula(int ID, int *Formula)
+void CItemHelper::GetFormula(int ID, int *Formula)
 {
     if (!CheckItemVaild(ID))
         return;
-    for (int i = 1; i < NUM_ITEM; i++)
+    for (int i = 0; i < NUM_ITEM; i++)
     {
         if (m_aItems[ID]->m_Formula[i])
             Formula[i] = m_aItems[ID]->m_Formula[i];
     }
 }
 
-int CItem_F::GetMax(int ID)
+int CItemHelper::GetMax(int ID)
 {
     if (!CheckItemVaild(ID))
         return 0;
     return m_aItems[ID]->m_Max;
 }
 
-int CItem_F::GetMaxHealth(int ID)
+int CItemHelper::GetMaxHealth(int ID)
 {
     if (!CheckItemVaild(ID))
         return 0;

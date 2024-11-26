@@ -31,8 +31,9 @@ enum EVotePages
 {
 	PAGE_MENU = 0,
 	PAGE_INVENTORY,
+	PAGE_CHECK_ITEM,
 	PAGE_CRAFT,
-
+	PAGE_CRAFT_SELECTED,
 };
 
 /*
@@ -102,6 +103,9 @@ class CGameContext : public IGameServer
 	static bool VotGiveItem(IConsole::IResult *pResult, void *pUserData);
 	static bool VotSelectItem(IConsole::IResult *pResult, void *pUserData);
 	static bool VotGoto(IConsole::IResult *pResult, void *pUserData);
+	static bool VotCheckItem(IConsole::IResult *pResult, void *pUserData);
+	static bool VotCraft(IConsole::IResult *pResult, void *pUserData);
+	static bool VotMake(IConsole::IResult *pResult, void *pUserData);
 
 	CGameContext(int Resetting);
 	void Construct(int Resetting);
@@ -259,9 +263,9 @@ public:
 	};
 
 public:
-	CItem_F *m_pItemF;
-	CItem_F *ItemF() { return m_pItemF; }
-	CItem *Items(int i) { return ItemF()->Items(i); };
+	CItemHelper *m_pItemHelper;
+	CItemHelper *ItemHelper() { return m_pItemHelper; }
+	CItem *Items(int i) { return ItemHelper()->Items(i); };
 
 	bool AwakenBot(int ClientID);
 	bool AsleepBot(int ClientID);
@@ -313,6 +317,13 @@ public:
 public:
 	struct SPlayerVote
 	{
+		enum EVoteSelect
+		{
+			ITEMLIST = 0,
+			ITEM,
+			NUM_SELECT,
+		};
+
 		struct SVoteOptions
 		{
 			char m_aDescription[VOTE_DESC_LENGTH] = {0};
@@ -321,9 +332,13 @@ public:
 		array<SVoteOptions> m_aVoteOptions;
 		int m_LastPage;
 		int m_Page;
+
+		int m_Select[NUM_SELECT];
 	};
 	
 	SPlayerVote m_aPlayerVotes[MAX_CLIENTS];
+
+	SPlayerVote *GetPlayerVote(int ClientID) { return &m_aPlayerVotes[ClientID]; }
 
 	template <typename... Ts>
 	void AddVote_VL(const char *pCmd, const char *pText, Ts &&...args)
@@ -342,10 +357,22 @@ public:
 
 	// Pack
 	void AddVote_ListInventory(int ItemType);
+	void AddVote_ListCraft(int ItemType);
+	void AddVote_ListFormula(int ItemID);
+	void AddVote_Craft(int ItemID);
 	void AddVote_Make(int ItemType);
 
 	// Helper functions
-	void AddVote_Goto(int Page, const char *pDesc);
+	template <typename... Ts>
+	void AddVote_Goto(int Page, const char *pDesc, Ts &&...args)
+	{
+		if (!PlayerExists(m_VoteClientID))
+			return;
+
+		char aPageFormat[64];
+		str_format(aPageFormat, sizeof(aPageFormat), "ccv_goto %d", Page);
+		AddVote_VL(aPageFormat, pDesc, std::forward<Ts>(args)...);
+	}
 	void AddVote_Back();
 	void AddVote_Space(int Num = 1);
 	template <typename... Ts>

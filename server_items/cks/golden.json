@@ -1,8 +1,9 @@
 {
     "item": {
         "type": 4,
-        "id": 5,
+        "id": 4,
         "name": "Golden",
+        "desc": "Shining and Sparkling!",
         "health": 30000
     }
 }

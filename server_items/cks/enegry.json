@@ -1,8 +1,9 @@
 {
     "item": {
         "type": 4,
-        "id": 7,
+        "id": 6,
         "name": "Enegry",
+        "desc": "Contains enormous energy.",
         "health": 3000000
     }
 }

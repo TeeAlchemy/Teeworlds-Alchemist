@@ -66,8 +66,6 @@ int CGameControllerTeeDefense::OnCharacterDeath(class CCharacter *pVictim, class
 		DoZombMessage(m_ZombLeft--);
 		GameServer()->AsleepBot(pVictim->GetPlayer()->GetCID());
 	}
-	else if (pKiller->GetTeam() == TEAM_HUMAN && pVictim->GetPlayer() && pVictim->GetPlayer()->GetTeam() == TEAM_BOT)
-		DoLifeMessage(m_aTeamscore[TEAM_HUMAN]--);
 
 	// do scoreing
 	if (Weapon == WEAPON_GAME)
@@ -273,21 +271,6 @@ void CGameControllerTeeDefense::DoZombMessage(int Which)
 		GameServer()->Chat(-1, "Wave {}: {} zombies are left", m_Wave, Which);
 	else if (Which == 1)
 		GameServer()->Chat(-1, "Wave {}: 1 zombie is left", m_Wave);
-}
-
-void CGameControllerTeeDefense::DoLifeMessage(int Life)
-{
-	Life -= 1;
-
-	if (Life > 1 && (Life <= 5 || !(Life % 10)))
-	{
-		if (Life <= 10)
-			GameServer()->Broadcast(-1, "Only {} lifes left!", Life);
-		else
-			GameServer()->Broadcast(-1, "{} lifes left!", Life);
-	}
-	else if (Life == 1)
-		GameServer()->Broadcast(-1, "!!!Only 1 life left!!!");
 }
 
 void CGameControllerTeeDefense::SetWaveAlg(int modulus, int wavedrittel)
