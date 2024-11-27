@@ -48,6 +48,7 @@ help_localize("src/*", '.cpp', 'Localize\([^,]*, "(.+?)"')
 help_localize("src/game/server/", '.cpp', 'AddVote_VL\([^,]*, "(.+?)"')
 help_localize("src/game/server/", '.cpp', 'AddVote_Text\("(.+?)"')
 help_localize("src/game/server/", '.cpp', 'AddVote_Goto\([^,]*, "(.+?)"')
+help_localize("src/game/server/", '.cpp', 'SetVoteExtraText\([^,]*, "(.+?)"')
 
 help_localize("server_items/*", '.json', '"name":\s*"(.+?)"')
 help_localize("server_items/*", '.json', '"desc":\s*"(.+?)"')

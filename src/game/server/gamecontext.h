@@ -63,7 +63,7 @@ class CGameContext : public IGameServer
 	class CLayers *m_pLayers;
 	class CBotEngine *m_pBotEngine;
 	class TWorldController *m_pTWorldController;
-	
+
 	IServer *m_pServer;
 	IStorage *m_pStorage;
 	CCollision m_Collision;
@@ -98,7 +98,6 @@ class CGameContext : public IGameServer
 
 	static bool ConRegister(IConsole::IResult *pResult, void *pUserData);
 	static bool ConLogin(IConsole::IResult *pResult, void *pUserData);
-
 
 	static bool VotGiveItem(IConsole::IResult *pResult, void *pUserData);
 	static bool VotSelectItem(IConsole::IResult *pResult, void *pUserData);
@@ -313,7 +312,7 @@ public:
 		SendNetworkMessage<CNetMsg_Sv_Broadcast>(Msg, -1, ClientID, pText, std::forward<Ts>(args)...);
 	}
 
-// Vote
+	// Vote
 public:
 	struct SPlayerVote
 	{
@@ -332,10 +331,11 @@ public:
 		array<SVoteOptions> m_aVoteOptions;
 		int m_LastPage;
 		int m_Page;
-
 		int m_Select[NUM_SELECT];
+
+		char m_aExtraText[VOTE_DESC_LENGTH];
 	};
-	
+
 	SPlayerVote m_aPlayerVotes[MAX_CLIENTS];
 
 	SPlayerVote *GetPlayerVote(int ClientID) { return &m_aPlayerVotes[ClientID]; }
@@ -360,7 +360,6 @@ public:
 	void AddVote_ListCraft(int ItemType);
 	void AddVote_ListFormula(int ItemID);
 	void AddVote_Craft(int ItemID);
-	void AddVote_Make(int ItemType);
 
 	// Helper functions
 	template <typename... Ts>
@@ -379,7 +378,8 @@ public:
 	void AddVote_Text(const char *pText, Ts &&...args) { AddVote_VL("ccv_null", pText, std::forward<Ts>(args)...); }
 	void SetVoteLastPage(int Page) { m_aPlayerVotes[m_VoteClientID].m_LastPage = Page; }
 	void SetVoteClientID(int CID) { m_VoteClientID = CID; }
-
+	template <typename... Ts>
+	void SetVoteExtraText(int CID, const char *pExtraText, Ts &&...args) { str_copy(m_aPlayerVotes[CID].m_aExtraText, Server()->Localization()->Format(GetClientLanguage(CID), pExtraText, std::forward<Ts>(args)...).c_str(), VOTE_DESC_LENGTH); }
 
 	// Vote Engine
 	void InitVotes(int ClientID);

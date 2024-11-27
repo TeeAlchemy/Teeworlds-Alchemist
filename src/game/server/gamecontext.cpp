@@ -1734,8 +1734,43 @@ bool CGameContext::VotCraft(IConsole::IResult *pResult, void *pUserData)
 bool CGameContext::VotMake(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->m_aPlayerVotes[pResult->GetClientID()].m_Page = PAGE_CRAFT_SELECTED;
-	pSelf->m_aPlayerVotes[pResult->GetClientID()].m_Select[SPlayerVote::ITEM] = pResult->GetInteger(0);
+
+	int ClientID = pResult->GetClientID();
+	CPlayer *pPlayer = pSelf->GetPlayer(ClientID);
+	if (!pPlayer)
+		return false;
+
+	int Item = pSelf->m_aPlayerVotes[ClientID].m_Select[SPlayerVote::ITEM];
+	// Check formula
+	bool IsOK = true;
+	for (int Checked = 0; Checked < 2; Checked++)
+	{
+		for (int i = 0; i < NUM_ITEM; i++)
+		{
+			if(Checked && IsOK)
+			{
+				if(pSelf->Items(Item)->m_Formula[i])
+					pPlayer->m_AccData.m_aItems[i].m_Num -= pSelf->Items(Item)->m_Formula[i];
+			}
+			else
+			{
+				if(pSelf->Items(Item)->m_Formula[i] > pPlayer->m_AccData.m_aItems[i].m_Num)
+				{
+					IsOK = false;
+					pSelf->SetVoteExtraText(ClientID, "You don't have enough materials to make it.");
+					break;
+				}
+			}
+		}
+	}
+
+	if(IsOK)
+	{
+		pPlayer->m_AccData.m_aItems[Item].m_Num++;
+		pSelf->SetVoteExtraText(ClientID, "You have successfully make a {}!", pSelf->Items(Item)->m_aItemName);
+		pSelf->TW()->Account()->SaveAccountData(ClientID, TABLE_ITEM, pPlayer->m_AccData);
+	}
+
 	pSelf->ClearVotes(pResult->GetClientID());
 	return true;
 }
@@ -1789,7 +1824,7 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("selectitem", "ii", CFGFLAG_VOTE, VotSelectItem, this, "[][] - Select");
 	Console()->Register("goto", "i", CFGFLAG_VOTE, VotGoto, this, "[page] - Go to a vote page");
 	Console()->Register("craft", "i", CFGFLAG_VOTE, VotCraft, this, "[item] - Craft something");
-	Console()->Register("make", "i", CFGFLAG_VOTE, VotMake, this, "[item] - Confirm to make something");
+	Console()->Register("make", "", CFGFLAG_VOTE, VotMake, this, "make - Confirm to make something");
 	Console()->Register("checkitem", "i", CFGFLAG_VOTE, VotCheckItem, this, "[item] - Confirm to make something");
 
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
@@ -2137,12 +2172,14 @@ void CGameContext::InitVotes(int ClientID)
 	int Page = PlayerVote.m_Page;
 	std::string ItemLists[NUM_ITYPE] = {"Pickaxe", "Axe", "Sword", "Turret", "Material", "Card"};
 
+	AddVote_Text("# Global-Notice: {}", PlayerVote.m_aExtraText);
+	AddVote_Text("===");
 	switch (Page)
 	{
 	case PAGE_MENU:
 		{
 			SetVoteLastPage(Page);
-			AddVote_Text("==== ⚠Player Menu⚠ =");
+			AddVote_Text("☪ Player Menu");
 			AddVote_Text("User ID: {}", Data.m_UserID);
 			AddVote_Text("Party: #Under development#");
 			AddVote_Space();
@@ -2155,9 +2192,6 @@ void CGameContext::InitVotes(int ClientID)
 		{
 			TW()->Account()->SyncAccountData(ClientID, TABLE_ITEM);
 			SetVoteLastPage(PAGE_MENU);
-			AddVote_Text("---------------------");
-			AddVote_Back();
-			AddVote_Space();
 			AddVote_Text("☪ Inventory");
 			AddVote_Space();
 			CountItemNum(ClientID);
@@ -2173,6 +2207,7 @@ void CGameContext::InitVotes(int ClientID)
 					AddVote_Text("▾ {} ({}) ", ItemLists[i], pP->m_AccData.m_ItemCount[i]);
 			}
 			AddVote_Space();
+			AddVote_Back();
 			AddVote_Text("---------------------");
 			AddVote_ListInventory(PlayerVote.m_Select[SPlayerVote::EVoteSelect::ITEMLIST]);
 		}
@@ -2185,6 +2220,7 @@ void CGameContext::InitVotes(int ClientID)
 			AddVote_Space();
 			AddVote_Text("Item: {}", Items(PlayerVote.m_Select[SPlayerVote::ITEM])->m_aItemName);
 			AddVote_Text("Description: {}", Items(PlayerVote.m_Select[SPlayerVote::ITEM])->m_aItemDesc);
+			AddVote_Text("You have: {}", Data.m_aItems[PlayerVote.m_Select[SPlayerVote::ITEM]].m_Num);
 			AddVote_Space();
 			AddVote_Back();
 		}
@@ -2221,10 +2257,11 @@ void CGameContext::InitVotes(int ClientID)
 			AddVote_Space();
 			AddVote_Text("Item: {}", Items(PlayerVote.m_Select[SPlayerVote::ITEM])->m_aItemName);
 			AddVote_Text("Description: {}", Items(PlayerVote.m_Select[SPlayerVote::ITEM])->m_aItemDesc);
-			AddVote_Text("Formula:");
+			AddVote_Text("You have: {}", Data.m_aItems[PlayerVote.m_Select[SPlayerVote::ITEM]].m_Num);
+			AddVote_Text("㊮ Formula:");
 			AddVote_Text("---");
 			AddVote_ListFormula(PlayerVote.m_Select[SPlayerVote::ITEM]);
-			AddVote_Text("---");
+			AddVote_Text("===");
 			AddVote_VL("ccv_make", "- Craft!");
 			AddVote_Space(2);
 			AddVote_Back();
