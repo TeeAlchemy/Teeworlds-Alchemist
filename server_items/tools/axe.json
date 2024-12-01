@@ -8,6 +8,7 @@
                 "desc": "An axe made of wood.",
                 "proba": 90,
                 "damage": 200,
+                "capacity": 0,
                 "formula": {
                     "Log": 10
                 }
@@ -18,6 +19,7 @@
                 "desc": "An axe made of copper.",
                 "damage": 700,
                 "proba": 90,
+                "capacity": 10,
                 "formula": {
                     "Log": 60,
                     "Copper": 25
@@ -29,6 +31,7 @@
                 "desc": "An axe made of iron.",
                 "damage": 1400,
                 "proba": 90,
+                "capacity": 20,
                 "formula": {
                     "Log": 1780,
                     "Iron": 25
@@ -40,6 +43,7 @@
                 "desc": "An axe made of gold.",
                 "damage": 2000,
                 "proba": 90,
+                "capacity": 30,
                 "formula": {
                     "Log": 2300,
                     "Golden": 10
@@ -51,6 +55,7 @@
                 "desc": "An axe made of diamond.",
                 "damage": 8000,
                 "proba": 100,
+                "capacity": 50,
                 "formula": {
                     "Log": 4000,
                     "Diamond": 25

@@ -134,7 +134,7 @@ extern "C"
 		va_end(args);
 
 		for (i = 0; i < num_loggers; i++)
-			if(!id_logger_file)
+			if (!id_logger_file)
 				loggers[i](str);
 			else if (id_logger_file != i)
 				loggers[i](str);
@@ -147,9 +147,9 @@ extern "C"
 
 			va_start(args, fmt);
 #if defined(CONF_FAMILY_WINDOWS)
-		_vsnprintf(msg, sizeof(str) - len, fmt, args);
+			_vsnprintf(msg, sizeof(str) - len, fmt, args);
 #else
-	vsnprintf(msg, sizeof(str) - len, fmt, args);
+		vsnprintf(msg, sizeof(str) - len, fmt, args);
 #endif
 			va_end(args);
 
@@ -2436,6 +2436,18 @@ typedef CRITICAL_SECTION LOCKINTERNAL;
 		buffer[len] = '\0';
 
 		return tok + len;
+	}
+
+	int str_count(const char *str, const char *count)
+	{    
+	    int num = 0;
+	    str = str_find(str, count);
+	    while(str++)
+	    {
+	        str = str_find(str, count);
+	        num++;
+	    }
+	    return num;
 	}
 
 	int bytes_be_to_int(const unsigned char *bytes)

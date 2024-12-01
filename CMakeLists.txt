@@ -523,6 +523,8 @@ set_glob(GAME_SERVER GLOB_RECURSE src/game/server
   ai/genetics.h
   ai/strategy.cpp
   ai/strategy.h
+  entities/chain-ball.cpp
+  entities/chain-ball.h
   entities/character.cpp
   entities/character.h
   entities/flag.cpp
@@ -610,7 +612,7 @@ endif()
 
 set_glob(MASTERSRV_SRC GLOB src/mastersrv mastersrv.cpp mastersrv.h)
 set_glob(VERSIONSRV_SRC GLOB src/versionsrv mapversions.h versionsrv.cpp versionsrv.h)
-set_glob(TEST_SRC GLOB src/test noused/main.cpp)#labyrinth.cpp pathfinder.cpp pathfinder.h)
+set_glob(TEST_SRC GLOB src/test test7.cpp)#labyrinth.cpp pathfinder.cpp pathfinder.h)
 
 set(TARGET_MASTERSRV mastersrv)
 set(TARGET_VERSIONSRV versionsrv)

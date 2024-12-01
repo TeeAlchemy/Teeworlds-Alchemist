@@ -8,6 +8,7 @@
 #include "character.h"
 #include "laser.h"
 #include "projectile.h"
+#include "chain-ball.h"
 
 // input count
 struct CInputCount

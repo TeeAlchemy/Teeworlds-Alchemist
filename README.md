@@ -1,8 +1,11 @@
 TODOs:
 =====
 
-- **[] MySQL Connection.**
-- **[] Add More TODOs.**
+- **Item**
+- **Cards**
+- **Mine**
+- **Make AI stupid**
+- **Add More TODOs.**
 
 Teeworlds-Alchemist
 =================
@@ -16,8 +19,8 @@ Features:
 
 The copied part (wait wait wait.. what th————)
 - DDNet Protocol from DDNet (by DDNet-Team)
-- AI from CSTT (by Siile)
-- Localization, Multi-Worlds from MRPG (by Kurosio)
+- n-heir's AI
+- Localization, Multi-Worlds, GameCore, some base from MRPG (by Kurosio)
 
 Teeworlds-Example
 =================

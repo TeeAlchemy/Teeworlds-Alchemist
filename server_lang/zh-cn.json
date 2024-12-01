@@ -178,11 +178,11 @@
         },
         {
             "key": "Card: Quickly-Fire",
-            "value": "模块: 快射"
+            "value": "模块: 快速攻击"
         },
         {
             "key": "Card: Quickly-Loading",
-            "value": "模块: 快冲"
+            "value": "模块: 快速冷却"
         },
         {
             "key": "Chat AI(module: {}) has received your message and is currently processing it.",
@@ -639,6 +639,10 @@
         {
             "key": "▾ {} ({})",
             "value": "▾ {} ({}) "
+        },
+        {
+            "key": "☝ {} - Place one",
+            "value": "☝ {} - 安置模块"
         },
         {
             "key": "☞ Craft ☺",

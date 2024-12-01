@@ -18,8 +18,8 @@ CGameControllerTeeDefense::CGameControllerTeeDefense(class CGameContext *pGameSe
 void CGameControllerTeeDefense::InitBots()
 {
 	// Init bots
-	for (int i = 0; i < MAX_BOTS; i++)
-		GameServer()->AddBot();
+	//for (int i = 0; i < MAX_BOTS; i++)
+	//	GameServer()->AddBot();
 
 	for (auto &pPlayer : GameServer()->m_apPlayers)
 	{

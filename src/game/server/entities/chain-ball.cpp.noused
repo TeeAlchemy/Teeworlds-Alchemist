@@ -1,0 +1,151 @@
+/*
+#include <engine/server.h>
+#include <game/server/gamecontext.h>
+
+#include "chain-ball.h"
+
+const float dt = 0.5f;
+const float SPRING_CONSTANT = 50.f; // 弹簧常数
+const float DAMPING = 1.2f; // 阻尼系数
+
+CChainBall::CChainBall(CGameWorld *pGameWorld, int Owner, vec2 Pos)
+: CEntity(pGameWorld, CGameWorld::ENTTYPE_CHAINBALL, Pos)
+{
+    m_Owner = Owner;
+    m_Anchor = Pos;
+    m_Theta = pi / 4;
+    m_Omega = 0.f;
+    m_Length = 320.f;
+
+    for (int i = 0; i < 8; i++)
+        m_aIDs[i] = Server()->SnapNewID();
+    
+    GameWorld()->InsertEntity(this);
+}
+
+void CChainBall::Reset()
+{
+    MarkForDestroy();
+    for (int i = 0; i < 8; i++)
+        Server()->SnapFreeID(m_aIDs[i]);
+}
+
+void CChainBall::Tick()
+{
+    if(IsMarkedForDestroy())
+        return;
+
+    if(!GameServer()->GetPlayer(m_Owner) || !GameServer()->GetPlayer(m_Owner)->GetCharacter())
+    {
+        Reset();
+        return;
+    }
+
+    SetAnchor(GameServer()->GetPlayerChar(m_Owner)->GetPos());
+    // 计算球到固定点的向量
+    vec2 to_anchor = vec2(
+        m_Anchor.x - m_Pos.x + 0.1f,
+        m_Anchor.y - m_Pos.y + 0.1f
+    );
+    float distance = sqrt(to_anchor.x * to_anchor.x + to_anchor.y * to_anchor.y);
+
+    // 计算弹簧力
+    float spring_force_magnitude = SPRING_CONSTANT * (distance - m_Length);
+    vec2 spring_force_direction = vec2{
+        to_anchor.x / distance,
+        to_anchor.y / distance
+    };
+    vec2 spring_force = vec2{
+        spring_force_direction.x * spring_force_magnitude,
+        spring_force_direction.y * spring_force_magnitude
+    };
+
+    // 计算阻尼力
+    vec2 damping_force = vec2{
+        -DAMPING * m_Vel.x,
+        -DAMPING * m_Vel.y
+    };
+
+    // 计算总力
+    vec2 total_force = vec2{
+        spring_force.x + damping_force.x,
+        spring_force.y + damping_force.y
+    };
+
+    // 使用牛顿第二定律更新速度和位置
+    vec2 acceleration = vec2{
+        total_force.x / 1.0f, // 假设球的质量为1kg
+        total_force.y / 1.0f
+    };
+
+    m_Vel.x += acceleration.x * dt;
+    m_Vel.y += acceleration.y * dt;
+    m_Pos.x += m_Vel.x * dt;
+    m_Pos.y += m_Vel.y * dt;
+}
+
+void CChainBall::ApplyForce(vec2 Force)
+{
+    m_Vel += Force;
+    // 计算力在绳子方向的分量，即力矩
+    float Torque = m_Length * (Force.x * sin(m_Theta) - Force.y * cos(m_Theta));
+    
+    // 力矩等于转动惯量乘以角加速度，对于点质量，转动惯量为 m * L^2
+    // 由于 m * L^2 在计算加速度时可以约去，所以直接用力矩除以 L 来得到角加速度
+    float Alpha = Torque / m_Length;
+    
+    // 更新角速度
+    m_Omega += Alpha * dt;
+}
+
+void CChainBall::MoveAnchor(vec2 Dis)
+{
+    m_Anchor += Dis;
+
+    // 更新球的位置，考虑原点移动后绳子的新长度和方向
+    // 这里假设绳子立即拉直，没有动态响应时间
+    vec2 to_ball = vec2(
+        m_Pos.x - m_Anchor.x,
+        m_Pos.y - m_Anchor.y
+    );
+    float length = sqrt(to_ball.x * to_ball.x + to_ball.y * to_ball.y);
+    if (length > m_Length) {
+        // 重新调整球的位置，使其保持在绳子的末端
+        m_Pos.x = m_Anchor.x + m_Length * to_ball.x / length;
+        m_Pos.y = m_Anchor.y + m_Length * to_ball.y / length;
+    }
+}
+
+void CChainBall::SetAnchor(vec2 Pos)
+{
+    MoveAnchor(Pos - m_Anchor);
+}
+
+void CChainBall::Snap(int SnappingClient)
+{
+    if(NetworkClipped(SnappingClient))
+		return;
+
+	for(int i = 0; i < 8; i++)
+	{
+		float shiftedAngle = m_Theta + 2.0 * pi * static_cast<float>(i) / static_cast<float>(8);
+
+		CNetObj_Projectile *pProj = static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, m_aIDs[i], sizeof(CNetObj_Projectile)));
+		pProj->m_X = (int) (m_Pos.x + 64.f * cos(shiftedAngle));
+		pProj->m_Y = (int) (m_Pos.y + 64.f * sin(shiftedAngle));
+		pProj->m_VelX = (int) (0.0f);
+		pProj->m_VelY = (int) (0.0f);
+		pProj->m_StartTick = Server()->Tick();
+		pProj->m_Type = WEAPON_SHOTGUN;
+	}
+
+    CNetObj_Laser *pLaser = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(NETOBJTYPE_LASER, GetID(), sizeof(CNetObj_Laser)));
+    if(!pLaser)
+        return;
+
+    pLaser->m_X = (int)m_Pos.x;
+    pLaser->m_Y = (int)m_Pos.y;
+    pLaser->m_FromX = (int)m_Anchor.x;
+    pLaser->m_FromY = (int)m_Anchor.y;
+    pLaser->m_StartTick = Server()->Tick();
+}*/

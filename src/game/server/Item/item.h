@@ -125,7 +125,8 @@ struct CItem_Card : public CItem_Tool
 struct SPlayerItemData
 {
     int m_Num;
-    int m_Cards;
+    char m_aCards[64];
+    int m_Capacity;
 };
 
 class CItemHelper

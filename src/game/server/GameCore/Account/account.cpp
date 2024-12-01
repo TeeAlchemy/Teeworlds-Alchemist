@@ -180,7 +180,7 @@ static void sync_accdata_thread(void *user)
                     {
                         int ItemID = res->getInt("ItemID");
                         P->m_AccData.m_aItems[ItemID].m_Num = res->getInt("Num");
-                        P->m_AccData.m_aItems[ItemID].m_Cards = res->getInt("Cards");
+                        str_copy(P->m_AccData.m_aItems[ItemID].m_aCards, res->getString("Cards").c_str(), sizeof(P->m_AccData.m_aItems[ItemID].m_aCards));
                     }
                 }
                 break;
@@ -266,7 +266,7 @@ static void save_accdata_thread(void *user)
                         }
                         else if (Data->m_aItems[i].m_Num)
                         {
-                            str_format(aBuf, sizeof(aBuf), "INSERT INTO tw_Items(UserID, ItemID, Num, Cards) VALUES (%d, %d, %d, %d)", UserID, i, Data->m_aItems[i].m_Num, Data->m_aItems[i].m_Cards); // if not, insert it.
+                            str_format(aBuf, sizeof(aBuf), "INSERT INTO tw_Items(UserID, ItemID, Num, Cards) VALUES (%d, %d, %d, %d)", UserID, i, Data->m_aItems[i].m_Num, Data->m_aItems[i].m_aCards); // if not, insert it.
                             Data->m_pGameServer->DB()->Execute(aBuf);
                         }
                     }

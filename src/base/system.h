@@ -1498,8 +1498,9 @@ typedef long long int64;
 		Remarks:
 			- The token is always null-terminated.
 	*/
-
 	const char *str_next_token(const char *str, const char *delim, char *buffer, int buffer_size);
+
+	int str_count(const char *str, const char *count);
 
 	/*
 		Function: str_in_list

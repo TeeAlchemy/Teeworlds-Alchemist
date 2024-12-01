@@ -99,13 +99,6 @@ class CGameContext : public IGameServer
 	static bool ConRegister(IConsole::IResult *pResult, void *pUserData);
 	static bool ConLogin(IConsole::IResult *pResult, void *pUserData);
 
-	static bool VotGiveItem(IConsole::IResult *pResult, void *pUserData);
-	static bool VotSelectItem(IConsole::IResult *pResult, void *pUserData);
-	static bool VotGoto(IConsole::IResult *pResult, void *pUserData);
-	static bool VotCheckItem(IConsole::IResult *pResult, void *pUserData);
-	static bool VotCraft(IConsole::IResult *pResult, void *pUserData);
-	static bool VotMake(IConsole::IResult *pResult, void *pUserData);
-
 	CGameContext(int Resetting);
 	void Construct(int Resetting);
 
@@ -332,6 +325,8 @@ public:
 		int m_LastPage;
 		int m_Page;
 		int m_Select[NUM_SELECT];
+		
+		bool m_Confirm;
 
 		char m_aExtraText[VOTE_DESC_LENGTH];
 	};
@@ -384,6 +379,14 @@ public:
 	// Vote Engine
 	void InitVotes(int ClientID);
 	void ClearVotes(int ClientID);
+
+	static bool VotGiveItem(IConsole::IResult *pResult, void *pUserData);
+	static bool VotSelectItem(IConsole::IResult *pResult, void *pUserData);
+	static bool VotGoto(IConsole::IResult *pResult, void *pUserData);
+	static bool VotCheckItem(IConsole::IResult *pResult, void *pUserData);
+	static bool VotCraft(IConsole::IResult *pResult, void *pUserData);
+	static bool VotMake(IConsole::IResult *pResult, void *pUserData);
+	static bool VotPlaceCard(IConsole::IResult *pResult, void *pUserData);
 
 private:
 	int m_VoteClientID;
