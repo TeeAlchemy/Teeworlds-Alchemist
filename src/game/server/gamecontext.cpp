@@ -3,6 +3,9 @@
 #include <new>
 #include <base/math.h>
 #include <algorithm>
+#include <sstream>
+#include <vector>
+#include <string>
 #include <engine/shared/config.h>
 #include <engine/map.h>
 #include <engine/console.h>
@@ -1792,12 +1795,54 @@ bool CGameContext::VotPlaceCard(IConsole::IResult *pResult, void *pUserData)
 		return true;
 	}
 
-	pSelf->SetVoteExtraText(ClientID, "You successfully placed {} on {}!");
+	return false;
 
+	// Not ready.
+	/*
 	int Select = pSelf->m_aPlayerVotes[pResult->GetClientID()].m_Select[SPlayerVote::EVoteSelect::ITEM];
 
+	pSelf->SetVoteExtraText(ClientID, "You successfully placed {} on {}!", pSelf->ItemHelper()->GetItemName(pResult->GetInteger(0)), pSelf->ItemHelper()->GetItemName(Select));
+    
+	char aBuf[128];
+	char aBuf2[128];
+	int Capacity = 0;
+
+	std::string Cards = pPlayer->m_AccData.m_aItems[Select].m_aCards;
+    std::istringstream issCards(Cards);
+    int Number;
+    std::vector<int> vNumbers;
+
+    while (issCards >> Number) {
+        vNumbers.push_back(Number);
+        issCards.ignore(std::numeric_limits<std::streamsize>::max(), '|');
+    }
+
+	for (int Num : vNumbers)
+	{
+		Capacity += pSelf->ItemHelper()->GetCapacity(Num);
+		str_format(aBuf, sizeof(aBuf), "%s%d|", aBuf, Num);
+		dbg_msg("adada", "[%d] Test %s", Num, aBuf);
+	}
+
+	dbg_msg("adada", "STEP 1111 Test %s", aBuf);
+
+	str_format(aBuf, sizeof(aBuf), "%s%d", aBuf, pResult->GetInteger(0));
+	
+	dbg_msg("adada", "STEP 2222 Test %s", aBuf);
+
+	//if (Capacity <= pSelf->ItemHelper()->GetCapacity(Select))
+	//{
+		str_copy(pPlayer->m_AccData.m_aItems[Select].m_aCards, aBuf, sizeof(pPlayer->m_AccData.m_aItems[Select].m_aCards));
+		pPlayer->m_AccData.m_aItems[Select].m_Capacity = Capacity;
+	//}
+	//else
+	//	pSelf->SetVoteExtraText(ClientID, "Not enough capacity!");
+
+	pSelf->m_aPlayerVotes[ClientID].m_Confirm = false;
+
+	pSelf->TW()->Account()->SaveAccountData(ClientID, TABLE_ITEM, pPlayer->m_AccData);
 	pSelf->ClearVotes(pResult->GetClientID());
-	return true;
+	return true;*/
 }
 
 bool CGameContext::VotCheckItem(IConsole::IResult *pResult, void *pUserData)
@@ -2247,7 +2292,8 @@ void CGameContext::InitVotes(int ClientID)
 		AddVote_Text("Item: {}", Items(SelectItem)->m_aItemName);
 		AddVote_Text("Description: {}", Items(SelectItem)->m_aItemDesc);
 		AddVote_Text("You have: {}", Data.m_aItems[SelectItem].m_Num);
-		AddVote_Text("--- Placement of Cards");
+		if (ItemHelper()->GetType(SelectItem) != ITYPE_MATERIAL)
+			AddVote_Text("Capacity: {}", Data.m_aItems[SelectItem].m_Capacity);
 		for (int i = 0; i < NUM_ITEM; i++)
 		{
 			if (Data.m_aItems[i].m_Num <= 0)
@@ -2264,7 +2310,6 @@ void CGameContext::InitVotes(int ClientID)
 			str_format(aCmd, sizeof(aCmd), "ccv_placecard %d", i);
 			AddVote_VL(aCmd, "☝ Place {}", ItemHelper()->GetItemName(i));
 		}
-		AddVote_Text("---");
 		AddVote_Back();
 	}
 	break;

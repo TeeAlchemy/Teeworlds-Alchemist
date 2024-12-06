@@ -35,6 +35,8 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, int Team)
 	m_IsBot = false;
 	m_CanSnap = true;
 	m_InitAcc = false;
+
+	ResetAccData();
 }
 
 CPlayer::~CPlayer()
@@ -361,4 +363,23 @@ int CPlayer::GetPlayerWorldID() const
 		return m_BotWorldID;
 
 	return Server()->GetClientWorldID(m_ClientID);
+}
+
+void CPlayer::ResetAccData()
+{
+	m_AccData.m_UserID = 0;
+	str_copy(m_AccData.m_aUsername, "", sizeof(m_AccData.m_aUsername));
+	str_copy(m_AccData.m_aPassword, "", sizeof(m_AccData.m_aPassword));
+	for (int i = 0; i < NUM_ITYPE; i++)
+	{
+		m_AccData.m_Holding[i] = 0;
+		m_AccData.m_ItemCount[i] = 0;
+	}
+
+	for (int i = 0; i < NUM_ITEM; i++)
+	{
+		m_AccData.m_aItems[i].m_Num = 0;
+		m_AccData.m_aItems[i].m_Capacity = 0;
+		str_copy(m_AccData.m_aItems[i].m_aCards, "", sizeof(m_AccData.m_aItems[i].m_aCards));
+	}
 }

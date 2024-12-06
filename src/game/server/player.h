@@ -104,7 +104,7 @@ public:
 	// Bot flag
 	bool m_IsBot;
 	class CBot *m_pBot;
-	
+
 	bool IsBot() { return m_IsBot; }
 
 	int m_BotWorldID;
@@ -121,14 +121,13 @@ public:
 	};
 
 	SAccData m_AccData;
+	void ResetAccData();
 	bool m_InitAcc;
 
-	bool LoggedIn()
-	{
-		return (m_AccData.m_UserID > 0);
-	}
+	bool LoggedIn() { return (m_AccData.m_UserID > 0); }
 
 	int m_Zomb;
+
 private:
 	CCharacter *m_pCharacter;
 	CGameContext *m_pGameServer;
