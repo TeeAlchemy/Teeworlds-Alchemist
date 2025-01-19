@@ -556,7 +556,7 @@ void CGameContext::OnTick()
 	}
 #endif
 
-	if (Server()->Tick()%50*60*5) // Every 5 mins;
+	if (Server()->Tick()%(50*60*5) == 0) // Every 5 mins;
 		Chat(-1, "Server official QQ group: 1007351135");
 }
 
