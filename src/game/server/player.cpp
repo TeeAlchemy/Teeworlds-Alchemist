@@ -387,9 +387,7 @@ void CPlayer::ResetAccData()
 void CPlayer::InitZombie(int Zomb)
 {
 	m_Zomb = Zomb;
-	m_TeeInfos.m_UseCustomColor = 1;
-	m_TeeInfos.m_ColorBody = 16776960;
-	m_TeeInfos.m_ColorFeet = 16776960;
+	m_TeeInfos.m_UseCustomColor = 0;
 	switch (Zomb)
 	{
 	case EZomb::ZABY:
@@ -408,6 +406,8 @@ void CPlayer::InitZombie(int Zomb)
 		break;
 	
 	default:
+		Server()->SetClientName(GetCID(), "Zaby");
+		str_copy(m_TeeInfos.m_SkinName, "Zaby", sizeof(m_TeeInfos.m_SkinName));
 		break;
 	}
 }
