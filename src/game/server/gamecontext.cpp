@@ -1658,7 +1658,7 @@ bool CGameContext::ConChatAI(IConsole::IResult *pResult, void *pUserData)
 
 	pThis->Chat(CID, "Chat AI(module: {}) has received your message and is currently processing it.", g_Config.m_SvChatAIModule);
 
-	pThis->m_pChatAI->Send(pThis, pThis->Server()->ClientName(CID), pResult->GetString(0));
+	pThis->m_pChatAI->Send(pThis, CID, pThis->Server()->ClientName(CID), pResult->GetString(0));
 
 	return true;
 }
