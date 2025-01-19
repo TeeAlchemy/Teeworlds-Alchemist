@@ -8,6 +8,7 @@
                 "desc": "Haste makes apple.",
                 "capacity": 10,
                 "placeable": [0, 1, 2, 3],
+                "max": 0,
                 "formula": {
                     "Log": 70,
                     "Golden": 40,
@@ -20,6 +21,7 @@
                 "desc": "Haste makes apple.",
                 "capacity": 10,
                 "placeable": [2, 3],
+                "max": 0,
                 "formula": {
                     "Log": 70,
                     "Golden": 40,
@@ -32,6 +34,7 @@
                 "desc": "Oh, that hurt!",
                 "capacity": 10,
                 "placeable": [0, 1, 2, 3],
+                "max": 0,
                 "formula": {
                     "Log": 70,
                     "Iron": 40,
@@ -44,6 +47,7 @@
                 "desc": "BOOM!",
                 "capacity": 15,
                 "placeable": [2, 3],
+                "max": 0,
                 "formula": {
                     "Log": 70,
                     "Iron": 30,
@@ -57,6 +61,7 @@
                 "desc": "Numb.",
                 "capacity": 30,
                 "placeable": [2, 3],
+                "max": 0,
                 "formula": {
                     "Log": 70,
                     "Copper": 200,
@@ -71,6 +76,7 @@
                 "desc": "World War III",
                 "capacity": 55,
                 "placeable": [2, 3],
+                "max": 0,
                 "formula": {
                     "Log": 70,
                     "Copper": 200,
@@ -86,6 +92,7 @@
                 "desc": "Fly away.",
                 "capacity": 10,
                 "placeable": [2, 3],
+                "max": 0,
                 "formula": {
                     "Log": 70,
                     "Zombie's Heart": 50
@@ -97,6 +104,7 @@
                 "desc": "Be your own.",
                 "capacity": 0,
                 "placeable": [3],
+                "max": 0,
                 "formula": {
                     "Log": 100,
                     "Coal": 100,

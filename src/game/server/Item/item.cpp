@@ -111,6 +111,7 @@ void CItemHelper::LoadItem(const char *FileName)
                 str_copy(m_aItems[ID]->m_aItemDesc, rMultiple["desc"], sizeof(m_aItems[ID]->m_aItemDesc));
                 m_aItems[ID]->m_Proba = rMultiple["proba"].u.integer;
                 m_aItems[ID]->m_MaxHealth = rMultiple["health"].u.integer;
+                m_aItems[ID]->m_Max = rMultiple["max"].u.integer;
             }
         }
         else
@@ -144,6 +145,7 @@ void CItemHelper::LoadItem(const char *FileName)
             str_copy(m_aItems[ID]->m_aItemDesc, rStart["desc"], sizeof(m_aItems[ID]->m_aItemDesc));
             m_aItems[ID]->m_Proba = rStart["proba"].u.integer;
             m_aItems[ID]->m_MaxHealth = rStart["health"].u.integer;
+            m_aItems[ID]->m_Max = rStart["max"].u.integer;
         }
     }
 }

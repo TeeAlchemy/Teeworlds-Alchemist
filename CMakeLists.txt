@@ -931,11 +931,13 @@ foreach(target ${TARGETS_OWN})
   target_include_directories(${target} PRIVATE ${ZLIB_INCLUDE_DIRS})
   target_include_directories(${target} PRIVATE ${CURL_INCLUDE_DIRS})
 
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+
   target_compile_definitions(${target} PRIVATE CONF_SQL)
   target_include_directories(${target} SYSTEM PRIVATE ${MYSQL_INCLUDE_DIRS})
 
   set_target_properties(${target} PROPERTIES CXX_STANDARD_REQUIRED ON)
-  target_compile_features(${target} PUBLIC cxx_std_14)
+  target_compile_features(${target} PUBLIC cxx_std_17)
 
 endforeach()
 

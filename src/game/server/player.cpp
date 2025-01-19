@@ -23,7 +23,7 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, int Team)
 	m_SpectatorID = SPEC_FREEVIEW;
 	m_LastActionTick = Server()->Tick();
 	m_TeamChangeTick = Server()->Tick();
-	SetLanguage(Server()->GetClientLanguage(ClientID));
+	SetLanguage("zh-cn");
 
 	m_Authed = IServer::AUTHED_NO;
 

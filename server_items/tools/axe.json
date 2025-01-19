@@ -9,6 +9,7 @@
                 "proba": 90,
                 "damage": 13,
                 "capacity": 0,
+                "max": 0,
                 "formula": {
                     "Log": 10
                 }
@@ -20,6 +21,7 @@
                 "damage": 17,
                 "proba": 90,
                 "capacity": 10,
+                "max": 0,
                 "formula": {
                     "Log": 60,
                     "Copper": 25
@@ -32,6 +34,7 @@
                 "damage": 25,
                 "proba": 90,
                 "capacity": 20,
+                "max": 0,
                 "formula": {
                     "Log": 1780,
                     "Iron": 25
@@ -44,6 +47,7 @@
                 "damage": 50,
                 "proba": 90,
                 "capacity": 30,
+                "max": 0,
                 "formula": {
                     "Log": 2300,
                     "Golden": 10
@@ -56,6 +60,7 @@
                 "damage": 100,
                 "proba": 100,
                 "capacity": 50,
+                "max": 0,
                 "formula": {
                     "Log": 4000,
                     "Diamond": 25

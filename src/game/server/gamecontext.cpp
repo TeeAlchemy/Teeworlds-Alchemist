@@ -1764,7 +1764,7 @@ bool CGameContext::VotMake(IConsole::IResult *pResult, void *pUserData)
 
 	int Item = pSelf->m_aPlayerVotes[ClientID].m_Select[SPlayerVote::ITEM];
 
-	if (pPlayer->m_AccData.m_aItems[Item].m_Num >= pSelf->ItemHelper()->GetMax(Item))
+	if (pSelf->ItemHelper()->GetMax(Item) && pPlayer->m_AccData.m_aItems[Item].m_Num >= pSelf->ItemHelper()->GetMax(Item))
 	{
 		pSelf->SetVoteExtraText(ClientID, "You have reached the limit");
 		if(pPlayer->GetCharacter())
