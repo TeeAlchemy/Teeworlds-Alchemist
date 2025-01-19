@@ -15,19 +15,21 @@ public:
     CChatAI(IEngine *pEngine);
     ~CChatAI();
 
-    void Send(CGameContext *pGameServer, const char *pName, const char *pContent);
+    void Send(CGameContext *pGameServer, int From, const char *pName, const char *pContent);
 
     class CJob_ChatAI : public IJob
     {
         std::unique_ptr<CHttpRequest> m_pHttp;
         CGameContext *m_pGameServer;
+        int m_From;
         void Run();
 
     public:
-        CJob_ChatAI(std::unique_ptr<CHttpRequest> &&pHttp, CGameContext *pGameServer)
+        CJob_ChatAI(std::unique_ptr<CHttpRequest> &&pHttp, CGameContext *pGameServer, int From)
         {
             m_pHttp = std::move(pHttp);
             m_pGameServer = pGameServer;
+            m_From = From;
         }
         virtual ~CJob_ChatAI() = default;
     };

@@ -34,7 +34,7 @@ CChatAI::~CChatAI()
 {
 }
 
-void CChatAI::Send(CGameContext *pGameServer, const char *pName, const char *pContent)
+void CChatAI::Send(CGameContext *pGameServer, int From, const char *pName, const char *pContent)
 {
     if (!g_Config.m_SvChatAI)
         return;
@@ -70,7 +70,7 @@ void CChatAI::Send(CGameContext *pGameServer, const char *pName, const char *pCo
     pHttp->LogProgress(HTTPLOG::FAILURE);
     pHttp->IpResolve(IPRESOLVE::V4);
 
-    m_pEngine->AddJob(std::make_unique<CJob_ChatAI>(std::move(pHttp), pGameServer));
+    m_pEngine->AddJob(std::make_unique<CJob_ChatAI>(std::move(pHttp), pGameServer, From));
 }
 
 void CChatAI::CJob_ChatAI::Run()
@@ -85,7 +85,7 @@ void CChatAI::CJob_ChatAI::Run()
     json_value *pJson = m_pHttp->ResultJson();
     if (!pJson)
     {
-        m_pGameServer->Chat(-1, "Sorry, I can't answer your question.");
+        m_pGameServer->Chat(m_From, "Sorry, I can't answer your question.");
         return;
     }
     const json_value &Json = *pJson;
@@ -94,5 +94,5 @@ void CChatAI::CJob_ChatAI::Run()
     std::string Content = Message.u.string.ptr;
     Content = replace_comma_with_newline(Content);
     Content = replace_dot_with_newline(Content);
-    m_pGameServer->Motd(-1, Content.c_str());
+    m_pGameServer->Motd(m_From, Content.c_str());
 }
