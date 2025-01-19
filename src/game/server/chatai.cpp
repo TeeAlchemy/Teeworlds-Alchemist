@@ -36,7 +36,7 @@ CChatAI::~CChatAI()
 
 void CChatAI::Send(CGameContext *pGameServer, const char *pName, const char *pContent)
 {
-    if (g_Config.m_SvChatAI)
+    if (!g_Config.m_SvChatAI)
         return;
 
     CJsonStringWriter JsonWriter;
@@ -60,7 +60,6 @@ void CChatAI::Send(CGameContext *pGameServer, const char *pName, const char *pCo
     }
 
     std::unique_ptr<CHttpRequest> pHttp;
-    // For example: https://api.chatanywhere.tech/v1/chat/completions
     pHttp = HttpPostJson(g_Config.m_SvChatAIUrl, JsonWriter.GetOutputString().c_str());
 
     char aAuth[128];

@@ -157,6 +157,9 @@ void CPlayer::Snap(int SnappingClient)
 			if (!Server()->ClientIngame(m_ClientID))
 				return;
 
+	if (!m_CanSnap)
+		return;
+
 	CNetObj_ClientInfo *pClientInfo = Server()->SnapNewItem<CNetObj_ClientInfo>(m_ClientID);
 	if (!pClientInfo)
 		return;
@@ -178,9 +181,6 @@ void CPlayer::Snap(int SnappingClient)
 	pPlayerInfo->m_ClientID = m_ClientID;
 	pPlayerInfo->m_Score = m_Score;
 	pPlayerInfo->m_Team = m_Team;
-	
-	if (!m_CanSnap)
-		pPlayerInfo->m_Team = 999;
 
 	if (m_ClientID == SnappingClient)
 		pPlayerInfo->m_Local = 1;
@@ -382,4 +382,39 @@ void CPlayer::ResetAccData()
 		m_AccData.m_aItems[i].m_Capacity = 0;
 		str_copy(m_AccData.m_aItems[i].m_aCards, "", sizeof(m_AccData.m_aItems[i].m_aCards));
 	}
+}
+
+void CPlayer::InitZombie(int Zomb)
+{
+	m_Zomb = Zomb;
+	m_TeeInfos.m_UseCustomColor = 1;
+	m_TeeInfos.m_ColorBody = 16776960;
+	m_TeeInfos.m_ColorFeet = 16776960;
+	switch (Zomb)
+	{
+	case EZomb::ZABY:
+		Server()->SetClientName(GetCID(), "Zaby");
+		str_copy(m_TeeInfos.m_SkinName, "Zaby", sizeof(m_TeeInfos.m_SkinName));
+		break;
+
+	case EZomb::ZOOKER:
+		Server()->SetClientName(GetCID(), "Zooker");
+		str_copy(m_TeeInfos.m_SkinName, "bluekitty", sizeof(m_TeeInfos.m_SkinName));
+		break;
+
+	case EZomb::ZABER:
+		Server()->SetClientName(GetCID(), "Zaber");
+		str_copy(m_TeeInfos.m_SkinName, "twinbop", sizeof(m_TeeInfos.m_SkinName));
+		break;
+	
+	default:
+		break;
+	}
+}
+
+bool CPlayer::GetZomb(int Type)
+{
+	if (m_Zomb == Type)
+		return true;
+	return false;
 }

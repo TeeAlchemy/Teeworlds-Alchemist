@@ -47,7 +47,7 @@ public:
 	void ResetInput();
 	void FireWeapon();
 
-	void Die(int Killer, int Weapon);
+	void Die(int Killer, int Weapon, bool Respawn = true);
 	bool TakeDamage(vec2 Force, int Dmg, int From, int Weapon);
 
 	bool Spawn(class CPlayer *pPlayer, vec2 Pos);
@@ -85,11 +85,15 @@ public:
 	int GetArmor() { return m_Armor; }
 	int GetAmmoCount(int Weapon) { return m_aWeapons[clamp(Weapon, 0,NUM_WEAPONS-1)].m_Ammo; }
 
+	int GetMaxHealth();
 	// these are non-heldback inputs
 	CNetObj_PlayerInput m_LatestPrevInput;
 	CNetObj_PlayerInput m_LatestInput;
 
 	bool m_SpawnProtect;
+
+	bool m_InMining;
+	int m_MiningTick;
 private:
 	// player controlling this character
 	class CPlayer *m_pPlayer;

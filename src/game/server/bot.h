@@ -137,6 +137,7 @@ public:
 
 	int m_ForceTarget;
 	bool m_aTargetAllow[ETarget::NUM_TARGETS];
+	bool m_AllowHook;
 };
 
 #endif

@@ -9,12 +9,15 @@ class CGameControllerTeeDefense : public IGameController
 public:
 	CGameControllerTeeDefense(class CGameContext *pGameServer);
 
+	bool OnEntity(int Index, vec2 Pos) override;
+
 	void StartRound() override;
 	void EndRound() override;
 
 	void OnCharacterSpawn(class CCharacter *pChr) override;
 	int OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon) override;
 	void Tick() override;
+	void OnPlayerConnect(class CPlayer *pPlayer) override;
 
 	void DoWincheck() override;
 
@@ -26,7 +29,7 @@ public:
 
 	//Zomb2
 	int m_Wave;
-	int m_Zombie[13];//not sure about the amount of zombies
+	int m_Zombie[NUM_ZOMB];//not sure about the amount of zombies
 	int m_ZombLeft;
 
 	void StartWave(int Wave);

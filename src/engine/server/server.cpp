@@ -388,6 +388,11 @@ int CServer::GetClientWorldID(int ClientID)
 
 int CServer::TrySetClientName(int ClientID, const char *pName)
 {
+	if (ClientID >= MAX_PLAYERS)
+	{
+		str_copy(m_aClients[ClientID].m_aName, pName, MAX_NAME_LENGTH);
+		return 0;
+	}
 	char aTrimmedName[64];
 
 	// trim the name
@@ -1571,7 +1576,7 @@ void CServer::CacheServerInfo(CCache *pCache, int Type, bool SendClients)
 
 	// count the players
 	int PlayerCount = 0, ClientCount = 0;
-	for (int i = 0; i < MAX_CLIENTS; i++)
+	for (int i = 0; i < MAX_PLAYERS; i++)
 	{
 		if (m_aClients[i].m_State != CClient::STATE_EMPTY)
 		{
@@ -1713,7 +1718,7 @@ void CServer::CacheServerInfo(CCache *pCache, int Type, bool SendClients)
 	// For legacy 64p, send 24 players per packet.
 	// For extended, send as much players as possible.
 
-	for (int i = 0; i < MAX_CLIENTS; i++)
+	for (int i = 0; i < MAX_PLAYERS; i++)
 	{
 		if (m_aClients[i].m_State != CClient::STATE_EMPTY && !m_aClients[i].m_Bot)
 		{
@@ -1831,7 +1836,7 @@ void CServer::UpdateRegisterServerInfo()
 {
 	// count the players
 	int PlayerCount = 0, ClientCount = 0;
-	for (int i = 0; i < MAX_CLIENTS; i++)
+	for (int i = 0; i < MAX_PLAYERS; i++)
 	{
 		if (m_aClients[i].m_State != CClient::STATE_EMPTY && !m_aClients[i].m_Bot)
 		{
@@ -1880,7 +1885,7 @@ void CServer::UpdateRegisterServerInfo()
 			   EscapeJson(aVersion, sizeof(aVersion), GameServer()->Version()));
 
 	bool FirstPlayer = true;
-	for (int i = 0; i < MAX_CLIENTS; i++)
+	for (int i = 0; i < MAX_PLAYERS; i++)
 	{
 		if (m_aClients[i].m_State != CClient::STATE_EMPTY)
 		{
@@ -2472,7 +2477,7 @@ bool CServer::ConChangeWorld(IConsole::IResult* pResult, void* pUser)
 bool CServer::ConRedirectClient(IConsole::IResult* pResult, void* pUser)
 {
 	CServer *pThis = (CServer *)pUser;
-	pThis->RedirectClient(pResult->GetInteger(0), pResult->GetInteger(1)); // for funny
+	pThis->RedirectClient(pResult->GetInteger(0), pResult->GetInteger(1)); // for fun
 	return true;
 }
 

@@ -7,6 +7,14 @@
 #include "entities/character.h"
 #include "gamecontext.h"
 
+enum EZomb
+{
+	ZABY = 0,
+	ZOOKER,
+	ZABER,
+	NUM_ZOMB,
+};
+
 // player object
 class CPlayer
 {
@@ -19,7 +27,7 @@ public:
 	void TryRespawn();
 	void Respawn();
 	void SetTeam(int Team, bool DoChatMsg = true);
-	int GetTeam() const { return m_IsBot; };
+	int GetTeam() const { return m_Team; };
 	int GetCID() const { return m_ClientID; };
 	int GetClientVersion() const;
 	int GetPlayerWorldID() const;
@@ -128,6 +136,15 @@ public:
 
 	int m_Zomb;
 
+	int GetZomb()
+	{
+		if (m_Zomb)
+			return m_Zomb;
+		return 0;
+	};
+	bool GetZomb(int Zomb);
+
+	void InitZombie(int Zomb);
 private:
 	CCharacter *m_pCharacter;
 	CGameContext *m_pGameServer;

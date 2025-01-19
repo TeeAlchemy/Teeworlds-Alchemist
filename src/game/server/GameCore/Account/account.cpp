@@ -180,7 +180,7 @@ static void sync_accdata_thread(void *user)
                     {
                         int ItemID = res->getInt("ItemID");
                         P->m_AccData.m_aItems[ItemID].m_Num = res->getInt("Num");
-                        str_copy(P->m_AccData.m_aItems[ItemID].m_aCards, res->getString("Cards").c_str(), sizeof(P->m_AccData.m_aItems[ItemID].m_aCards));
+                        // str_copy(P->m_AccData.m_aItems[ItemID].m_aCards, res->getString("Cards").c_str(), sizeof(P->m_AccData.m_aItems[ItemID].m_aCards));
                     }
                 }
                 break;
@@ -259,14 +259,14 @@ static void save_accdata_thread(void *user)
                         if (res->next())
                         {
                             if (Data->m_aItems[i].m_Num)
-                                str_format(aBuf, sizeof(aBuf), "UPDATE tw_Items SET Num = %d, Cards = '%s' WHERE UserID=%d AND ItemID=%d;", Data->m_aItems[i].m_Num, Data->m_aItems[i].m_aCards, UserID, i); // if yes, update it.
+                                str_format(aBuf, sizeof(aBuf), "UPDATE tw_Items SET Num = %d WHERE UserID=%d AND ItemID=%d;", Data->m_aItems[i].m_Num, UserID, i); // if yes, update it.
                             else
                                 str_format(aBuf, sizeof(aBuf), "DELETE FROM tw_Items WHERE UserID=%d AND ItemID=%d;", UserID, i); // So delete it
                             Data->m_pGameServer->DB()->Execute(aBuf);                                                             // Execute
                         }
                         else if (Data->m_aItems[i].m_Num)
                         {
-                            str_format(aBuf, sizeof(aBuf), "INSERT INTO tw_Items(UserID, ItemID, Num, Cards) VALUES (%d, %d, %d, %s)", UserID, i, Data->m_aItems[i].m_Num, Data->m_aItems[i].m_aCards); // if not, insert it.
+                            str_format(aBuf, sizeof(aBuf), "INSERT INTO tw_Items(UserID, ItemID, Num) VALUES (%d, %d, %d);", UserID, i, Data->m_aItems[i].m_Num); // if not, insert it.
                             Data->m_pGameServer->DB()->Execute(aBuf);
                         }
                     }

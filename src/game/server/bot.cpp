@@ -35,6 +35,7 @@ CBot::CBot(CBotEngine *pBotEngine, CPlayer *pPlayer) : m_Genetics(ETarget::NUM_T
 	m_ForceTarget = ETarget::TARGET_EMPTY; // nothing
 	for (int i = 0; i < ETarget::NUM_TARGETS; i++)
 		m_aTargetAllow[i] = true;
+	m_AllowHook = true;
 }
 
 CBot::~CBot()
@@ -335,7 +336,7 @@ void CBot::Tick()
 	if(g_Config.m_SvBotAllowFire && m_pPlayer->GetCharacter()->CanFire())
 		HandleWeapon(InSight);
 
-	if(g_Config.m_SvBotAllowMove && g_Config.m_SvBotAllowHook)
+	if(g_Config.m_SvBotAllowMove && g_Config.m_SvBotAllowHook && m_AllowHook)
 		HandleHook(InSight);
 
 	if(m_Flags & BFLAG_LEFT)

@@ -34,6 +34,7 @@ enum EVotePages
 	PAGE_CHECK_ITEM,
 	PAGE_CRAFT,
 	PAGE_CRAFT_SELECTED,
+	PAGE_EQUIPMENT,
 };
 
 /*
@@ -88,14 +89,12 @@ class CGameContext : public IGameServer
 	static bool ConForceVote(IConsole::IResult *pResult, void *pUserData);
 	static bool ConClearVotes(IConsole::IResult *pResult, void *pUserData);
 	static bool ConVote(IConsole::IResult *pResult, void *pUserData);
-
 	static void ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
-
 	static void ChatConsolePrintCallback(const char *pLine, void *pUser);
+	
 	static bool ConLanguage(IConsole::IResult *pResult, void *pUserData);
 	static bool ConAbout(IConsole::IResult *pResult, void *pUserData);
 	static bool ConChatAI(IConsole::IResult *pResult, void *pUserData);
-
 	static bool ConRegister(IConsole::IResult *pResult, void *pUserData);
 	static bool ConLogin(IConsole::IResult *pResult, void *pUserData);
 
@@ -173,6 +172,7 @@ public:
 	void CreatePlayerSpawn(vec2 Pos, CClientMask Mask = CClientMask().set());
 	void CreateDeath(vec2 Pos, int Who, CClientMask Mask = CClientMask().set());
 	void CreateSound(vec2 Pos, int Sound, CClientMask Mask = CClientMask().set());
+	void CreateSoundGlobal(int Sound, int Target = -1);
 	void CreateExtraEffect(vec2 Pos, int Effect, CClientMask Mask = CClientMask().set());
 	void CreateMapSound(vec2 Pos, int MapSoundID, CClientMask Mask = CClientMask().set());
 	void CreateMapSoundGlobal(int MapSoundID, int Target = -1);
@@ -313,6 +313,7 @@ public:
 		{
 			ITEMLIST = 0,
 			ITEM,
+			EQUIPMENT,
 			NUM_SELECT,
 		};
 
@@ -351,7 +352,7 @@ public:
 	void AddVote(const char *pDesc, const char *pCmd, int ClientID = -1);
 
 	// Pack
-	void AddVote_ListInventory(int ItemType);
+	void AddVote_ListInventory(int ItemType, const char *pCmd);
 	void AddVote_ListCraft(int ItemType);
 	void AddVote_ListFormula(int ItemID);
 	void AddVote_Craft(int ItemID);
@@ -387,6 +388,7 @@ public:
 	static bool VotCraft(IConsole::IResult *pResult, void *pUserData);
 	static bool VotMake(IConsole::IResult *pResult, void *pUserData);
 	static bool VotPlaceCard(IConsole::IResult *pResult, void *pUserData);
+	static bool VotEquip(IConsole::IResult *pResult, void *pUserData);
 
 private:
 	int m_VoteClientID;

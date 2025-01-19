@@ -17,7 +17,7 @@
                 "id": 11,
                 "name": "Iron Sword",
                 "desc": "An sword made of iron.",
-                "damage": 7,
+                "damage": 5,
                 "proba": 90,
                 "capacity": 10,
                 "formula": {
@@ -41,7 +41,7 @@
                 "id": 19,
                 "name": "Diamond Sword",
                 "desc": "An sword made of diamond.",
-                "damage": 20,
+                "damage": 50,
                 "proba": 80,
                 "capacity": 30,
                 "formula": {
@@ -53,7 +53,7 @@
                 "id": 22,
                 "name": "Enegry Sword",
                 "desc": "An sword made of enegry.",
-                "damage": 40,
+                "damage": 100,
                 "proba": 100,
                 "capacity": 100,
                 "formula": {

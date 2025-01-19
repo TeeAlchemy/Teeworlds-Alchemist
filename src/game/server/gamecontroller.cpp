@@ -131,13 +131,13 @@ bool IGameController::OnEntity(int Index, vec2 Pos)
 	switch (Index)
 	{
 	case ENTITY_SPAWN_HUMAN:
-		m_aaSpawnPoints[TEAM_HUMAN][m_aNumSpawnPoints[TEAM_HUMAN]++] = Pos;
+		m_aaSpawnPoints[0][m_aNumSpawnPoints[0]++] = Pos;
 		break;
 	case ENTITY_SPAWN_BOT:
-		m_aaSpawnPoints[TEAM_BOT][m_aNumSpawnPoints[TEAM_BOT]++] = Pos;
+		m_aaSpawnPoints[1][m_aNumSpawnPoints[1]++] = Pos;
 		break;
 	case ENTITY_SPAWN_BOSS:
-		m_aaSpawnPoints[TEAM_BOT][m_aNumSpawnPoints[TEAM_BOT]++] = Pos;
+		m_aaSpawnPoints[2][m_aNumSpawnPoints[2]++] = Pos;
 		break;
 	case ENTITY_ARMOR:
 		Type = POWERUP_ARMOR;
@@ -353,7 +353,7 @@ int IGameController::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *
 void IGameController::OnCharacterSpawn(class CCharacter *pChr)
 {
 	// default health
-	pChr->IncreaseHealth(10);
+	pChr->IncreaseHealth(g_Config.m_SvPlayerMaxHealth);
 	
 	// give default weapons
 	pChr->GiveWeapon(WEAPON_HAMMER, -1);

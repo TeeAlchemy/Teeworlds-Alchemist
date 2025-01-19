@@ -1,8 +1,12 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <game/generated/protocol.h>
+#include <game/mapitems.h>
 #include <game/server/bot.h>
 #include <game/server/gamecontext.h>
+#include <game/server/entities/CKs.h>
+#include <game/server/entities/tower-main.h>
+#include <game/server/GameCore/Account/account.h>
 #include <engine/shared/protocol.h>
 #include <engine/shared/config.h>
 #include "teedefense.h"
@@ -15,11 +19,55 @@ CGameControllerTeeDefense::CGameControllerTeeDefense(class CGameContext *pGameSe
 	mem_zero(m_Zombie, sizeof(m_Zombie));
 }
 
+bool CGameControllerTeeDefense::OnEntity(int Index, vec2 Pos)
+{
+	IGameController::OnEntity(Index, Pos);
+
+	int Type = -1;
+	switch (Index)
+	{
+	case ENTITY_LOG:
+		Type = ITEM_LOG;
+		break;
+	case ENTITY_COAL:
+		Type = ITEM_COAL;
+		break;
+	case ENTITY_COPPER:
+		Type = ITEM_COPPER;
+		break;
+	case ENTITY_IRON:
+		Type = ITEM_IRON;
+		break;
+	case ENTITY_GOLD:
+		Type = ITEM_GOLD;
+		break;
+	case ENTITY_DIAMOND:
+		Type = ITEM_DIAMOND;
+		break;
+	case ENTITY_ENERGY:
+		Type = ITEM_ENEGRY;
+		break;
+	case ENTITY_MAIN_TOWER:
+		new CTowerMain(&GameServer()->m_World, Pos);
+		break;
+
+	default:
+		break;
+	}
+
+	if (Type != -1)
+	{
+		new CKs(&GameServer()->m_World, Type, Pos);
+		return true;
+	}
+	return false;
+}
+
 void CGameControllerTeeDefense::InitBots()
 {
 	// Init bots
-	//for (int i = 0; i < MAX_BOTS; i++)
-	//	GameServer()->AddBot();
+	for (int i = 0; i < MAX_BOTS; i++)
+		GameServer()->AddBot();
 
 	for (auto &pPlayer : GameServer()->m_apPlayers)
 	{
@@ -62,7 +110,24 @@ int CGameControllerTeeDefense::OnCharacterDeath(class CCharacter *pVictim, class
 	if (pVictim->GetPlayer()->GetTeam() == TEAM_BOT)
 	{
 		if (pKiller && pKiller->GetTeam() == TEAM_HUMAN)
-			m_aTeamscore[TEAM_BOT]++;
+		{
+			int Reward = ITEM_LOG;
+				int Rando = rand() % 100 + 1;
+			if (Rando <= 50)
+				Reward = ITEM_LOG;
+			else if (Rando >= 51 && Rando <= 75)
+				Reward = ITEM_COPPER;
+			else if (Rando <= 99)
+				Reward = ITEM_GOLD;
+
+			pKiller->m_AccData.m_aItems[Reward].m_Num++;
+			GameServer()->Broadcast(pKiller->GetCID(), "You picked up a {}", GameServer()->ItemHelper()->GetItemName(Reward));
+
+			pKiller->m_AccData.m_aItems[ITEM_ZOMBIEHEART].m_Num++;
+			pKiller->m_Score++;
+			GameServer()->TW()->Account()->SaveAccountData(pKiller->GetCID(), CGameContext::TABLE_ITEM, pKiller->m_AccData);
+			GameServer()->ClearVotes(pKiller->GetCID());
+		}
 		DoZombMessage(m_ZombLeft--);
 		GameServer()->AsleepBot(pVictim->GetPlayer()->GetCID());
 	}
@@ -90,11 +155,16 @@ void CGameControllerTeeDefense::Tick()
 	int Players = 0;
 	for (int i = 0; i < MAX_PLAYERS; i++)
 	{
-		if (GameServer()->m_apPlayers[Players])
-		{
-			if (GameServer()->m_apPlayers[Players]->GetTeam() == TEAM_HUMAN)
-				Players++;
-		}
+		if (!GameServer()->GetPlayer(i))
+			continue;
+
+		if (GameServer()->GetPlayer(i)->GetTeam() != TEAM_HUMAN)
+			continue;
+
+		if (!GameServer()->GetPlayerChar(i))
+			continue;
+
+		Players++;
 	}
 
 	if (Players >= 1 && !m_Wave)
@@ -150,22 +220,13 @@ bool CGameControllerTeeDefense::CanSpawn(int Team, vec2 *pPos)
 	if (Team == TEAM_SPECTATORS)
 		return false;
 
-	if (IsTeamplay())
-	{
-		Eval.m_FriendlyTeam = Team;
-
-		// first try own team spawn, then normal spawn and then enemy
-		EvaluateSpawnType(&Eval, 1 + (Team & 1));
-		if (!Eval.m_Got)
-			EvaluateSpawnType(&Eval, 0);
-	}
+	if (Team == TEAM_HUMAN)
+		EvaluateSpawnType(&Eval, 1);
 	else
 	{
 		EvaluateSpawnType(&Eval, 0);
-		EvaluateSpawnType(&Eval, 1);
 		EvaluateSpawnType(&Eval, 2);
 	}
-
 	*pPos = Eval.m_Pos;
 	return Eval.m_Got;
 }
@@ -176,9 +237,9 @@ void CGameControllerTeeDefense::StartWave(int Wave)
 		return;
 	// Zaby, Zaby has no alround wave
 	else if (Wave == 1)
-		m_Zombie[0] = 10;
+		m_Zombie[0] = 5;
 	else if (Wave == 2)
-		m_Zombie[0] = 40;
+		m_Zombie[0] = 10;
 	else
 		SetWaveAlg(Wave % 3, Wave / 3);
 
@@ -203,7 +264,7 @@ void CGameControllerTeeDefense::CheckZombie()
 				break;
 
 			if (GameServer()->AwakenBot(i))
-				GameServer()->m_apPlayers[i]->m_Zomb = Random + 1;
+				GameServer()->m_apPlayers[i]->InitZombie(Random + 1);
 
 			m_Zombie[Random]--;
 		}
@@ -278,56 +339,35 @@ void CGameControllerTeeDefense::SetWaveAlg(int modulus, int wavedrittel)
 	if (wavedrittel > 11) // endless Waves, but exponentiell Zombie code
 	{
 		for (int i = 0; i < (int)(sizeof(m_Zombie) / sizeof(m_Zombie[0])); i++)
-			m_Zombie[i] = m_Wave - 35; // 3 mal wavedrittel + modulus 2
+			m_Zombie[i] = m_Wave + 5; // 3 mal wavedrittel + modulus 2
 		return;
 	}
 
 	if (!modulus) // 10ner Wave
 	{
-		m_Zombie[GetZombieReihenfolge(wavedrittel)] = 10;
+		m_Zombie[GetZombieReihenfolge(wavedrittel)] = 5;
 	}
 	else if (modulus == 1) // 40er wave
 	{
-		m_Zombie[GetZombieReihenfolge(wavedrittel)] = 40;
+		m_Zombie[GetZombieReihenfolge(wavedrittel)] = 20;
 	}
 	else if (modulus == 2)
 	{
 		for (int i = 0; i <= wavedrittel; i++)
 		{
-			m_Zombie[GetZombieReihenfolge(i)] = 10;
+			m_Zombie[GetZombieReihenfolge(i)] = 5;
 		}
 	}
 }
 
 int CGameControllerTeeDefense::GetZombieReihenfolge(int wavedrittel) // Was hei�t Riehenfolge auf englisch ...
 {
-	// sehr unsch�n, man m�sste die Zombies neu sortieren was ein haufen arbeit ist
 	if (!wavedrittel)
 		return 0;
-	else if (wavedrittel == 1)
-		return 2;
-	else if (wavedrittel == 2)
-		return 3;
-	else if (wavedrittel == 3)
-		return 4;
-	else if (wavedrittel == 4)
-		return 6;
-	else if (wavedrittel == 5)
-		return 5;
-	else if (wavedrittel == 6)
-		return 7;
-	else if (wavedrittel == 7)
-		return 8;
-	else if (wavedrittel == 8)
-		return 9;
-	else if (wavedrittel == 9)
-		return 10;
-	else if (wavedrittel == 10)
-		return 11;
-	else if (wavedrittel == 11)
+	if (wavedrittel < NUM_ZOMB)
+		return wavedrittel + 1;
+	else
 		return 1;
-	else // shouldnt be needed
-		return 0;
 }
 
 void CGameControllerTeeDefense::OnZombieKill(int ClientID)
@@ -341,5 +381,19 @@ void CGameControllerTeeDefense::OnZombieKill(int ClientID)
 	{
 		if (pPlayer && pPlayer->m_SpectatorID == ClientID)
 			pPlayer->m_SpectatorID = SPEC_FREEVIEW;
+	}
+}
+
+void CGameControllerTeeDefense::OnPlayerConnect(class CPlayer *pPlayer)
+{
+	const int ClientID = pPlayer->GetCID();
+	if (Server()->ClientIngame(ClientID) && pPlayer->GetPlayerWorldID() == GameServer()->GetWorldID())
+	{
+		char aBuf[128];
+		str_format(aBuf, sizeof(aBuf), "TeeDefense Player='%d:%s'", ClientID, Server()->ClientName(ClientID));
+		GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
+		GameServer()->Chat(-1, "{} entered and joined Tee Defense", Server()->ClientName(ClientID));
+		GameServer()->Chat(ClientID, "Server official QQ group: 1007351135");
+		GameServer()->Chat(ClientID, "Server Hoster/Developer E-Mail: ilovejel@163.com");
 	}
 }

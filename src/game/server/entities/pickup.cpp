@@ -41,7 +41,7 @@ void CPickup::Tick()
 	}
 	// Check if a player intersected us
 	CCharacter *pChr = GameServer()->m_World.ClosestCharacter(m_Pos, 20.0f, 0);
-	if(pChr && pChr->IsAlive())
+	if(pChr && pChr->IsAlive() && !pChr->GetPlayer()->IsBot())
 	{
 		// player picked us up, is someone was hooking us, let them go
 		int RespawnTime = -1;

@@ -5,6 +5,10 @@
             "value": " "
         },
         {
+            "key": "# Cards:",
+            "value": "# 卡牌:"
+        },
+        {
             "key": "# Global-Notice: {}",
             "value": "# 全局通知: {}"
         },
@@ -129,12 +133,20 @@
             "value": "用木头制成的剑。"
         },
         {
+            "key": "Are you sure?(This will not be reversible)",
+            "value": "你确定?(这无法逆转)"
+        },
+        {
             "key": "Available languages: {}",
             "value": "可用语言: {}"
         },
         {
             "key": "Axe",
             "value": "斧头"
+        },
+        {
+            "key": "Axe: {}",
+            "value": "斧头: {}"
         },
         {
             "key": "BOOM!",
@@ -147,6 +159,10 @@
         {
             "key": "Beginner Turret",
             "value": "初学者炮塔"
+        },
+        {
+            "key": "Capacity: {}",
+            "value": "载荷: {}"
         },
         {
             "key": "Card",
@@ -273,6 +289,10 @@
             "value": "金剑"
         },
         {
+            "key": "Hand",
+            "value": "手"
+        },
+        {
             "key": "Haste makes apple.",
             "value": "欲速则达。"
         },
@@ -345,6 +365,10 @@
             "value": "找不到指令: {}"
         },
         {
+            "key": "Not enough capacity!",
+            "value": "载荷不足!"
+        },
+        {
             "key": "Numb.",
             "value": "麻了。"
         },
@@ -365,8 +389,16 @@
             "value": "镐子"
         },
         {
+            "key": "Pickaxe: {}",
+            "value": "镐子: {}"
+        },
+        {
             "key": "Please register first. (/register <user> <pass>)",
             "value": "请先注册. (/register 用户名 密码)"
+        },
+        {
+            "key": "Server Hoster/Developer E-Mail: ilovejel@163.com",
+            "value": "服主/模式开发者的邮箱: ilovejel@163.com"
         },
         {
             "key": "Server does not allow voting to kick players",
@@ -375,6 +407,10 @@
         {
             "key": "Server does not allow voting to move players to spectators",
             "value": "服务器不允许投票将玩家移动到旁观"
+        },
+        {
+            "key": "Server official QQ group: 1007351135",
+            "value": "服务器官方QQ群: 1007351135"
         },
         {
             "key": "Shining and Sparkling!",
@@ -395,6 +431,10 @@
         {
             "key": "Sword",
             "value": "剑"
+        },
+        {
+            "key": "Sword: {}",
+            "value": "剑: {}"
         },
         {
             "key": "Teams are locked",
@@ -565,6 +605,14 @@
             "value": "你没有足够的材料用于合成！"
         },
         {
+            "key": "You have reached the limit",
+            "value": "你触及了边界，不能再做了"
+        },
+        {
+            "key": "You have successfully equipped the {}",
+            "value": "你成功装备了 {}"
+        },
+        {
             "key": "You have successfully make a {}!",
             "value": "你成功制作了一个{}！"
         },
@@ -575,6 +623,14 @@
         {
             "key": "You must wait {} seconds before making another vote",
             "value": "你必须等待 {} 秒才能发起另一个投票"
+        },
+        {
+            "key": "You picked up a {}",
+            "value": "你得到了一个{}"
+        },
+        {
+            "key": "You successfully placed {} on {}!",
+            "value": "你成功把 {} 放置到了 {} 上!"
         },
         {
             "key": "You were moved to {} due to team balancing",
@@ -609,6 +665,10 @@
             "value": "用法: /login 用户名 密码"
         },
         {
+            "key": "{} entered and joined Tee Defense",
+            "value": "{} 加入了 Tee Defense"
+        },
+        {
             "key": "{} entered and joined the game",
             "value": "{} 进入了游戏"
         },
@@ -619,6 +679,14 @@
         {
             "key": "{} {} by {}",
             "value": "{} {} by.{}"
+        },
+        {
+            "key": "{}- Picking: {} - {}- {}/{} left. Keep hit! -{}- Using: {} | Dmg : {} -",
+            "value": "{}- 开采中: {} - {}- {}/{} 剩余. 加油! -{}- 正在使用: {} | 速度 : {} -"
+        },
+        {
+            "key": "{}Health: {int:Health}/{int:MaxHealth}",
+            "value": "{}血量: {}/{}"
         },
         {
             "key": "⏎ Back",
@@ -641,12 +709,20 @@
             "value": "▾ {} ({}) "
         },
         {
-            "key": "☝ {} - Place one",
-            "value": "☝ {} - 安置模块"
+            "key": "☝ Equip",
+            "value": "☝ 装备该物品"
+        },
+        {
+            "key": "☝ Place {}",
+            "value": "☝ 放置 {}"
         },
         {
             "key": "☞ Craft ☺",
             "value": "☞ 合成 ☺"
+        },
+        {
+            "key": "☞ Equipment ☭",
+            "value": "☞ 装备 ☭"
         },
         {
             "key": "☞ Inventory ✪",
@@ -655,6 +731,10 @@
         {
             "key": "☪ Craft",
             "value": "☪ 合成"
+        },
+        {
+            "key": "☪ Equipment",
+            "value": "☪ 装备"
         },
         {
             "key": "☪ Inventory",

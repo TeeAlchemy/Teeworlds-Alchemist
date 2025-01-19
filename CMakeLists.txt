@@ -527,6 +527,8 @@ set_glob(GAME_SERVER GLOB_RECURSE src/game/server
   entities/chain-ball.h
   entities/character.cpp
   entities/character.h
+  entities/CKs.cpp
+  entities/CKs.h
   entities/flag.cpp
   entities/flag.h
   entities/laser.cpp
@@ -535,6 +537,8 @@ set_glob(GAME_SERVER GLOB_RECURSE src/game/server
   entities/pickup.h
   entities/projectile.cpp
   entities/projectile.h
+  entities/tower-main.cpp
+  entities/tower-main.h
   GameCore/Account/account.cpp
   GameCore/Account/account.h
   GameCore/Database/DB.cpp

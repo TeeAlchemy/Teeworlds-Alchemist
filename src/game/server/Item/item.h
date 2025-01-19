@@ -7,7 +7,7 @@ enum
     ITEM_COAL,
     ITEM_COPPER,
     ITEM_IRON,
-    ITEM_GOLDEN,
+    ITEM_GOLD,
     ITEM_DIAMOND,
     ITEM_ENEGRY,
     ITEM_ZOMBIEHEART,
@@ -159,7 +159,7 @@ public:
 
     bool CheckItemVaild(int ID, int Type = -1) // -1 for all
     {
-        if (ID <= 0 || ID >= NUM_ITEM || !Items(ID))
+        if (ID < 0 || ID >= NUM_ITEM || !Items(ID))
             return false;
         return true;
     }

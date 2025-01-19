@@ -264,6 +264,9 @@ void CCharacter::FireWeapon()
 	if (!WillFire)
 		return;
 
+	if (m_InMining && m_ActiveWeapon == WEAPON_HAMMER)
+		return;
+
 	// check for ammo
 	if (!m_aWeapons[m_ActiveWeapon].m_Ammo)
 	{
@@ -288,8 +291,11 @@ void CCharacter::FireWeapon()
 		GameServer()->CreateSound(m_Pos, SOUND_HAMMER_FIRE);
 
 		CCharacter *apEnts[MAX_CLIENTS];
+		float ExtraRange = 0.f;
+		if (!m_pPlayer->IsBot())
+			ExtraRange = 14.f;
 		int Hits = 0;
-		int Num = GameServer()->m_World.FindEntities(ProjStartPos, GetProximityRadius() * 0.5f, (CEntity **)apEnts,
+		int Num = GameServer()->m_World.FindEntities(ProjStartPos, GetProximityRadius() * 0.5f + ExtraRange, (CEntity **)apEnts,
 													 MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
 
 		for (int i = 0; i < Num; ++i)
@@ -311,7 +317,10 @@ void CCharacter::FireWeapon()
 			else
 				Dir = vec2(0.f, -1.f);
 
-			pTarget->TakeDamage(vec2(0.f, -1.f) + normalize(Dir + vec2(0.f, -1.1f)) * 10.0f, g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage,
+			int ExtraDMG = 0;
+			if (!m_pPlayer->IsBot() && m_pPlayer->m_AccData.m_Holding[ITYPE_SWORD])
+				ExtraDMG = GameServer()->ItemHelper()->GetDmg(m_pPlayer->m_AccData.m_Holding[ITYPE_SWORD]);
+			pTarget->TakeDamage(vec2(0.f, -1.f) + normalize(Dir + vec2(0.f, -1.1f)) * 10.0f, g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage + ExtraDMG,
 								m_pPlayer->GetCID(), m_ActiveWeapon);
 			Hits++;
 		}
@@ -534,7 +543,7 @@ void CCharacter::Tick()
 		GameServer()->Collision()->GetCollisionAt(m_Pos.x - GetProximityRadius() / 3.f, m_Pos.y + GetProximityRadius() / 3.f) & CCollision::COLFLAG_DEATH ||
 		GameLayerClipped(m_Pos))
 	{
-		Die(m_pPlayer->GetCID(), WEAPON_WORLD);
+		Die(m_pPlayer->GetCID(), WEAPON_WORLD, GetPlayer()->GetZomb());
 	}
 
 	// handle Weapons
@@ -542,6 +551,12 @@ void CCharacter::Tick()
 
 	// Previnput
 	m_PrevInput = m_Input;
+
+	if (Server()->Tick() % 25 == 0 && m_InMining)
+		m_InMining = false;
+
+	if (m_MiningTick > -1)
+		m_MiningTick--;
 	return;
 }
 
@@ -645,11 +660,16 @@ void CCharacter::TickPaused()
 		++m_EmoteStop;
 }
 
+int CCharacter::GetMaxHealth()
+{
+	return GetPlayer()->IsBot() ? 10 : g_Config.m_SvPlayerMaxHealth;
+}
+
 bool CCharacter::IncreaseHealth(int Amount)
 {
-	if (m_Health >= 10)
+	if (m_Health >= GetMaxHealth())
 		return false;
-	m_Health = clamp(m_Health + Amount, 0, 10);
+	m_Health = clamp(m_Health + Amount, 0, GetMaxHealth());
 	return true;
 }
 
@@ -661,7 +681,7 @@ bool CCharacter::IncreaseArmor(int Amount)
 	return true;
 }
 
-void CCharacter::Die(int Killer, int Weapon)
+void CCharacter::Die(int Killer, int Weapon, bool Respawn)
 {
 	// we got to wait 0.5 secs before respawning
 	m_pPlayer->m_RespawnTick = Server()->Tick() + Server()->TickSpeed() / 2;
@@ -685,7 +705,7 @@ void CCharacter::Die(int Killer, int Weapon)
 	m_Alive = false;
 	GameServer()->m_World.RemoveEntity(this);
 	GameServer()->m_World.m_Core.m_apCharacters[m_pPlayer->GetCID()] = 0;
-	m_pPlayer->m_WantSpawn = true;
+	m_pPlayer->m_WantSpawn = Respawn;
 	GameServer()->CreateDeath(m_Pos, m_pPlayer->GetCID());
 }
 
@@ -695,10 +715,9 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 
 	if (GameServer()->m_pController->IsFriendlyFire(m_pPlayer->GetCID(), From) && !g_Config.m_SvTeamdamage)
 		return false;
-
-	// m_pPlayer only inflicts half damage on self
-	if (From == m_pPlayer->GetCID())
-		Dmg = max(1, Dmg / 2);
+	
+	if(GetPlayer()->GetCID() == From)
+		return false;
 
 	m_DamageTaken++;
 
@@ -756,7 +775,7 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 	// check for death
 	if (m_Health <= 0)
 	{
-		Die(From, Weapon);
+		Die(From, Weapon, !GetPlayer()->GetZomb());
 
 		// set attacker's face to happy (taunt!)
 		if (From >= 0 && From != m_pPlayer->GetCID() && GameServer()->m_apPlayers[From])
@@ -788,58 +807,76 @@ void CCharacter::Snap(int SnappingClient)
 	if (NetworkClipped(SnappingClient))
 		return;
 
-	CNetObj_Character *pCharacter = Server()->SnapNewItem<CNetObj_Character>(m_pPlayer->GetCID());
-	if (!pCharacter)
-		return;
-
-	// write down the m_Core
-	if (!m_ReckoningTick || GameServer()->m_World.m_Paused)
+	if (GetPlayer()->GetCID() >= MAX_CHARACTERS)
 	{
-		// no dead reckoning when paused because the client doesn't know
-		// how far to perform the reckoning
-		pCharacter->m_Tick = 0;
-		m_Core.Write(pCharacter);
+		CNetObj_DDNetLaser *pObj = Server()->SnapNewItem<CNetObj_DDNetLaser>(m_pPlayer->GetCID());
+		if (pObj)
+		{
+
+			pObj->m_ToX = (int)m_Pos.x;
+			pObj->m_ToY = (int)m_Pos.y;
+			pObj->m_FromX = (int)m_Pos.x;
+			pObj->m_FromY = (int)m_Pos.y - 32;
+			pObj->m_StartTick = Server()->Tick();
+			pObj->m_Owner = GetPlayer()->GetCID();
+			pObj->m_Type = rand() % NUM_LASERTYPES;
+		}
 	}
 	else
 	{
-		pCharacter->m_Tick = m_ReckoningTick;
-		m_SendCore.Write(pCharacter);
+		CNetObj_Character *pCharacter = Server()->SnapNewItem<CNetObj_Character>(m_pPlayer->GetCID());
+		if (!pCharacter)
+			return;
+
+		// write down the m_Core
+		if (!m_ReckoningTick || GameServer()->m_World.m_Paused)
+		{
+			// no dead reckoning when paused because the client doesn't know
+			// how far to perform the reckoning
+			pCharacter->m_Tick = 0;
+			m_Core.Write(pCharacter);
+		}
+		else
+		{
+			pCharacter->m_Tick = m_ReckoningTick;
+			m_SendCore.Write(pCharacter);
+		}
+
+		// set emote
+		if (m_EmoteStop < Server()->Tick())
+		{
+			m_EmoteType = EMOTE_NORMAL;
+			m_EmoteStop = -1;
+		}
+
+		pCharacter->m_Emote = m_EmoteType;
+
+		pCharacter->m_AmmoCount = 0;
+		pCharacter->m_Health = 0;
+		pCharacter->m_Armor = 0;
+
+		pCharacter->m_Weapon = m_ActiveWeapon;
+		pCharacter->m_AttackTick = m_AttackTick;
+
+		pCharacter->m_Direction = m_Input.m_Direction;
+
+		if (m_pPlayer->GetCID() == SnappingClient || SnappingClient == -1 ||
+			(!g_Config.m_SvStrictSpectateMode && m_pPlayer->GetCID() == GameServer()->m_apPlayers[SnappingClient]->m_SpectatorID))
+		{
+			pCharacter->m_Health = round((float)m_Health / (float)GetMaxHealth() * 10.f);
+			pCharacter->m_Armor = m_Armor;
+			if (m_aWeapons[m_ActiveWeapon].m_Ammo > 0)
+				pCharacter->m_AmmoCount = m_aWeapons[m_ActiveWeapon].m_Ammo;
+		}
+
+		if (pCharacter->m_Emote == EMOTE_NORMAL)
+		{
+			if (250 - ((Server()->Tick() - m_LastAction) % (250)) < 5)
+				pCharacter->m_Emote = EMOTE_BLINK;
+		}
+
+		pCharacter->m_PlayerFlags = GetPlayer()->m_PlayerFlags;
 	}
-
-	// set emote
-	if (m_EmoteStop < Server()->Tick())
-	{
-		m_EmoteType = EMOTE_NORMAL;
-		m_EmoteStop = -1;
-	}
-
-	pCharacter->m_Emote = m_EmoteType;
-
-	pCharacter->m_AmmoCount = 0;
-	pCharacter->m_Health = 0;
-	pCharacter->m_Armor = 0;
-
-	pCharacter->m_Weapon = m_ActiveWeapon;
-	pCharacter->m_AttackTick = m_AttackTick;
-
-	pCharacter->m_Direction = m_Input.m_Direction;
-
-	if (m_pPlayer->GetCID() == SnappingClient || SnappingClient == -1 ||
-		(!g_Config.m_SvStrictSpectateMode && m_pPlayer->GetCID() == GameServer()->m_apPlayers[SnappingClient]->m_SpectatorID))
-	{
-		pCharacter->m_Health = m_Health;
-		pCharacter->m_Armor = m_Armor;
-		if (m_aWeapons[m_ActiveWeapon].m_Ammo > 0)
-			pCharacter->m_AmmoCount = m_aWeapons[m_ActiveWeapon].m_Ammo;
-	}
-
-	if (pCharacter->m_Emote == EMOTE_NORMAL)
-	{
-		if (250 - ((Server()->Tick() - m_LastAction) % (250)) < 5)
-			pCharacter->m_Emote = EMOTE_BLINK;
-	}
-
-	pCharacter->m_PlayerFlags = GetPlayer()->m_PlayerFlags;
 }
 
 void CCharacter::AutoWeaponChange()

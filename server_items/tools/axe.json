@@ -7,7 +7,7 @@
                 "name": "Wooden Axe",
                 "desc": "An axe made of wood.",
                 "proba": 90,
-                "damage": 200,
+                "damage": 13,
                 "capacity": 0,
                 "formula": {
                     "Log": 10
@@ -17,7 +17,7 @@
                 "id": 12,
                 "name": "Copper Axe",
                 "desc": "An axe made of copper.",
-                "damage": 700,
+                "damage": 17,
                 "proba": 90,
                 "capacity": 10,
                 "formula": {
@@ -29,7 +29,7 @@
                 "id": 14,
                 "name": "Iron Axe",
                 "desc": "An axe made of iron.",
-                "damage": 1400,
+                "damage": 25,
                 "proba": 90,
                 "capacity": 20,
                 "formula": {
@@ -41,7 +41,7 @@
                 "id": 17,
                 "name": "Golden Axe",
                 "desc": "An axe made of gold.",
-                "damage": 2000,
+                "damage": 50,
                 "proba": 90,
                 "capacity": 30,
                 "formula": {
@@ -53,7 +53,7 @@
                 "id": 20,
                 "name": "Diamond Axe",
                 "desc": "An axe made of diamond.",
-                "damage": 8000,
+                "damage": 100,
                 "proba": 100,
                 "capacity": 50,
                 "formula": {

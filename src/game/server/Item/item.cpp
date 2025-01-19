@@ -225,7 +225,7 @@ int CItemHelper::GetType(int ID)
 const char *CItemHelper::GetItemName(int ID)
 {
     if (!CheckItemVaild(ID))
-        return "Log";
+        return "Hand";
     return m_aItems[ID]->m_aItemName;
 }
 
@@ -239,8 +239,8 @@ int CItemHelper::GetItemID(const char ItemName[64])
 
 int CItemHelper::GetDmg(int ID)
 {
-    if (!CheckItemVaild(ID))
-        return 0;
+    if (!CheckItemVaild(ID) || !ID)
+        return 10;
     return ((CItem_Tool *)m_aItems[ID])->m_Damage;
 }
 

@@ -215,6 +215,24 @@ void CGameContext::CreateSound(vec2 Pos, int Sound, CClientMask Mask)
 	}
 }
 
+void CGameContext::CreateSoundGlobal(int Sound, int Target)
+{
+	if (Sound < 0)
+		return;
+
+	CNetMsg_Sv_SoundGlobal Msg;
+	Msg.m_SoundID = Sound;
+	if (Target == -2)
+		Server()->SendPackMsg(&Msg, MSGFLAG_NOSEND, -1, m_WorldID);
+	else
+	{
+		int Flag = MSGFLAG_VITAL;
+		if (Target != -1)
+			Flag |= MSGFLAG_NORECORD;
+		Server()->SendPackMsg(&Msg, Flag, Target, m_WorldID);
+	}
+}
+
 void CGameContext::CreateExtraEffect(vec2 Pos, int Effect, CClientMask Mask)
 {
 	if (Effect)
@@ -1745,6 +1763,14 @@ bool CGameContext::VotMake(IConsole::IResult *pResult, void *pUserData)
 		return false;
 
 	int Item = pSelf->m_aPlayerVotes[ClientID].m_Select[SPlayerVote::ITEM];
+
+	if (pPlayer->m_AccData.m_aItems[Item].m_Num >= pSelf->ItemHelper()->GetMax(Item))
+	{
+		pSelf->SetVoteExtraText(ClientID, "You have reached the limit");
+		if(pPlayer->GetCharacter())
+			pSelf->CreateSoundGlobal(SOUND_WEAPON_NOAMMO, ClientID);
+		return true;
+	}
 	// Check formula
 	bool IsOK = true;
 	for (int Checked = 0; Checked < 2; Checked++)
@@ -1854,6 +1880,18 @@ bool CGameContext::VotCheckItem(IConsole::IResult *pResult, void *pUserData)
 	return true;
 }
 
+bool CGameContext::VotEquip(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int CID = pResult->GetClientID();
+	pSelf->GetPlayer(CID)->m_AccData.m_Holding[pSelf->ItemHelper()->GetType(pResult->GetInteger(0))] = pResult->GetInteger(0);
+	pSelf->CreateSoundGlobal(SOUND_PICKUP_NINJA, CID);
+	pSelf->SetVoteExtraText(CID, "You have successfully equipped the {}", pSelf->ItemHelper()->GetItemName(pResult->GetInteger(0)));
+	pSelf->ClearVotes(CID);
+	pSelf->TW()->Account()->SaveAccountData(CID, TABLE_ACCOUNT, pSelf->GetPlayer(CID)->m_AccData);
+	return true;
+}
+
 void CGameContext::OnConsoleInit()
 {
 	m_pServer = Kernel()->RequestInterface<IServer>();
@@ -1897,6 +1935,7 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("make", "", CFGFLAG_VOTE, VotMake, this, "make - Confirm to make something");
 	Console()->Register("checkitem", "i", CFGFLAG_VOTE, VotCheckItem, this, "[item] - Confirm to make something");
 	Console()->Register("placecard", "i", CFGFLAG_VOTE, VotPlaceCard, this, "[card] - Place card");
+	Console()->Register("equip", "i", CFGFLAG_VOTE, VotEquip, this, "[item] - Equip");
 
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
 
@@ -2066,7 +2105,7 @@ void CGameContext::AddBot()
 
 	Server()->InitClientBot(BotClientID);
 	const int AllocMemoryCell = BotClientID + m_WorldID * MAX_CLIENTS;
-	m_apPlayers[BotClientID] = new (AllocMemoryCell) CPlayer(this, BotClientID, 0);
+	m_apPlayers[BotClientID] = new (AllocMemoryCell) CPlayer(this, BotClientID, TEAM_BOT);
 	m_apPlayers[BotClientID]->m_BotWorldID = GetWorldID();
 	m_apPlayers[BotClientID]->m_IsBot = true;
 	m_apPlayers[BotClientID]->m_pBot = new CBot(m_pBotEngine, m_apPlayers[BotClientID]);
@@ -2142,7 +2181,7 @@ void CGameContext::AddVote(const char *Desc, const char *Cmd, int ClientID)
 	Server()->SendPackMsg(&OptionMsg, MSGFLAG_VITAL, ClientID, -1);
 }
 
-void CGameContext::AddVote_ListInventory(int ItemType)
+void CGameContext::AddVote_ListInventory(int ItemType, const char *pCmd)
 {
 	CPlayer *pP = GetPlayer(m_VoteClientID);
 	if (!pP)
@@ -2154,7 +2193,7 @@ void CGameContext::AddVote_ListInventory(int ItemType)
 		if (ItemHelper()->GetType(i) == ItemType && pP->m_AccData.m_aItems[i].m_Num)
 		{
 			char aCmd[32];
-			str_format(aCmd, sizeof(aCmd), "ccv_checkitem %d", i);
+			str_format(aCmd, sizeof(aCmd), "%s %d", pCmd, i);
 			AddVote_VL(aCmd, "➳ {} x{}", ItemHelper()->GetItemName(i), pP->m_AccData.m_aItems[i].m_Num);
 			Got = true;
 		}
@@ -2255,6 +2294,7 @@ void CGameContext::InitVotes(int ClientID)
 		AddVote_Space();
 		AddVote_Goto(PAGE_INVENTORY, "☞ Inventory ✪");
 		AddVote_Goto(PAGE_CRAFT, "☞ Craft ☺");
+		AddVote_Goto(PAGE_EQUIPMENT, "☞ Equipment ☭");
 	}
 	break;
 
@@ -2279,36 +2319,43 @@ void CGameContext::InitVotes(int ClientID)
 		AddVote_Space();
 		AddVote_Back();
 		AddVote_Text("---------------------");
-		AddVote_ListInventory(PlayerVote.m_Select[SPlayerVote::EVoteSelect::ITEMLIST]);
+		AddVote_ListInventory(PlayerVote.m_Select[SPlayerVote::EVoteSelect::ITEMLIST], "ccv_checkitem");
 	}
 	break;
 
 	case PAGE_CHECK_ITEM:
 	{
 		int SelectItem = PlayerVote.m_Select[SPlayerVote::ITEM];
+		char aCmd[64];
 		SetVoteLastPage(PAGE_INVENTORY);
 		AddVote_Text("☪ Item Info");
 		AddVote_Space();
 		AddVote_Text("Item: {}", Items(SelectItem)->m_aItemName);
 		AddVote_Text("Description: {}", Items(SelectItem)->m_aItemDesc);
-		AddVote_Text("You have: {}", Data.m_aItems[SelectItem].m_Num);
 		if (ItemHelper()->GetType(SelectItem) != ITYPE_MATERIAL)
 			AddVote_Text("Capacity: {}", Data.m_aItems[SelectItem].m_Capacity);
+		AddVote_Text("You have: {}", Data.m_aItems[SelectItem].m_Num);
+		AddVote_Space();
+
+		str_format(aCmd, sizeof(aCmd), "ccv_equip %d", SelectItem);
+		AddVote_VL(aCmd, "☝ Equip");
+		AddVote_Space();
+		AddVote_Text("# Cards:");
 		for (int i = 0; i < NUM_ITEM; i++)
 		{
 			if (Data.m_aItems[i].m_Num <= 0)
 				continue;
 
-			if (ItemHelper()->GetType(i) != ITYPE_CARD)
-				continue;
+			if (ItemHelper()->GetType(i) == ITYPE_CARD)
+			{
+				CItem_Card *pCard = (CItem_Card *)Items(i);
+				if (!(pCard->m_Placeable[ItemHelper()->GetType(SelectItem)]))
+					continue;
 
-			CItem_Card *pCard = (CItem_Card *)Items(i);
-			if (!(pCard->m_Placeable[ItemHelper()->GetType(SelectItem)]))
+				str_format(aCmd, sizeof(aCmd), "ccv_placecard %d", i);
+				AddVote_VL(aCmd, "☝ Place {}", ItemHelper()->GetItemName(i));
 				continue;
-
-			char aCmd[64];
-			str_format(aCmd, sizeof(aCmd), "ccv_placecard %d", i);
-			AddVote_VL(aCmd, "☝ Place {}", ItemHelper()->GetItemName(i));
+			}
 		}
 		AddVote_Back();
 	}
@@ -2353,6 +2400,38 @@ void CGameContext::InitVotes(int ClientID)
 		AddVote_VL("ccv_make", "- Craft!");
 		AddVote_Space(2);
 		AddVote_Back();
+	}
+	break;
+
+	case PAGE_EQUIPMENT:
+	{
+		SetVoteLastPage(PAGE_MENU);
+		TW()->Account()->SyncAccountData(ClientID, TABLE_ITEM);
+		SetVoteLastPage(PAGE_MENU);
+		AddVote_Text("☪ Equipment");
+		AddVote_Text("Sword: {}", ItemHelper()->GetItemName(pP->m_AccData.m_Holding[ITYPE_SWORD]));
+		AddVote_Text("Axe: {}", ItemHelper()->GetItemName(pP->m_AccData.m_Holding[ITYPE_AXE]));
+		AddVote_Text("Pickaxe: {}", ItemHelper()->GetItemName(pP->m_AccData.m_Holding[ITYPE_PICKAXE]));
+		AddVote_Space();
+		CountItemNum(ClientID);
+		for (int i = 0; i < NUM_ITYPE; i++)
+		{
+			if (i != ITYPE_PICKAXE && i != ITYPE_AXE && i != ITYPE_SWORD)
+				continue;
+			
+			if (PlayerVote.m_Select[SPlayerVote::EQUIPMENT] != i)
+			{
+				char aCmd[64];
+				str_format(aCmd, sizeof(aCmd), "ccv_selectitem %d %d", SPlayerVote::EQUIPMENT, i);
+				AddVote_VL(aCmd, "▹ {} ({})", ItemLists[i], pP->m_AccData.m_ItemCount[i]);
+			}
+			else
+				AddVote_Text("▾ {} ({}) ", ItemLists[i], pP->m_AccData.m_ItemCount[i]);
+		}
+		AddVote_Space();
+		AddVote_Back();
+		AddVote_Text("---------------------");
+		AddVote_ListInventory(PlayerVote.m_Select[SPlayerVote::EVoteSelect::EQUIPMENT], "ccv_equip");
 	}
 	break;
 	default:
