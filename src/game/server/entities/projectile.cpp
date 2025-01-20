@@ -72,8 +72,8 @@ void CProjectile::Tick()
 		if(m_LifeSpan >= 0 || m_Weapon == WEAPON_GRENADE)
 			GameServer()->CreateSound(CurPos, m_SoundImpact);
 
-		if(m_Explosive)
-			GameServer()->CreateExplosion(CurPos, m_Owner, m_Weapon, false);
+		if(m_Explosive || GameServer()->ItemHelper()->GetCard(OwnerChar->GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_EXPLOSION))
+				GameServer()->CreateExplosion(CurPos, m_Owner, m_Weapon, false);
 
 		else if(TargetChr)
 			TargetChr->TakeDamage(m_Direction * max(0.001f, m_Force), m_Damage, m_Owner, m_Weapon);

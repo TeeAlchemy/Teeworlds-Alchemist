@@ -145,6 +145,12 @@ public:
 	bool GetZomb(int Zomb);
 
 	void InitZombie(int Zomb);
+
+	int GetHolding(int ItemType) { return m_AccData.m_Holding[ItemType]; }
+	int GetItemNum(int ItemID) { return m_AccData.m_aItems[ItemID].m_Num; }
+	std::string GetExtra(int ItemID) { return m_AccData.m_aItems[ItemID].m_aExtra; }
+	void SetExtra(int ItemID, std::string Extra) { m_AccData.m_aItems[ItemID].m_aExtra = Extra; }
+	std::string GetExtraHolding(int ItemType) { return GetExtra(GetHolding(ItemType)); }
 private:
 	CCharacter *m_pCharacter;
 	CGameContext *m_pGameServer;

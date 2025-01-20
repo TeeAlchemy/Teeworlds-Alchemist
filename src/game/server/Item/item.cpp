@@ -1,6 +1,7 @@
 #include "item.h"
 #include <game/server/gamecontext.h>
 #include <engine/external/json-parser/json.h>
+#include <teeother/tl/nlohmann_json.h>
 
 CItemHelper::CItemHelper(CGameContext *pGameServer)
 {
@@ -283,4 +284,16 @@ int CItemHelper::GetMaxHealth(int ID)
     if (!CheckItemVaild(ID))
         return 0;
     return m_aItems[ID]->m_MaxHealth;
+}
+
+bool CItemHelper::GetCard(std::string Extra, int CardID)
+{
+    nlohmann::json Json = nlohmann::json::parse(Extra);
+    if (Json["Extra"].contains("Cards") && !Json["Extra"]["Cards"].empty())
+	{
+		for (const auto &j : Json["Extra"]["Cards"])
+			if (CardID == int(j["id"]))
+                return true;
+    }
+    return false;
 }

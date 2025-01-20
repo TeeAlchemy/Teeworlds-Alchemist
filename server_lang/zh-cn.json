@@ -1,10 +1,6 @@
 {
     "translation": [
         {
-            "key": "★{}: x{}({}*{})",
-            "value": "★{}: x{}({}*{})"
-        },
-        {
             "key": "➳ {} x{} ✓",
             "value": "➳ {} x{} ✓"
         },
@@ -178,43 +174,43 @@
         },
         {
             "key": "Capacity: {}/{}",
-            "value": "承载力: {}/{}"
+            "value": "空间: {}/{}"
         },
         {
             "key": "Card",
-            "value": "模块"
+            "value": "卡牌"
         },
         {
             "key": "Card: Damage",
-            "value": "模块: 伤害"
+            "value": "卡牌: 伤害"
         },
         {
             "key": "Card: Electron",
-            "value": "模块: 电子"
+            "value": "卡牌: 电子"
         },
         {
             "key": "Card: Explosion",
-            "value": "模块: 爆炸"
+            "value": "卡牌: 爆炸"
         },
         {
             "key": "Card: Force",
-            "value": "模块: 推力"
+            "value": "卡牌: 推力"
         },
         {
             "key": "Card: Fusion",
-            "value": "模块: 核聚变"
+            "value": "卡牌: 核聚变"
         },
         {
             "key": "Card: Manual Control",
-            "value": "模块: 手动控制"
+            "value": "卡牌: 手动控制"
         },
         {
             "key": "Card: Quickly-Fire",
-            "value": "模块: 快速攻击"
+            "value": "卡牌: 快速攻击"
         },
         {
             "key": "Card: Quickly-Loading",
-            "value": "模块: 快速冷却"
+            "value": "卡牌: 快速冷却"
         },
         {
             "key": "Chat AI(module: {}) has received your message and is currently processing it.",
@@ -371,6 +367,10 @@
         {
             "key": "Maybe they can make wires.",
             "value": "提示：不要空手挖掘！"
+        },
+        {
+            "key": "Need Capacity: {}",
+            "value": "所需空间: {}"
         },
         {
             "key": "No such command: /{}.",
@@ -645,8 +645,12 @@
             "value": "你得到了一个{}"
         },
         {
-            "key": "You successfully placed {} on {}!",
-            "value": "你放置了{}到{}上"
+            "key": "You placed {} on {}!",
+            "value": "你把{}放置到了{}上"
+        },
+        {
+            "key": "You separate {} from {}!",
+            "value": "你把{}从{}中分离"
         },
         {
             "key": "You were moved to {} due to team balancing",
@@ -725,12 +729,16 @@
             "value": "▾ {} ({}) "
         },
         {
+            "key": "★Separate one {}x{}({}*{})",
+            "value": "分离一个{}x{}(占{}*{})"
+        },
+        {
             "key": "☝ Equip",
             "value": "☝ 装备该物品"
         },
         {
-            "key": "☝ Place {}",
-            "value": "☝ 放置 {}"
+            "key": "☝ Place {}(x{},{})",
+            "value": "☝ 放置 {}(x{},占{})"
         },
         {
             "key": "☞ Craft ☺",

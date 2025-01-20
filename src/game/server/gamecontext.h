@@ -314,6 +314,7 @@ public:
 			ITEMLIST = 0,
 			ITEM,
 			EQUIPMENT,
+			SEPARATE,
 			NUM_SELECT,
 		};
 
@@ -390,6 +391,7 @@ public:
 	static bool VotMake(IConsole::IResult *pResult, void *pUserData);
 	static bool VotPlaceCard(IConsole::IResult *pResult, void *pUserData);
 	static bool VotEquip(IConsole::IResult *pResult, void *pUserData);
+	static bool VotSeparateCard(IConsole::IResult *pResult, void *pUserData);
 
 private:
 	int m_VoteClientID;

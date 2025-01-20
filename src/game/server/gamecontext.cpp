@@ -1817,17 +1817,17 @@ bool CGameContext::VotPlaceCard(IConsole::IResult *pResult, void *pUserData)
 	if (!pPlayer)
 		return false;
 
-	if (!pSelf->m_aPlayerVotes[ClientID].m_Confirm)
+	/*if (!pSelf->m_aPlayerVotes[ClientID].m_Confirm)
 	{
 		pSelf->SetVoteExtraText(ClientID, "Are you sure?(This will not be reversible)");
 		pSelf->m_aPlayerVotes[ClientID].m_Confirm = true;
 		pSelf->ClearVotes(pResult->GetClientID());
 		return true;
-	}
+	}*/
 
 	int Select = pSelf->m_aPlayerVotes[pResult->GetClientID()].m_Select[SPlayerVote::EVoteSelect::ITEM];
 	int Card = pResult->GetInteger(0);
-	pSelf->SetVoteExtraText(ClientID, "You successfully placed {} on {}!", pSelf->ItemHelper()->GetItemName(Card), pSelf->ItemHelper()->GetItemName(Select));
+	pSelf->SetVoteExtraText(ClientID, "You placed {} on {}!", pSelf->ItemHelper()->GetItemName(Card), pSelf->ItemHelper()->GetItemName(Select));
 
 	int Capacity = pSelf->ItemHelper()->GetCapacity(Card);
 	int ExistCard = -1;
@@ -1840,7 +1840,9 @@ bool CGameContext::VotPlaceCard(IConsole::IResult *pResult, void *pUserData)
 			Json["Extra"]["Cards"].push_back({{"id", Card}, {"num", 1}});
 			pPlayer->m_AccData.m_aItems[Select].m_aExtra = Json.dump();
 			pPlayer->m_AccData.m_aItems[Select].m_Capacity = Capacity;
-			pSelf->m_aPlayerVotes[ClientID].m_Confirm = false;
+			//pSelf->m_aPlayerVotes[ClientID].m_Confirm = false;
+
+			pPlayer->m_AccData.m_aItems[Card].m_Num--;
 
 			pSelf->TW()->Account()->SaveAccountData(ClientID, TABLE_ITEM, pPlayer->m_AccData);
 			pSelf->ClearVotes(pResult->GetClientID());
@@ -1870,11 +1872,12 @@ bool CGameContext::VotPlaceCard(IConsole::IResult *pResult, void *pUserData)
 			Json["Extra"]["Cards"].push_back({{"id", Card}, {"num", 1}});
 		pPlayer->m_AccData.m_aItems[Select].m_aExtra = Json.dump();
 		pPlayer->m_AccData.m_aItems[Select].m_Capacity = Capacity;
+		pPlayer->m_AccData.m_aItems[Card].m_Num--;
 	}
 	else
 		pSelf->SetVoteExtraText(ClientID, "Not enough capacity!");
 
-	pSelf->m_aPlayerVotes[ClientID].m_Confirm = false;
+	//pSelf->m_aPlayerVotes[ClientID].m_Confirm = false;
 
 	pSelf->TW()->Account()->SaveAccountData(ClientID, TABLE_ITEM, pPlayer->m_AccData);
 	pSelf->ClearVotes(pResult->GetClientID());
@@ -1897,6 +1900,45 @@ bool CGameContext::VotEquip(IConsole::IResult *pResult, void *pUserData)
 	pSelf->GetPlayer(CID)->m_AccData.m_Holding[pSelf->ItemHelper()->GetType(pResult->GetInteger(0))] = pResult->GetInteger(0);
 	pSelf->CreateSoundGlobal(SOUND_PICKUP_NINJA, CID);
 	pSelf->SetVoteExtraText(CID, "You have successfully equipped the {}", pSelf->ItemHelper()->GetItemName(pResult->GetInteger(0)));
+	pSelf->ClearVotes(CID);
+	pSelf->TW()->Account()->SaveAccountData(CID, TABLE_ACCOUNT, pSelf->GetPlayer(CID)->m_AccData);
+	return true;
+}
+
+bool CGameContext::VotSeparateCard(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	int CID = pResult->GetClientID();
+	int Card = pResult->GetInteger(0);
+	int Select = pSelf->m_aPlayerVotes[CID].m_Select[SPlayerVote::EVoteSelect::ITEM];
+
+	nlohmann::json Json = nlohmann::json::parse(pSelf->GetPlayer(CID)->GetExtra(Select));
+	if (Json["Extra"].contains("Cards") && !Json["Extra"]["Cards"].empty())
+	{
+		int ToBeRemove = 0;
+		for (const auto &j : Json["Extra"]["Cards"])
+		{
+			if (Card == int(j["id"]))
+			{
+				pSelf->SetVoteExtraText(CID, "You separate {} from {}!", pSelf->ItemHelper()->GetItemName(int(j["id"])), pSelf->ItemHelper()->GetItemName(Select));
+				if(int(j["num"]) > 1)
+					Json["Extra"]["Cards"][ToBeRemove]["num"] = int(Json["Extra"]["Cards"][ToBeRemove]["num"]) - 1;
+				else
+					Json["Extra"]["Cards"].erase(ToBeRemove);
+				pSelf->GetPlayer(CID)->SetExtra(Select, Json.dump());
+				pSelf->GetPlayer(CID)->m_AccData.m_aItems[Card].m_Num++;
+				break;
+			}
+			ToBeRemove++;
+		}
+	}
+	else
+	{
+		pSelf->Server()->Kick(CID, "服务器出现错误！请联系开发者QQ:1562151175！感谢！");
+		return true;
+	}
+	
+	pSelf->CreateSoundGlobal(SOUND_CTF_RETURN, CID);
 	pSelf->ClearVotes(CID);
 	pSelf->TW()->Account()->SaveAccountData(CID, TABLE_ACCOUNT, pSelf->GetPlayer(CID)->m_AccData);
 	return true;
@@ -1946,6 +1988,7 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("checkitem", "i", CFGFLAG_VOTE, VotCheckItem, this, "[item] - Confirm to make something");
 	Console()->Register("placecard", "i", CFGFLAG_VOTE, VotPlaceCard, this, "[card] - Place card");
 	Console()->Register("equip", "i", CFGFLAG_VOTE, VotEquip, this, "[item] - Equip");
+	Console()->Register("separatecard", "i", CFGFLAG_VOTE, VotSeparateCard, this, "[card] - Separate Card");
 
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
 
@@ -2356,7 +2399,9 @@ void CGameContext::InitVotes(int ClientID)
 		AddVote_Space();
 		AddVote_Text("Item: {}", ItemHelper()->GetItemName(SelectItem));
 		AddVote_Text("Description: {}", Items(SelectItem)->m_aItemDesc);
-		if (ItemHelper()->GetType(SelectItem) != ITYPE_MATERIAL)
+		if (ItemHelper()->GetType(SelectItem) == ITYPE_CARD)
+			AddVote_Text("Need Capacity: {}", ItemHelper()->GetCapacity(SelectItem));
+		else if (ItemHelper()->GetType(SelectItem) != ITYPE_MATERIAL)
 			AddVote_Text("Capacity: {}/{}", Capacity, ItemHelper()->GetCapacity(SelectItem));
 		AddVote_Text("You have: {}", Data.m_aItems[SelectItem].m_Num);
 		AddVote_Space();
@@ -2371,7 +2416,10 @@ void CGameContext::InitVotes(int ClientID)
 		{
 			AddVote_Text("- Current -");
 			for (const auto &j : Json["Extra"]["Cards"])
-				AddVote_Text("★{}: x{}({}*{})", ItemHelper()->GetItemName(int(j["id"])), int(j["num"]), ItemHelper()->GetCapacity(int(j["id"])), int(j["num"]));
+			{
+				str_format(aCmd, sizeof(aCmd), "ccv_separatecard %d", int(j["id"]));
+				AddVote_VL(aCmd, "★Separate one {}x{}({}*{})", ItemHelper()->GetItemName(int(j["id"])), int(j["num"]), ItemHelper()->GetCapacity(int(j["id"])), int(j["num"]));
+			}
 			IsEmpty = false;
 		}
 		AddVote_Space();
@@ -2394,7 +2442,7 @@ void CGameContext::InitVotes(int ClientID)
 				IsEmpty = false;
 
 				str_format(aCmd, sizeof(aCmd), "ccv_placecard %d", i);
-				AddVote_VL(aCmd, "☝ Place {}", ItemHelper()->GetItemName(i));
+				AddVote_VL(aCmd, "☝ Place {}(x{},{})", ItemHelper()->GetItemName(i), pP->GetItemNum(i), ItemHelper()->GetCapacity(i));
 				continue;
 			}
 		}
