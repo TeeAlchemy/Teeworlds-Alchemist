@@ -28,6 +28,7 @@ static void register_thread(void *user)
                 Data->m_pGameServer->Chat(ClientID, "This username is already in use.");
                 Data->m_pGameServer->DB()->FreeData(Result);
                 lock_unlock(Data->m_pGameServer->DB()->SQL_Lock);
+                delete Data;
                 return;
             }
             else
@@ -45,6 +46,8 @@ static void register_thread(void *user)
     Data->m_pGameServer->DB()->FreeData(Result);
 
     lock_unlock(Data->m_pGameServer->DB()->SQL_Lock);
+
+    delete Data;
 }
 
 bool CAccount::Register(int ClientID, const char *Username, const char *Password)
@@ -66,7 +69,10 @@ static void login_thread(void *user)
     int ClientID = Data->m_ClientID;
     CPlayer *P = Data->m_pGameServer->GetPlayer(ClientID);
     if (!P)
+    {
+        delete Data;
         return;
+    }
 
     char aBuf[512];
     str_format(aBuf, sizeof(aBuf), "SELECT * from tw_Accounts WHERE Username = '%s';", Data->m_AccData.m_aUsername);
@@ -118,8 +124,8 @@ static void login_thread(void *user)
         }
     }
     Data->m_pGameServer->DB()->FreeData(Result);
-
     lock_unlock(Data->m_pGameServer->DB()->SQL_Lock);
+    delete Data;
 }
 bool CAccount::Login(int ClientID, const char *Username, const char *Password)
 {
@@ -143,7 +149,10 @@ static void sync_accdata_thread(void *user)
         return;
     int UserID = P->m_AccData.m_UserID;
     if (!UserID)
+    {
+        delete Data;
         return;
+    }
 
     lock_wait(Data->m_pGameServer->DB()->SQL_Lock);
     sql::ResultSet *Result;
@@ -194,6 +203,7 @@ static void sync_accdata_thread(void *user)
                 dbg_msg("SyncAccountData", "Error when saving account data.");
                 Data->m_pGameServer->DB()->FreeData(Result);
                 lock_unlock(Data->m_pGameServer->DB()->SQL_Lock);
+                delete Data;
                 return;
             }
         }
@@ -203,8 +213,8 @@ static void sync_accdata_thread(void *user)
         }
     }
     Data->m_pGameServer->DB()->FreeData(Result);
-
     lock_unlock(Data->m_pGameServer->DB()->SQL_Lock);
+    delete Data;
 }
 
 void CAccount::SyncAccountData(int ClientID, int Table)
@@ -224,7 +234,10 @@ static void save_accdata_thread(void *user)
     FaBao *Data = (FaBao *)user;
     int UserID = Data->m_AccData.m_UserID;
     if (!UserID)
+    {
+        delete Data;
         return;
+    }
 
     lock_wait(Data->m_pGameServer->DB()->SQL_Lock);
     sql::ResultSet *Result;
@@ -282,6 +295,7 @@ static void save_accdata_thread(void *user)
                 dbg_msg("SaveAccountData", "Error when saving account data.");
                 Data->m_pGameServer->DB()->FreeData(Result);
                 lock_unlock(Data->m_pGameServer->DB()->SQL_Lock);
+                delete Data;
                 return;
             }
         }
@@ -291,8 +305,8 @@ static void save_accdata_thread(void *user)
         }
     }
     Data->m_pGameServer->DB()->FreeData(Result);
-
     lock_unlock(Data->m_pGameServer->DB()->SQL_Lock);
+    delete Data;
 }
 
 void CAccount::SaveAccountData(int ClientID, int Table, CPlayer::SAccData AccData)
