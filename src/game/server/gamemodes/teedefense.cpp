@@ -103,7 +103,11 @@ void CGameControllerTeeDefense::OnCharacterSpawn(CCharacter *pChr)
 	if (pChr->GetPlayer()->IsBot())
 		pChr->IncreaseHealth(m_Wave);
 	else
+	{
+		// default health
+		pChr->IncreaseHealth(g_Config.m_SvPlayerMaxHealth);
 		pChr->GiveWeapon(WEAPON_GUN, 10);
+	}
 }
 
 int CGameControllerTeeDefense::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon)

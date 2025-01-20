@@ -75,7 +75,7 @@ void CLightning::DoBounce()
 		for (int i = 0; i < Explosion; i++)
 			GameServer()->CreateExplosion(vec2(To.x + random_int(-200, 200), To.y + random_int(-200, 200)), m_Owner, WEAPON_RIFLE, false);
 		
-		int Fusion = GameServer()->ItemHelper()->GetCard(GameServer()->GetPlayer(m_Owner)->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_EXPLOSION);
+		int Fusion = GameServer()->ItemHelper()->GetCard(GameServer()->GetPlayer(m_Owner)->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_FUSION);
 		if (Fusion)
 			new CGrowingExplosion(GameWorld(), To, vec2(0, 0), m_Owner, 32.f * Fusion, GROWINGEXPLOSIONEFFECT_BOOM);
 	}

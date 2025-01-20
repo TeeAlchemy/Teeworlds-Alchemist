@@ -284,8 +284,21 @@ void CCharacter::FireWeapon()
 	}
 
 	vec2 ProjStartPos = m_Pos + Direction * GetProximityRadius() * 0.75f;
-	float MoreForce = 1.f + float(GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_FORCE)) * 5.f;
+	float MoreForce = 1.f + float(GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_FORCE)) * 2.f;
 	int ExtraDMG = GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_DAMAGE) * 5;
+
+	int Electron = GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_ELECTRON);
+	if (Electron)
+	{
+		for (int i = 0; i < 25; i++)
+		{
+			float Spreading[] = {-0.185f, -0.130f, -0.050f, 0.050f, 0.130f, 0.185f};
+			float a = GetAngle(Direction);
+			a += Spreading[i + 3];
+			new CLightning(GameWorld(), m_Pos, vec2(cosf(a), sinf(a)), 200, 100, m_pPlayer->GetCID(), ExtraDMG); // ExtraDMG is needed.
+		}
+	}
+
 	switch (m_ActiveWeapon)
 	{
 	case WEAPON_HAMMER:
@@ -328,7 +341,7 @@ void CCharacter::FireWeapon()
 			for (int i = 0; i < Explosion; i++)
 				GameServer()->CreateExplosion(vec2(m_Pos.x + random_int(-200, 200), m_Pos.y + random_int(-200, 200)), GetPlayer()->GetCID(), WEAPON_HAMMER, false);
 
-			int Fusion = GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_EXPLOSION);
+			int Fusion = GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_FUSION);
 			if (Fusion)
 				new CGrowingExplosion(GameWorld(), GetPos(), vec2(0, 0), GetPlayer()->GetCID(), 32.f * Fusion, GROWINGEXPLOSIONEFFECT_BOOM);
 

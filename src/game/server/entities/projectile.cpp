@@ -76,12 +76,12 @@ void CProjectile::Tick()
 		if(m_Explosive || GameServer()->ItemHelper()->GetCard(OwnerChar->GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_EXPLOSION))
 				GameServer()->CreateExplosion(CurPos, m_Owner, m_Weapon, false);
 
-		int Fusion = GameServer()->ItemHelper()->GetCard(GameServer()->GetPlayer(m_Owner)->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_EXPLOSION);
-		if (Fusion)
-			new CGrowingExplosion(GameWorld(), CurPos, vec2(0, 0), m_Owner, 32.f * Fusion, GROWINGEXPLOSIONEFFECT_BOOM);
-
 		else if(TargetChr)
 			TargetChr->TakeDamage(m_Direction * max(0.001f, m_Force), m_Damage, m_Owner, m_Weapon);
+
+		int Fusion = GameServer()->ItemHelper()->GetCard(GameServer()->GetPlayer(m_Owner)->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_FUSION);
+		if (Fusion)
+			new CGrowingExplosion(GameWorld(), CurPos, vec2(0, 0), m_Owner, 32.f * Fusion, GROWINGEXPLOSIONEFFECT_BOOM);
 
 		GameServer()->m_World.DestroyEntity(this);
 	}
