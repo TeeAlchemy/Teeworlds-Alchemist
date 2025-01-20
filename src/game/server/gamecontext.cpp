@@ -26,6 +26,8 @@
 #include "gamemodes/teedefense.h"
 #include "bot.h"
 
+#include "entities/growingexplosion.h"
+
 #include "gamecontext.h"
 
 enum
@@ -71,6 +73,11 @@ CGameContext::CGameContext()
 
 CGameContext::~CGameContext()
 {
+	for(int i = 0; i < m_LaserDots.size(); i++)
+		Server()->SnapFreeID(m_LaserDots[i].m_SnapID);
+	for(int i = 0; i < m_HammerDots.size(); i++)
+		Server()->SnapFreeID(m_HammerDots[i].m_SnapID);
+
 	for (int i = 0; i < MAX_CLIENTS; i++)
 		delete m_apPlayers[i];
 	if (!m_Resetting)
@@ -173,6 +180,13 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 			float Dmg = 6 * l;
 			if ((int)Dmg)
 				apEnts[i]->TakeDamage(ForceDir * Dmg * 2, (int)Dmg, Owner, Weapon);
+		}
+
+		if (GetPlayer(Owner))
+		{
+			int Electron = ItemHelper()->GetCard(GetPlayer(Owner)->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_ELECTRON);
+			if (Electron)
+				new CGrowingExplosion(&m_World, Pos, vec2(0, 0), Owner, 5.f * Electron, GROWINGEXPLOSIONEFFECT_ELECTRIC);
 		}
 	}
 }
@@ -283,6 +297,37 @@ void CGameContext::CreateMapSoundGlobal(int MapSoundID, int Target)
 			Flag |= MSGFLAG_NORECORD;
 		Server()->SendPackMsg(&Msg, Flag, Target, m_WorldID);
 	}
+}
+
+void CGameContext::CreateLaserDotEvent(vec2 Pos0, vec2 Pos1, int LifeSpan)
+{
+	CGameContext::LaserDotState State;
+	State.m_Pos0 = Pos0;
+	State.m_Pos1 = Pos1;
+	State.m_LifeSpan = LifeSpan;
+	State.m_SnapID = Server()->SnapNewID();
+	
+	m_LaserDots.add(State);
+}
+
+void CGameContext::CreateHammerDotEvent(vec2 Pos, int LifeSpan)
+{
+	CGameContext::HammerDotState State;
+	State.m_Pos = Pos;
+	State.m_LifeSpan = LifeSpan;
+	State.m_SnapID = Server()->SnapNewID();
+	
+	m_HammerDots.add(State);
+}
+
+void CGameContext::CreateLoveEvent(vec2 Pos)
+{
+	CGameContext::LoveDotState State;
+	State.m_Pos = Pos;
+	State.m_LifeSpan = Server()->TickSpeed();
+	State.m_SnapID = Server()->SnapNewID();
+	
+	m_LoveDots.add(State);
 }
 
 void CGameContext::SendChat(int ChatterClientID, int Team, const char *pText)
@@ -455,6 +500,48 @@ void CGameContext::OnTick()
 
 		m_apPlayers[i]->Tick();
 		m_apPlayers[i]->PostTick();
+	}
+
+	int DotIter;
+	
+	DotIter = 0;
+	while(DotIter < m_LaserDots.size())
+	{
+		m_LaserDots[DotIter].m_LifeSpan--;
+		if(m_LaserDots[DotIter].m_LifeSpan <= 0)
+		{
+			Server()->SnapFreeID(m_LaserDots[DotIter].m_SnapID);
+			m_LaserDots.remove_index(DotIter);
+		}
+		else
+			DotIter++;
+	}
+	
+	DotIter = 0;
+	while(DotIter < m_HammerDots.size())
+	{
+		m_HammerDots[DotIter].m_LifeSpan--;
+		if(m_HammerDots[DotIter].m_LifeSpan <= 0)
+		{
+			Server()->SnapFreeID(m_HammerDots[DotIter].m_SnapID);
+			m_HammerDots.remove_index(DotIter);
+		}
+		else
+			DotIter++;
+	}
+	
+	DotIter = 0;
+	while(DotIter < m_LoveDots.size())
+	{
+		m_LoveDots[DotIter].m_LifeSpan--;
+		m_LoveDots[DotIter].m_Pos.y -= 5.0f;
+		if(m_LoveDots[DotIter].m_LifeSpan <= 0)
+		{
+			Server()->SnapFreeID(m_LoveDots[DotIter].m_SnapID);
+			m_LoveDots.remove_index(DotIter);
+		}
+		else
+			DotIter++;
 	}
 
 	// update voting
@@ -1867,7 +1954,15 @@ bool CGameContext::VotPlaceCard(IConsole::IResult *pResult, void *pUserData)
 	if (Capacity <= pSelf->ItemHelper()->GetCapacity(Select))
 	{
 		if (ExistCard != -1)
+		{
+			if(Json["Extra"]["Cards"][ExistCard]["num"] >= pSelf->ItemHelper()->GetMaxPlace(ExistCard))
+			{
+				pSelf->SetVoteExtraText(ClientID, "You have reached the limit");
+				pSelf->ClearVotes(pResult->GetClientID());
+				return true;
+			}
 			Json["Extra"]["Cards"][ExistCard]["num"] = int(Json["Extra"]["Cards"][ExistCard]["num"]) + 1;
+		}
 		else
 			Json["Extra"]["Cards"].push_back({{"id", Card}, {"num", 1}});
 		pPlayer->m_AccData.m_aItems[Select].m_aExtra = Json.dump();
@@ -2073,6 +2168,77 @@ void CGameContext::OnSnap(int ClientID)
 	}
 	m_World.Snap(ClientID);
 	m_Events.Snap(ClientID);
+
+	//Snap laser dots
+	for(int i=0; i < m_LaserDots.size(); i++)
+	{
+		if(ClientID >= 0)
+		{
+			vec2 CheckPos = (m_LaserDots[i].m_Pos0 + m_LaserDots[i].m_Pos1)*0.5f;
+			float dx = m_apPlayers[ClientID]->m_ViewPos.x-CheckPos.x;
+			float dy = m_apPlayers[ClientID]->m_ViewPos.y-CheckPos.y;
+			if(absolute(dx) > 1000.0f || absolute(dy) > 800.0f)
+				continue;
+			if(distance(m_apPlayers[ClientID]->m_ViewPos, CheckPos) > 1100.0f)
+				continue;
+		}
+		
+		CNetObj_Laser *pObj = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(NETOBJTYPE_LASER, m_LaserDots[i].m_SnapID, sizeof(CNetObj_Laser)));
+		if(pObj)
+		{
+			pObj->m_X = (int)m_LaserDots[i].m_Pos1.x;
+			pObj->m_Y = (int)m_LaserDots[i].m_Pos1.y;
+			pObj->m_FromX = (int)m_LaserDots[i].m_Pos0.x;
+			pObj->m_FromY = (int)m_LaserDots[i].m_Pos0.y;
+			pObj->m_StartTick = Server()->Tick();
+		}
+	}
+	for(int i=0; i < m_HammerDots.size(); i++)
+	{
+		if(ClientID >= 0)
+		{
+			vec2 CheckPos = m_HammerDots[i].m_Pos;
+			float dx = m_apPlayers[ClientID]->m_ViewPos.x-CheckPos.x;
+			float dy = m_apPlayers[ClientID]->m_ViewPos.y-CheckPos.y;
+			if(absolute(dx) > 1000.0f || absolute(dy) > 800.0f)
+				continue;
+			if(distance(m_apPlayers[ClientID]->m_ViewPos, CheckPos) > 1100.0f)
+				continue;
+		}
+		
+		CNetObj_Projectile *pObj = static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, m_HammerDots[i].m_SnapID, sizeof(CNetObj_Projectile)));
+		if(pObj)
+		{
+			pObj->m_X = (int)m_HammerDots[i].m_Pos.x;
+			pObj->m_Y = (int)m_HammerDots[i].m_Pos.y;
+			pObj->m_VelX = 0;
+			pObj->m_VelY = 0;
+			pObj->m_StartTick = Server()->Tick();
+			pObj->m_Type = WEAPON_HAMMER;
+		}
+	}
+	for(int i=0; i < m_LoveDots.size(); i++)
+	{
+		if(ClientID >= 0)
+		{
+			vec2 CheckPos = m_LoveDots[i].m_Pos;
+			float dx = m_apPlayers[ClientID]->m_ViewPos.x-CheckPos.x;
+			float dy = m_apPlayers[ClientID]->m_ViewPos.y-CheckPos.y;
+			if(absolute(dx) > 1000.0f || absolute(dy) > 800.0f)
+				continue;
+			if(distance(m_apPlayers[ClientID]->m_ViewPos, CheckPos) > 1100.0f)
+				continue;
+		}
+		
+		CNetObj_Pickup *pObj = static_cast<CNetObj_Pickup *>(Server()->SnapNewItem(NETOBJTYPE_PICKUP, m_LoveDots[i].m_SnapID, sizeof(CNetObj_Pickup)));
+		if(pObj)
+		{
+			pObj->m_X = (int)m_LoveDots[i].m_Pos.x;
+			pObj->m_Y = (int)m_LoveDots[i].m_Pos.y;
+			pObj->m_Type = POWERUP_HEALTH;
+			pObj->m_Subtype = 0;
+		}
+	}
 }
 void CGameContext::OnPreSnap() {}
 void CGameContext::OnPostSnap()

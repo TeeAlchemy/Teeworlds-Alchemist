@@ -45,8 +45,14 @@ void CKs::Tick()
 
 void CKs::Picking(int Time, CPlayer *Player)
 {
-	m_Health -= Time;
 	int CID = Player->GetCID();
+	int Extra = ITYPE_PICKAXE; // 2 use, awa
+	if (m_Type == ITEM_LOG)
+		Extra = ITYPE_AXE;
+
+	Extra = GameServer()->ItemHelper()->GetCard(Player->GetExtraHolding(Extra), ITEM_CARD_DAMAGE);
+	m_Health -= Time - (Extra * 500); // TODO: Config
+	
 	if (m_Health <= 0)
 	{
 		Player->m_AccData.m_aItems[m_Type].m_Num++;
@@ -58,7 +64,9 @@ void CKs::Picking(int Time, CPlayer *Player)
 
 	GameServer()->Broadcast(CID, "{}- Picking: {} - {}- {}/{} left. Keep hit! -{}- Using: {} | Dmg : {} -", "\n\n\n\n", 
 							GameServer()->ItemHelper()->GetItemName(m_Type), "\n", m_Health, GetMaxHealth(), "\n", m_Type == ITEM_LOG ? GameServer()->ItemHelper()->GetItemName(Player->m_AccData.m_Holding[ITYPE_AXE]) : GameServer()->ItemHelper()->GetItemName(Player->m_AccData.m_Holding[ITYPE_PICKAXE]), GameServer()->ItemHelper()->GetDmg(Player->m_AccData.m_Holding[ITYPE_PICKAXE]));
-	Player->GetCharacter()->m_MiningTick = 25;
+	
+	Extra = GameServer()->ItemHelper()->GetCard(Player->GetExtraHolding(Extra), ITEM_CARD_QUICKLY_FIRE);
+	Player->GetCharacter()->m_MiningTick = 25 - Extra; // TODO: Config
 }
 
 void CKs::TickPaused()

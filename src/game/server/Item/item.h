@@ -115,11 +115,13 @@ struct CItem_Tool : public CItem
 struct CItem_Card : public CItem_Tool
 {
     bool m_Placeable[NUM_ITYPE];
+    int m_MaxPlace;
 
     CItem_Card()
     {
         for (int i = 0; i < int(NUM_ITYPE); i++)
             m_Placeable[i] = 0;
+        m_MaxPlace = 0;
     }
 };
 
@@ -157,7 +159,8 @@ public:
     void GetFormula(int ID, int *Formula);
     int GetMax(int ID);
     int GetMaxHealth(int ID);
-    bool GetCard(std::string Extra, int CardID);
+    int GetMaxPlace(int CardID);
+    int GetCard(std::string Extra, int CardID);
 
     bool CheckItemVaild(int ID, int Type = -1) // -1 for all
     {

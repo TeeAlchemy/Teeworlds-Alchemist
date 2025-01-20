@@ -254,6 +254,35 @@ public:
 		TABLE_ITEM,
 	};
 
+	struct LaserDotState
+	{
+		vec2 m_Pos0;
+		vec2 m_Pos1;
+		int m_LifeSpan;
+		int m_SnapID;
+	};
+	array<LaserDotState> m_LaserDots;
+	
+	struct HammerDotState
+	{
+		vec2 m_Pos;
+		int m_LifeSpan;
+		int m_SnapID;
+	};
+	array<HammerDotState> m_HammerDots;
+	
+	struct LoveDotState
+	{
+		vec2 m_Pos;
+		int m_LifeSpan;
+		int m_SnapID;
+	};
+	array<LoveDotState> m_LoveDots;
+
+	void CreateLaserDotEvent(vec2 Pos0, vec2 Pos1, int LifeSpan);
+	void CreateHammerDotEvent(vec2 Pos, int LifeSpan);
+	void CreateLoveEvent(vec2 Pos);
+
 public:
 	CItemHelper *m_pItemHelper;
 	CItemHelper *ItemHelper() { return m_pItemHelper; }

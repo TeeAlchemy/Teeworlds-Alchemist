@@ -9,6 +9,9 @@
 #include "laser.h"
 #include "projectile.h"
 #include "chain-ball.h"
+#include "electro.h"
+#include "lightning.h"
+#include "growingexplosion.h"
 
 // input count
 struct CInputCount
@@ -281,7 +284,8 @@ void CCharacter::FireWeapon()
 	}
 
 	vec2 ProjStartPos = m_Pos + Direction * GetProximityRadius() * 0.75f;
-
+	float MoreForce = 1.f + float(GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_FORCE)) * 5.f;
+	int ExtraDMG = GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_DAMAGE) * 5;
 	switch (m_ActiveWeapon)
 	{
 	case WEAPON_HAMMER:
@@ -317,11 +321,17 @@ void CCharacter::FireWeapon()
 			else
 				Dir = vec2(0.f, -1.f);
 
-			int ExtraDMG = 0;
-			if (!m_pPlayer->IsBot() && m_pPlayer->m_AccData.m_Holding[ITYPE_SWORD])
-				ExtraDMG = GameServer()->ItemHelper()->GetDmg(m_pPlayer->m_AccData.m_Holding[ITYPE_SWORD]);
-			pTarget->TakeDamage(vec2(0.f, -1.f) + normalize(Dir + vec2(0.f, -1.1f)) * 10.0f, g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage + ExtraDMG,
+			pTarget->TakeDamage(vec2(0.f, -1.f) + normalize(Dir + vec2(0.f, -1.1f)) * 10.0f * MoreForce, g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage + ExtraDMG,
 								m_pPlayer->GetCID(), m_ActiveWeapon);
+
+			int Explosion = GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_EXPLOSION);
+			for (int i = 0; i < Explosion; i++)
+				GameServer()->CreateExplosion(vec2(m_Pos.x + random_int(-200, 200), m_Pos.y + random_int(-200, 200)), GetPlayer()->GetCID(), WEAPON_HAMMER, false);
+
+			int Fusion = GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_EXPLOSION);
+			if (Fusion)
+				new CGrowingExplosion(GameWorld(), GetPos(), vec2(0, 0), GetPlayer()->GetCID(), 32.f * Fusion, GROWINGEXPLOSIONEFFECT_BOOM);
+
 			Hits++;
 		}
 
@@ -338,7 +348,7 @@ void CCharacter::FireWeapon()
 						ProjStartPos,
 						Direction,
 						(int)(Server()->TickSpeed() * GameServer()->Tuning()->m_GunLifetime),
-						1, 0, 0, -1, WEAPON_GUN);
+						ExtraDMG, 0, MoreForce, -1, WEAPON_GUN);
 
 		GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE);
 	}
@@ -360,7 +370,7 @@ void CCharacter::FireWeapon()
 							ProjStartPos,
 							vec2(cosf(a), sinf(a)) * Speed,
 							(int)(Server()->TickSpeed() * GameServer()->Tuning()->m_ShotgunLifetime),
-							1, 0, 0, -1, WEAPON_SHOTGUN);
+							ExtraDMG, 0, MoreForce, -1, WEAPON_SHOTGUN);
 		}
 
 		GameServer()->CreateSound(m_Pos, SOUND_SHOTGUN_FIRE);
@@ -374,7 +384,7 @@ void CCharacter::FireWeapon()
 						ProjStartPos,
 						Direction,
 						(int)(Server()->TickSpeed() * GameServer()->Tuning()->m_GrenadeLifetime),
-						1, true, 0, SOUND_GRENADE_EXPLODE, WEAPON_GRENADE);
+						ExtraDMG, true, MoreForce, SOUND_GRENADE_EXPLODE, WEAPON_GRENADE);
 
 		GameServer()->CreateSound(m_Pos, SOUND_GRENADE_FIRE);
 	}
@@ -382,7 +392,38 @@ void CCharacter::FireWeapon()
 
 	case WEAPON_RIFLE:
 	{
-		new CLaser(GameWorld(), m_Pos, Direction, GameServer()->Tuning()->m_LaserReach, m_pPlayer->GetCID());
+		if (GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_ELECTRON))
+		{
+			vec2 Start = m_Pos;
+			Start += Direction * 50;
+			float Reach = 400;
+			float a = GetAngle(Direction);
+
+			vec2 To = m_Pos + vec2(cosf(a), sinf(a)) * Reach;
+
+			GameServer()->Collision()->IntersectLine(Start, To, 0x0, &To);
+
+			// character collision
+			vec2 At;
+			CCharacter *pHit = GameServer()->m_World.IntersectCharacter(Start, To, 70.0f, At, this);
+			if (pHit)
+			{
+				To = pHit->m_Pos;
+				// pHit->ElectroShock();
+				pHit->TakeDamage(Direction, 1 + ExtraDMG, GetPlayer()->GetCID(), WEAPON_RIFLE);
+			}
+
+			int A = distance(Start, To) / 100;
+
+			if (A > 4)
+				A = 4;
+
+			if (A < 2)
+				A = 2;
+
+			new CElectro(GameWorld(), Start, To, vec2(cosf(a * 1.2f), sinf(a * 1.2f)) * 40, A);
+		}
+		new CLaser(GameWorld(), m_Pos, Direction, GameServer()->Tuning()->m_LaserReach, m_pPlayer->GetCID(), ExtraDMG, MoreForce);
 		GameServer()->CreateSound(m_Pos, SOUND_RIFLE_FIRE);
 	}
 	break;
@@ -406,8 +447,9 @@ void CCharacter::FireWeapon()
 	if (m_aWeapons[m_ActiveWeapon].m_Ammo > 0) // -1 == unlimited
 		m_aWeapons[m_ActiveWeapon].m_Ammo--;
 
+	int LessReloadTimer = 50 * GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_QUICKLY_FIRE);
 	if (!m_ReloadTimer)
-		m_ReloadTimer = g_pData->m_Weapons.m_aId[m_ActiveWeapon].m_Firedelay * Server()->TickSpeed() / 1000;
+		m_ReloadTimer = g_pData->m_Weapons.m_aId[m_ActiveWeapon].m_Firedelay * Server()->TickSpeed() / 1000 - LessReloadTimer;
 }
 
 void CCharacter::HandleWeapons()
@@ -427,6 +469,16 @@ void CCharacter::HandleWeapons()
 
 	// ammo regen
 	int AmmoRegenTime = g_pData->m_Weapons.m_aId[m_ActiveWeapon].m_Ammoregentime;
+	if (m_ActiveWeapon != WEAPON_HAMMER && m_aWeapons[m_ActiveWeapon].m_Ammo < 10 && !AmmoRegenTime)
+	{
+		int NumCard = GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_QUICKLY_LOADING);
+		if (NumCard)
+		{
+			AmmoRegenTime = 1 + (GameServer()->ItemHelper()->GetMaxPlace(ITEM_CARD_QUICKLY_LOADING) * 500) - (NumCard * 500);
+			AmmoRegenTime = clamp(AmmoRegenTime, 0, 1 + GameServer()->ItemHelper()->GetMaxPlace(ITEM_CARD_QUICKLY_LOADING) * 500);
+		}
+	}
+
 	if (AmmoRegenTime)
 	{
 		// If equipped and not active, regen ammo?
@@ -557,7 +609,6 @@ void CCharacter::Tick()
 
 	if (m_MiningTick > -1)
 		m_MiningTick--;
-	return;
 }
 
 void CCharacter::TickDefered()
@@ -715,8 +766,8 @@ bool CCharacter::TakeDamage(vec2 Force, int Dmg, int From, int Weapon)
 
 	if (GameServer()->m_pController->IsFriendlyFire(m_pPlayer->GetCID(), From) && !g_Config.m_SvTeamdamage)
 		return false;
-	
-	if(GetPlayer()->GetCID() == From)
+
+	if (GetPlayer()->GetCID() == From)
 		return false;
 
 	m_DamageTaken++;

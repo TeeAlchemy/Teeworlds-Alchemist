@@ -96,6 +96,7 @@ void CItemHelper::LoadItem(const char *FileName)
                 case ITYPE_CARD:
                     m_aItems[ID] = new CItem_Card();
                     ((CItem_Card *)m_aItems[ID])->m_Capacity = rMultiple["capacity"].u.integer;
+                    ((CItem_Card *)m_aItems[ID])->m_MaxPlace = rMultiple["max_place"].u.integer;
                     for (size_t i = 0; i < rMultiple["placeable"].u.array.length; i++)
                         ((CItem_Card *)m_aItems[ID])->m_Placeable[rMultiple["placeable"][i].u.integer] = true;
 
@@ -132,6 +133,7 @@ void CItemHelper::LoadItem(const char *FileName)
             case ITYPE_CARD:
                 m_aItems[ID] = new CItem_Card();
                 ((CItem_Card *)m_aItems[ID])->m_Capacity = rStart["capacity"].u.integer;
+                ((CItem_Card *)m_aItems[ID])->m_MaxPlace = rStart["max_place"].u.integer;
                 for (size_t i = 0; i < rStart["placeable"].u.array.length; i++)
                     ((CItem_Card *)m_aItems[ID])->m_Placeable[rStart["placeable"][i].u.integer] = true;
                 break;
@@ -286,14 +288,26 @@ int CItemHelper::GetMaxHealth(int ID)
     return m_aItems[ID]->m_MaxHealth;
 }
 
-bool CItemHelper::GetCard(std::string Extra, int CardID)
+int CItemHelper::GetMaxPlace(int ID)
 {
+    if (!CheckItemVaild(ID))
+        return 0;
+    return (((CItem_Card *)m_aItems[ID])->m_MaxPlace == 0) ? 999 : ((CItem_Card *)m_aItems[ID])->m_MaxPlace;
+}
+
+int CItemHelper::GetCard(std::string Extra, int CardID)
+{
+    // int64 ProcessTime = time_get();
     nlohmann::json Json = nlohmann::json::parse(Extra);
-    if (Json["Extra"].contains("Cards") && !Json["Extra"]["Cards"].empty())
+    if (Json.at("Extra").contains("Cards") && !Json.at("Extra").at("Cards").empty())
 	{
 		for (const auto &j : Json["Extra"]["Cards"])
-			if (CardID == int(j["id"]))
-                return true;
+        {
+    		if (j.contains("id") && CardID == int(j.at("id")))
+                return int(j.at("num"));
+        }
     }
-    return false;
+
+    // dbg_msg("CItemHelper", "in %.5fs", (float)(time_get()-ProcessTime)/time_freq());
+    return 0;
 }

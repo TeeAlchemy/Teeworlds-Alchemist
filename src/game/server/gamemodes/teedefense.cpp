@@ -100,6 +100,8 @@ void CGameControllerTeeDefense::EndRound()
 void CGameControllerTeeDefense::OnCharacterSpawn(CCharacter *pChr)
 {
 	IGameController::OnCharacterSpawn(pChr);
+	if (!pChr->GetPlayer()->IsBot())
+		pChr->GiveWeapon(WEAPON_GUN, 10);
 }
 
 int CGameControllerTeeDefense::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon)

@@ -5,6 +5,7 @@ TODOs:
 - **Cards**
 - **Mine**
 - **Make AI stupid**
+- **Save cards as map, no for(blablabla : bla) so much**
 - **Add More TODOs.**
 
 Teeworlds-Alchemist

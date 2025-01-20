@@ -20,7 +20,7 @@
                 "desc": "An sword made of iron.",
                 "damage": 5,
                 "proba": 90,
-                "capacity": 10,
+                "capacity": 30,
                 "max": 0,
                 "formula": {
                     "Log": 1900,
@@ -33,7 +33,7 @@
                 "desc": "An sword made of gold.",
                 "damage": 10,
                 "proba": 90,
-                "capacity": 20,
+                "capacity": 35,
                 "max": 0,
                 "formula": {
                     "Log": 2400,
@@ -46,7 +46,7 @@
                 "desc": "An sword made of diamond.",
                 "damage": 50,
                 "proba": 80,
-                "capacity": 30,
+                "capacity": 50,
                 "max": 0,
                 "formula": {
                     "Log": 4400,
@@ -64,7 +64,7 @@
                 "formula": {
                     "Log": 5000,
                     "Diamond": 50,
-                    "Enegry": 100
+                    "Enegry": 150
                 }
             }
         ]

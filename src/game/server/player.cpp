@@ -381,7 +381,7 @@ void CPlayer::ResetAccData()
 	{
 		m_AccData.m_aItems[i].m_Num = 0;
 		m_AccData.m_aItems[i].m_Capacity = 0;
-		nlohmann::json Json = R"({"Extra":{"Cards":[{}]}})"_json;
+		nlohmann::json Json = R"({"Extra":{"Cards":[]}})"_json;
 		m_AccData.m_aItems[i].m_aExtra = Json.dump();
 	}
 }

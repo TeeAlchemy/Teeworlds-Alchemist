@@ -7,6 +7,8 @@
 #include "entities/character.h"
 #include "gamecontext.h"
 
+#include <map>
+
 enum EZomb
 {
 	ZABY = 0,

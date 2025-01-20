@@ -4,11 +4,13 @@
 #include <game/server/gamecontext.h>
 #include "laser.h"
 
-CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEnergy, int Owner)
+CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEnergy, int Owner, int Damage, float Force)
 : CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER, Pos)
 {
 	m_Pos = Pos;
 	m_Owner = Owner;
+	m_Damage = Damage;
+	m_Force = Force;
 	m_Energy = StartEnergy;
 	m_Dir = Direction;
 	m_Bounces = 0;
@@ -29,7 +31,7 @@ bool CLaser::HitCharacter(vec2 From, vec2 To)
 	m_From = From;
 	m_Pos = At;
 	m_Energy = -1;
-	pHit->TakeDamage(vec2(0.f, 0.f), GameServer()->Tuning()->m_LaserDamage, m_Owner, WEAPON_RIFLE);
+	pHit->TakeDamage(normalize(To - From) * m_Force, GameServer()->Tuning()->m_LaserDamage, m_Owner, WEAPON_RIFLE);
 	return true;
 }
 
@@ -67,6 +69,9 @@ void CLaser::DoBounce()
 				m_Energy = -1;
 
 			GameServer()->CreateSound(m_Pos, SOUND_RIFLE_BOUNCE);
+
+			if (GameServer()->ItemHelper()->GetCard(GameServer()->GetPlayer(m_Owner)->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_EXPLOSION))
+				GameServer()->CreateExplosion(To, m_Owner, WEAPON_RIFLE, false);
 		}
 	}
 	else

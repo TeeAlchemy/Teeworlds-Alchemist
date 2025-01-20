@@ -5,10 +5,11 @@
             {
                 "id": 27,
                 "name": "Card: Quickly-Fire",
-                "desc": "Haste makes apple.",
+                "desc": "Haste makes apple.(Reload Timer)",
                 "capacity": 10,
-                "placeable": [2, 3],
+                "placeable": [0, 1, 2, 3],
                 "max": 0,
+                "max_place": 5,
                 "formula": {
                     "Log": 70,
                     "Golden": 40,
@@ -18,10 +19,11 @@
             {
                 "id": 28,
                 "name": "Card: Quickly-Loading",
-                "desc": "Haste makes apple.",
+                "desc": "Haste makes apple.(Ammo Regen)",
                 "capacity": 10,
-                "placeable": [0, 1, 2, 3],
+                "placeable": [2, 3],
                 "max": 0,
+                "max_place": 5,
                 "formula": {
                     "Log": 70,
                     "Golden": 40,
@@ -35,6 +37,7 @@
                 "capacity": 10,
                 "placeable": [0, 1, 2, 3],
                 "max": 0,
+                "max_place": 5,
                 "formula": {
                     "Log": 70,
                     "Iron": 40,
@@ -46,6 +49,7 @@
                 "name": "Card: Explosion",
                 "desc": "BOOM!",
                 "capacity": 15,
+                "max_place": 2,
                 "placeable": [2, 3],
                 "max": 0,
                 "formula": {
@@ -62,6 +66,7 @@
                 "capacity": 30,
                 "placeable": [2, 3],
                 "max": 0,
+                "max_place": 2,
                 "formula": {
                     "Log": 70,
                     "Copper": 200,
@@ -77,6 +82,7 @@
                 "capacity": 55,
                 "placeable": [2, 3],
                 "max": 0,
+                "max_place": 1,
                 "formula": {
                     "Log": 70,
                     "Copper": 200,
@@ -93,6 +99,7 @@
                 "capacity": 10,
                 "placeable": [2, 3],
                 "max": 0,
+                "max_place": 2,
                 "formula": {
                     "Log": 70,
                     "Zombie's Heart": 50
@@ -105,6 +112,7 @@
                 "capacity": 0,
                 "placeable": [3],
                 "max": 0,
+                "max_place": 1,
                 "formula": {
                     "Log": 100,
                     "Coal": 100,

@@ -371,6 +371,7 @@ set_glob(BASE GLOB_RECURSE src/base
   hash.cpp
   hash.h
   lock_scope.h
+  math.cpp
   math.h
   system.cpp
   system.h
@@ -529,10 +530,16 @@ set_glob(GAME_SERVER GLOB_RECURSE src/game/server
   entities/character.h
   entities/CKs.cpp
   entities/CKs.h
+  entities/electro.cpp
+  entities/electro.h
   entities/flag.cpp
   entities/flag.h
+  entities/growingexplosion.cpp
+  entities/growingexplosion.h
   entities/laser.cpp
   entities/laser.h
+  entities/lightning.cpp
+  entities/lightning.h
   entities/pickup.cpp
   entities/pickup.h
   entities/projectile.cpp
