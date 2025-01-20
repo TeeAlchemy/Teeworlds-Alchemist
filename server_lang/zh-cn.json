@@ -305,8 +305,12 @@
             "value": "手"
         },
         {
-            "key": "Haste makes apple.",
-            "value": "欲速则达。"
+            "key": "Haste makes apple.(Ammo Regen)",
+            "value": "欲速则达。(子弹恢复)"
+        },
+        {
+            "key": "Haste makes apple.(Reload Timer)",
+            "value": "欲速则达。(发射速度)"
         },
         {
             "key": "Intermediate Turret",

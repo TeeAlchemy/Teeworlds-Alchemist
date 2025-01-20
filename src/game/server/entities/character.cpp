@@ -713,13 +713,20 @@ void CCharacter::TickPaused()
 
 int CCharacter::GetMaxHealth()
 {
-	return GetPlayer()->IsBot() ? 10 : g_Config.m_SvPlayerMaxHealth;
+	return GetPlayer()->IsBot() ? -1 : g_Config.m_SvPlayerMaxHealth;
 }
 
 bool CCharacter::IncreaseHealth(int Amount)
 {
+	if (GetMaxHealth() == -1)
+	{
+		m_Health += Amount;
+		return true;
+	}
+
 	if (m_Health >= GetMaxHealth())
 		return false;
+
 	m_Health = clamp(m_Health + Amount, 0, GetMaxHealth());
 	return true;
 }

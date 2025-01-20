@@ -100,7 +100,9 @@ void CGameControllerTeeDefense::EndRound()
 void CGameControllerTeeDefense::OnCharacterSpawn(CCharacter *pChr)
 {
 	IGameController::OnCharacterSpawn(pChr);
-	if (!pChr->GetPlayer()->IsBot())
+	if (pChr->GetPlayer()->IsBot())
+		pChr->IncreaseHealth(m_Wave);
+	else
 		pChr->GiveWeapon(WEAPON_GUN, 10);
 }
 
@@ -239,9 +241,9 @@ void CGameControllerTeeDefense::StartWave(int Wave)
 		return;
 	// Zaby, Zaby has no alround wave
 	else if (Wave == 1)
-		m_Zombie[0] = 5;
-	else if (Wave == 2)
 		m_Zombie[0] = 10;
+	else if (Wave == 2)
+		m_Zombie[0] = 25;
 	else
 		SetWaveAlg(Wave % 3, Wave / 3);
 
@@ -341,13 +343,13 @@ void CGameControllerTeeDefense::SetWaveAlg(int modulus, int wavedrittel)
 	if (wavedrittel > 11) // endless Waves, but exponentiell Zombie code
 	{
 		for (int i = 0; i < (int)(sizeof(m_Zombie) / sizeof(m_Zombie[0])); i++)
-			m_Zombie[i] = m_Wave + 5; // 3 mal wavedrittel + modulus 2
+			m_Zombie[i] = m_Wave + 10; // 3 mal wavedrittel + modulus 2
 		return;
 	}
 
 	if (!modulus) // 10ner Wave
 	{
-		m_Zombie[GetZombieReihenfolge(wavedrittel)] = 5;
+		m_Zombie[GetZombieReihenfolge(wavedrittel)] = 10;
 	}
 	else if (modulus == 1) // 40er wave
 	{
@@ -357,7 +359,7 @@ void CGameControllerTeeDefense::SetWaveAlg(int modulus, int wavedrittel)
 	{
 		for (int i = 0; i <= wavedrittel; i++)
 		{
-			m_Zombie[GetZombieReihenfolge(i)] = 5;
+			m_Zombie[GetZombieReihenfolge(i)] = m_Wave;
 		}
 	}
 }
