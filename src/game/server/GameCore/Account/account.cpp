@@ -331,6 +331,7 @@ void CAccount::HandleThread(void *user)
     AccountPool *pPool = (AccountPool *)user;
     while (true)
     {
+        thread_sleep(50);
         if (!pPool->m_pFaBao.size())
             continue;
         switch (pPool->m_pFaBao[0]->m_Type)
@@ -356,6 +357,5 @@ void CAccount::HandleThread(void *user)
             break;
         }
         pPool->m_pFaBao.remove_index(0);
-        thread_sleep(50);
     }
 }
