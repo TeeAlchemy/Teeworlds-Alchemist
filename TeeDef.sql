@@ -18,7 +18,8 @@ CREATE TABLE `tw_Items`
 (
   `UserID` INT NOT NULL,
   `ItemID` INT NOT NULL,
-  `Num` INT NOT NULL
+  `Num` INT NOT NULL,
+  `Extra` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`Extra`))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 ALTER TABLE `tw_Accounts` ADD PRIMARY KEY(`UserID`);

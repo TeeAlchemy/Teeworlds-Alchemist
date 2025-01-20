@@ -616,7 +616,7 @@ endif()
 
 set_glob(MASTERSRV_SRC GLOB src/mastersrv mastersrv.cpp mastersrv.h)
 set_glob(VERSIONSRV_SRC GLOB src/versionsrv mapversions.h versionsrv.cpp versionsrv.h)
-set_glob(TEST_SRC GLOB src/test test8.cpp)#labyrinth.cpp pathfinder.cpp pathfinder.h)
+set_glob(TEST_SRC GLOB src/test test9.cpp)#labyrinth.cpp pathfinder.cpp pathfinder.h)
 
 set(TARGET_MASTERSRV mastersrv)
 set(TARGET_VERSIONSRV versionsrv)

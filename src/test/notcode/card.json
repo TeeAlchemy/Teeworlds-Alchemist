@@ -1,0 +1,14 @@
+{
+    "modules": 
+    [[
+        {
+            "level": 3,
+            "name": "Scope"
+        },
+        {
+            "level": 2,
+            "name": "Silencer"
+        }
+    ]],
+    "name": "Laser Rifle"
+}

@@ -1,5 +1,6 @@
 #pragma once
 #include <cstring>
+#include <string>
 
 enum
 {
@@ -125,7 +126,7 @@ struct CItem_Card : public CItem_Tool
 struct SPlayerItemData
 {
     int m_Num;
-    char m_aCards[64];
+    std::string m_aExtra;
     int m_Capacity;
 };
 

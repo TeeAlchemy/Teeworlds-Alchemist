@@ -16,6 +16,7 @@
 #include <string.h>
 #include <thread>
 
+#include <teeother/tl/nlohmann_json.h>
 #include <teeother/components/localization.h>
 
 #include "GameCore/Account/account.h"
@@ -556,7 +557,7 @@ void CGameContext::OnTick()
 	}
 #endif
 
-	if (Server()->Tick()%(50*60*5) == 0) // Every 5 mins;
+	if (Server()->Tick() % (50 * 60 * 5) == 0) // Every 5 mins;
 		Chat(-1, "Server official QQ group: 1007351135");
 }
 
@@ -1770,7 +1771,7 @@ bool CGameContext::VotMake(IConsole::IResult *pResult, void *pUserData)
 	if (pSelf->ItemHelper()->GetMax(Item) && pPlayer->m_AccData.m_aItems[Item].m_Num >= pSelf->ItemHelper()->GetMax(Item))
 	{
 		pSelf->SetVoteExtraText(ClientID, "You have reached the limit");
-		if(pPlayer->GetCharacter())
+		if (pPlayer->GetCharacter())
 			pSelf->CreateSoundGlobal(SOUND_WEAPON_NOAMMO, ClientID);
 		return true;
 	}
@@ -1824,54 +1825,60 @@ bool CGameContext::VotPlaceCard(IConsole::IResult *pResult, void *pUserData)
 		return true;
 	}
 
-	return false;
-
-	// Not ready.
-	/*
 	int Select = pSelf->m_aPlayerVotes[pResult->GetClientID()].m_Select[SPlayerVote::EVoteSelect::ITEM];
+	int Card = pResult->GetInteger(0);
+	pSelf->SetVoteExtraText(ClientID, "You successfully placed {} on {}!", pSelf->ItemHelper()->GetItemName(Card), pSelf->ItemHelper()->GetItemName(Select));
 
-	pSelf->SetVoteExtraText(ClientID, "You successfully placed {} on {}!", pSelf->ItemHelper()->GetItemName(pResult->GetInteger(0)), pSelf->ItemHelper()->GetItemName(Select));
-    
-	char aBuf[128];
-	char aBuf2[128];
-	int Capacity = 0;
+	int Capacity = pSelf->ItemHelper()->GetCapacity(Card);
+	int ExistCard = -1;
 
-	std::string Cards = pPlayer->m_AccData.m_aItems[Select].m_aCards;
-    std::istringstream issCards(Cards);
-    int Number;
-    std::vector<int> vNumbers;
-
-    while (issCards >> Number) {
-        vNumbers.push_back(Number);
-        issCards.ignore(std::numeric_limits<std::streamsize>::max(), '|');
-    }
-
-	for (int Num : vNumbers)
+	nlohmann::json Json = nlohmann::json::parse(pPlayer->m_AccData.m_aItems[Select].m_aExtra);
+	if (!Json["Extra"].contains("Cards") || Json["Extra"]["Cards"].empty())
 	{
-		Capacity += pSelf->ItemHelper()->GetCapacity(Num);
-		str_format(aBuf, sizeof(aBuf), "%s%d|", aBuf, Num);
-		dbg_msg("adada", "[%d] Test %s", Num, aBuf);
+		if (Capacity <= pSelf->ItemHelper()->GetCapacity(Select))
+		{
+			Json["Extra"]["Cards"].push_back({{"id", Card}, {"num", 1}});
+			pPlayer->m_AccData.m_aItems[Select].m_aExtra = Json.dump();
+			pPlayer->m_AccData.m_aItems[Select].m_Capacity = Capacity;
+			pSelf->m_aPlayerVotes[ClientID].m_Confirm = false;
+
+			pSelf->TW()->Account()->SaveAccountData(ClientID, TABLE_ITEM, pPlayer->m_AccData);
+			pSelf->ClearVotes(pResult->GetClientID());
+			return true;
+		}
+		else
+			pSelf->SetVoteExtraText(ClientID, "Not enough capacity!");
+		return false;
+	}
+	else
+	{
+		int CurrentIndex = -1;
+		for (const auto &j : Json["Extra"]["Cards"])
+		{
+			CurrentIndex++;
+			Capacity += pSelf->ItemHelper()->GetCapacity(int(j["id"])) * int(j["num"]);
+			if (j["id"] == Card)
+				ExistCard = CurrentIndex;
+		}
 	}
 
-	dbg_msg("adada", "STEP 1111 Test %s", aBuf);
-
-	str_format(aBuf, sizeof(aBuf), "%s%d", aBuf, pResult->GetInteger(0));
-	
-	dbg_msg("adada", "STEP 2222 Test %s", aBuf);
-
-	//if (Capacity <= pSelf->ItemHelper()->GetCapacity(Select))
-	//{
-		str_copy(pPlayer->m_AccData.m_aItems[Select].m_aCards, aBuf, sizeof(pPlayer->m_AccData.m_aItems[Select].m_aCards));
+	if (Capacity <= pSelf->ItemHelper()->GetCapacity(Select))
+	{
+		if (ExistCard != -1)
+			Json["Extra"]["Cards"][ExistCard]["num"] = int(Json["Extra"]["Cards"][ExistCard]["num"]) + 1;
+		else
+			Json["Extra"]["Cards"].push_back({{"id", Card}, {"num", 1}});
+		pPlayer->m_AccData.m_aItems[Select].m_aExtra = Json.dump();
 		pPlayer->m_AccData.m_aItems[Select].m_Capacity = Capacity;
-	//}
-	//else
-	//	pSelf->SetVoteExtraText(ClientID, "Not enough capacity!");
+	}
+	else
+		pSelf->SetVoteExtraText(ClientID, "Not enough capacity!");
 
 	pSelf->m_aPlayerVotes[ClientID].m_Confirm = false;
 
 	pSelf->TW()->Account()->SaveAccountData(ClientID, TABLE_ITEM, pPlayer->m_AccData);
 	pSelf->ClearVotes(pResult->GetClientID());
-	return true;*/
+	return true;
 }
 
 bool CGameContext::VotCheckItem(IConsole::IResult *pResult, void *pUserData)
@@ -2184,7 +2191,7 @@ void CGameContext::AddVote(const char *Desc, const char *Cmd, int ClientID)
 	Server()->SendPackMsg(&OptionMsg, MSGFLAG_VITAL, ClientID, -1);
 }
 
-void CGameContext::AddVote_ListInventory(int ItemType, const char *pCmd)
+void CGameContext::AddVote_ListInventory(int ItemType, const char *pCmd, bool Equip)
 {
 	CPlayer *pP = GetPlayer(m_VoteClientID);
 	if (!pP)
@@ -2197,7 +2204,10 @@ void CGameContext::AddVote_ListInventory(int ItemType, const char *pCmd)
 		{
 			char aCmd[32];
 			str_format(aCmd, sizeof(aCmd), "%s %d", pCmd, i);
-			AddVote_VL(aCmd, "➳ {} x{}", ItemHelper()->GetItemName(i), pP->m_AccData.m_aItems[i].m_Num);
+			if (Equip && pP->m_AccData.m_Holding[ItemType] == i)
+				AddVote_VL(aCmd, "➳ {} x{} ✓", ItemHelper()->GetItemName(i), pP->m_AccData.m_aItems[i].m_Num);
+			else
+				AddVote_VL(aCmd, "➳ {} x{}", ItemHelper()->GetItemName(i), pP->m_AccData.m_aItems[i].m_Num);
 			Got = true;
 		}
 	}
@@ -2330,20 +2340,42 @@ void CGameContext::InitVotes(int ClientID)
 	{
 		int SelectItem = PlayerVote.m_Select[SPlayerVote::ITEM];
 		char aCmd[64];
+		bool HaveCards = false;
+		int Capacity = 0;
+		nlohmann::json Json = nlohmann::json::parse(pP->m_AccData.m_aItems[SelectItem].m_aExtra);
+		if (Json["Extra"].contains("Cards") && !Json["Extra"]["Cards"].empty())
+		{
+			HaveCards = true;
+			for (const auto &j : Json["Extra"]["Cards"])
+				Capacity += ItemHelper()->GetCapacity(int(j["id"])) * int(j["num"]);
+			pP->m_AccData.m_aItems[SelectItem].m_Capacity = Capacity;
+		}
+
 		SetVoteLastPage(PAGE_INVENTORY);
 		AddVote_Text("☪ Item Info");
 		AddVote_Space();
-		AddVote_Text("Item: {}", Items(SelectItem)->m_aItemName);
+		AddVote_Text("Item: {}", ItemHelper()->GetItemName(SelectItem));
 		AddVote_Text("Description: {}", Items(SelectItem)->m_aItemDesc);
 		if (ItemHelper()->GetType(SelectItem) != ITYPE_MATERIAL)
-			AddVote_Text("Capacity: {}", Data.m_aItems[SelectItem].m_Capacity);
+			AddVote_Text("Capacity: {}/{}", Capacity, ItemHelper()->GetCapacity(SelectItem));
 		AddVote_Text("You have: {}", Data.m_aItems[SelectItem].m_Num);
 		AddVote_Space();
 
 		str_format(aCmd, sizeof(aCmd), "ccv_equip %d", SelectItem);
 		AddVote_VL(aCmd, "☝ Equip");
 		AddVote_Space();
-		AddVote_Text("# Cards:");
+		bool Once = false;
+		bool IsEmpty = true;
+		AddVote_Text("# Cards #");
+		if (HaveCards)
+		{
+			AddVote_Text("- Current -");
+			for (const auto &j : Json["Extra"]["Cards"])
+				AddVote_Text("★{}: x{}({}*{})", ItemHelper()->GetItemName(int(j["id"])), int(j["num"]), ItemHelper()->GetCapacity(int(j["id"])), int(j["num"]));
+			IsEmpty = false;
+		}
+		AddVote_Space();
+		Once = false;
 		for (int i = 0; i < NUM_ITEM; i++)
 		{
 			if (Data.m_aItems[i].m_Num <= 0)
@@ -2355,11 +2387,20 @@ void CGameContext::InitVotes(int ClientID)
 				if (!(pCard->m_Placeable[ItemHelper()->GetType(SelectItem)]))
 					continue;
 
+				if (!Once)
+					AddVote_Text("- Placement -");
+
+				Once = true;
+				IsEmpty = false;
+
 				str_format(aCmd, sizeof(aCmd), "ccv_placecard %d", i);
 				AddVote_VL(aCmd, "☝ Place {}", ItemHelper()->GetItemName(i));
 				continue;
 			}
 		}
+		if (IsEmpty)
+			AddVote_Text("( ´・∧・`)Empty");
+		AddVote_Space();
 		AddVote_Back();
 	}
 	break;
@@ -2421,7 +2462,7 @@ void CGameContext::InitVotes(int ClientID)
 		{
 			if (i != ITYPE_PICKAXE && i != ITYPE_AXE && i != ITYPE_SWORD)
 				continue;
-			
+
 			if (PlayerVote.m_Select[SPlayerVote::EQUIPMENT] != i)
 			{
 				char aCmd[64];
@@ -2434,7 +2475,7 @@ void CGameContext::InitVotes(int ClientID)
 		AddVote_Space();
 		AddVote_Back();
 		AddVote_Text("---------------------");
-		AddVote_ListInventory(PlayerVote.m_Select[SPlayerVote::EVoteSelect::EQUIPMENT], "ccv_equip");
+		AddVote_ListInventory(PlayerVote.m_Select[SPlayerVote::EVoteSelect::EQUIPMENT], "ccv_equip", true);
 	}
 	break;
 	default:

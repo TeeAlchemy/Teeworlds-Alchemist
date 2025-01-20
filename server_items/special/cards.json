@@ -7,7 +7,7 @@
                 "name": "Card: Quickly-Fire",
                 "desc": "Haste makes apple.",
                 "capacity": 10,
-                "placeable": [0, 1, 2, 3],
+                "placeable": [2, 3],
                 "max": 0,
                 "formula": {
                     "Log": 70,
@@ -20,7 +20,7 @@
                 "name": "Card: Quickly-Loading",
                 "desc": "Haste makes apple.",
                 "capacity": 10,
-                "placeable": [2, 3],
+                "placeable": [0, 1, 2, 3],
                 "max": 0,
                 "formula": {
                     "Log": 70,

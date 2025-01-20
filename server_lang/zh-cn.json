@@ -1,12 +1,20 @@
 {
     "translation": [
         {
+            "key": "★{}: x{}({}*{})",
+            "value": "★{}: x{}({}*{})"
+        },
+        {
+            "key": "➳ {} x{} ✓",
+            "value": "➳ {} x{} ✓"
+        },
+        {
             "key": "",
             "value": " "
         },
         {
-            "key": "# Cards:",
-            "value": "# 卡牌:"
+            "key": "# Cards #",
+            "value": "# 卡牌 #"
         },
         {
             "key": "# Global-Notice: {}",
@@ -35,6 +43,14 @@
         {
             "key": "- Craft!",
             "value": "- 合成!"
+        },
+        {
+            "key": "- Current -",
+            "value": "- 已放置的 -"
+        },
+        {
+            "key": "- Placement -",
+            "value": "- 可放置的 -"
         },
         {
             "key": "---",
@@ -161,8 +177,8 @@
             "value": "初学者炮塔"
         },
         {
-            "key": "Capacity: {}",
-            "value": "载荷: {}"
+            "key": "Capacity: {}/{}",
+            "value": "承载力: {}/{}"
         },
         {
             "key": "Card",
@@ -630,7 +646,7 @@
         },
         {
             "key": "You successfully placed {} on {}!",
-            "value": "你成功把 {} 放置到了 {} 上!"
+            "value": "你放置了{}到{}上"
         },
         {
             "key": "You were moved to {} due to team balancing",
@@ -647,10 +663,6 @@
         {
             "key": "Zombie's Heart",
             "value": "僵尸之心"
-        },
-        {
-            "key": "\\n\\n\\n\\n\\n\\nEnter '/register username password' to register\\nEnter '/login username password' to login",
-            "value": "\\n\\n\\n\\n\\n\\n输入 '/register 用户名 密码' 注册账号\\n输入 '/login 用户名 密码' 登录账号"
         },
         {
             "key": "admin forced vote {}",
@@ -683,6 +695,10 @@
         {
             "key": "{}- Picking: {} - {}- {}/{} left. Keep hit! -{}- Using: {} | Dmg : {} -",
             "value": "{}- 开采中: {} - {}- {}/{} 剩余. 加油! -{}- 正在使用: {} | 速度 : {} -"
+        },
+        {
+            "key": "{}Enter '/register username password' to register{}Enter '/login username password' to login",
+            "value": "{}输入'/register 用户名 密码'注册账号{}输入'/login username password'登录账号\n登录后自动进入游戏"
         },
         {
             "key": "{}Health: {int:Health}/{int:MaxHealth}",

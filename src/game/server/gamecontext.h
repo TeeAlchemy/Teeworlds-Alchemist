@@ -351,8 +351,9 @@ public:
 	}
 	void AddVote(const char *pDesc, const char *pCmd, int ClientID = -1);
 
+	// TODO: 把AddVote_变成一个namespace！！
 	// Pack
-	void AddVote_ListInventory(int ItemType, const char *pCmd);
+	void AddVote_ListInventory(int ItemType, const char *pCmd, bool Equip = false);
 	void AddVote_ListCraft(int ItemType);
 	void AddVote_ListFormula(int ItemID);
 	void AddVote_Craft(int ItemID);

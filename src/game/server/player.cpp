@@ -2,6 +2,7 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <new>
 #include <engine/shared/config.h>
+#include <teeother/tl/nlohmann_json.h>
 #include "player.h"
 
 #include "GameCore/Account/account.h"
@@ -121,7 +122,7 @@ void CPlayer::Tick()
 	{
 		SetTeam(TEAM_SPECTATORS, false);
 		if (Server()->Tick() % (int)(Server()->TickSpeed() * 3) == 0)
-			GameServer()->Broadcast(GetCID(), "\n\n\n\n\n\nEnter '/register username password' to register\nEnter '/login username password' to login");
+			GameServer()->Broadcast(GetCID(), "{}Enter '/register username password' to register{}Enter '/login username password' to login", "\n\n\n\n\n\n", "\n");
 	}
 	else if (m_InitAcc && !IsBot())
 	{
@@ -380,7 +381,13 @@ void CPlayer::ResetAccData()
 	{
 		m_AccData.m_aItems[i].m_Num = 0;
 		m_AccData.m_aItems[i].m_Capacity = 0;
-		str_copy(m_AccData.m_aItems[i].m_aCards, "", sizeof(m_AccData.m_aItems[i].m_aCards));
+		nlohmann::json Json;
+		Json["Extra"] = 
+		R"({"Extra":{"Cards":[{}]}}
+		)"_json;
+
+		//dbg_msg("sdad", "%s", Json.dump().c_str());
+		m_AccData.m_aItems[i].m_aExtra = Json.dump();
 	}
 }
 
