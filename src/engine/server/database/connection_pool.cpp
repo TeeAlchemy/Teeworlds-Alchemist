@@ -32,7 +32,7 @@ bool CConnectionPool::Create(std::string User, std::string Password, std::string
             AddIdelQueue();
     }
 
-    return m_nPoolSize == m_qIdle.size();
+    return size_t(m_nPoolSize) == m_qIdle.size();
 }
 
 CSqlConnection *CConnectionPool::GetOneConn()
@@ -99,7 +99,7 @@ void CConnectionPool::ReleaseOneConn(CSqlConnection *pConn)
         m_qIdle.push_back(pConn);
     }
 
-    while (m_qIdle.size() > m_nPoolSize)
+    while (m_qIdle.size() > size_t(m_nPoolSize))
     {
         CSqlConnection *pConn = m_qIdle.front();
         m_qIdle.pop_front();
