@@ -1,3 +1,4 @@
+/* Copyright(C) 2025 - 2025 Comet */
 #include <algorithm>
 #include <base/system.h>
 

@@ -1,4 +1,4 @@
-/* Copyright(C) 2022 - 2025 ST-Chara */
+/* Copyright(C) 2025 - 2025 Comet */
 #ifndef ENGINE_SERVER_DATABASE_CONNECTION_POOL_H
 #define ENGINE_SERVER_DATABASE_CONNECTION_POOL_H
 #include "sql_connection.h"
