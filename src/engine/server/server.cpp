@@ -1919,7 +1919,7 @@ void CServer::UpdateRegisterServerInfo()
 		}
 	}
 
-	str_append(aInfo, "],\"requires_login\": true}", sizeof(aInfo));
+	str_append(aInfo, "],\"requires_login\": false}", sizeof(aInfo));
 
 	m_pRegister->OnNewInfo(aInfo);
 }
