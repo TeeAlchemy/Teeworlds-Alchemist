@@ -505,6 +505,10 @@ list(APPEND TARGETS_OWN engine-shared game-shared)
 
 # Sources
 set_glob(ENGINE_SERVER GLOB src/engine/server
+  database/connection_pool.cpp
+  database/connection_pool.h
+  database/sql_connection.cpp
+  database/sql_connection.h
   multi_worlds.cpp
   multi_worlds.h
   register.cpp
@@ -548,8 +552,6 @@ set_glob(GAME_SERVER GLOB_RECURSE src/game/server
   entities/tower-main.h
   GameCore/Account/account.cpp
   GameCore/Account/account.h
-  GameCore/Database/DB.cpp
-  GameCore/Database/DB.h
   GameCore/TWorldComponent.h
   GameCore/TWorldController.cpp
   GameCore/TWorldController.h

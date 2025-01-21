@@ -44,6 +44,7 @@
 #include <game/version.h>
 
 #include "multi_worlds.h"
+#include "database/connection_pool.h"
 
 #if defined(CONF_FAMILY_WINDOWS)
 #define _WIN32_WINNT 0x0501
@@ -2616,9 +2617,14 @@ int main(int argc, const char **argv) // ignore_convention
 
 	pEngine->InitLogfile();
 
+	CConnectionPool *pPool = CConnectionPool::GetConnPool();
+	pPool->Create(g_Config.m_SvSqlUser, g_Config.m_SvSqlPw, g_Config.m_SvSqlDatabase, g_Config.m_SvSqlIp, g_Config.m_SvSqlPort, g_Config.m_SvSqlPoolSize, g_Config.m_SvSqlTimeout);
+
 	// run the server
 	dbg_msg("server", "starting...");
 	pServer->Run();
+
+	pPool->Destroy();
 
 	// free
 	delete pServer->m_pLocalization;

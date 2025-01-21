@@ -2,6 +2,10 @@ sv_name "My TeeDarkForest Server name"
 sv_motd "My motd"
 
 sv_rcon_password rcon_password
+
+sv_sql_ip 127.0.0.1
+sv_sql_port 3306
 sv_sql_user username
 sv_sql_pw password
 sv_sql_database database
+sv_sql_pool_size 5

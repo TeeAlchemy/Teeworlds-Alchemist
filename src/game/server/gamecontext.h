@@ -23,7 +23,6 @@
 #include "botengine.h"
 
 #include "GameCore/TWorldController.h"
-#include "GameCore/Database/DB.h"
 
 class CChatAI;
 
@@ -69,7 +68,6 @@ class CGameContext : public IGameServer
 	CCollision m_Collision;
 	CNetObjHandler m_NetObjHandler;
 	CTuningParams m_Tuning;
-	CDB *m_pDB;
 
 	static bool ConTuneParam(IConsole::IResult *pResult, void *pUserData);
 	static bool ConTuneReset(IConsole::IResult *pResult, void *pUserData);
@@ -242,7 +240,6 @@ public:
 	int CountBots();
 
 	/* SQL */
-	CDB *DB() { return m_pDB; }
 	TWorldController *TW() const { return m_pTWorldController; };
 
 	enum

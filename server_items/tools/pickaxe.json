@@ -36,7 +36,7 @@
                 "capacity": 20,
                 "max": 0,
                 "formula": {
-                    "Log": 1800,
+                    "Log": 220,
                     "Iron": 25
                 }
             },
@@ -49,7 +49,7 @@
                 "capacity": 30,
                 "max": 0,
                 "formula": {
-                    "Log": 2300,
+                    "Log": 230,
                     "Golden": 25
                 }
             },
@@ -62,7 +62,7 @@
                 "capacity": 30,
                 "max": 0,
                 "formula": {
-                    "Log": 4200,
+                    "Log": 230,
                     "Diamond": 25
                 }
             },
@@ -75,7 +75,7 @@
                 "capacity": 100,
                 "max": 0,
                 "formula": {
-                    "Log": 4666,
+                    "Log": 666,
                     "Diamond": 35,
                     "Enegry": 10
                 }

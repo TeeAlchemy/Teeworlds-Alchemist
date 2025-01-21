@@ -58,7 +58,6 @@ void CGameContext::Construct(int Resetting)
 		m_pVoteOptionHeap = new CHeap();
 
 	m_pBotEngine = new CBotEngine(this);
-	m_pDB = new CDB();
 }
 
 CGameContext::CGameContext(int Resetting)
@@ -87,7 +86,6 @@ CGameContext::~CGameContext()
 	delete m_pController;
 	delete m_pTWorldController;
 	delete m_pItemHelper;
-	delete m_pDB;
 	delete m_pChatAI;
 }
 

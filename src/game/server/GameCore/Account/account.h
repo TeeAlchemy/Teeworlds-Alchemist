@@ -5,8 +5,6 @@
 #include <game/server/GameCore/TWorldComponent.h>
 #include <game/server/gamecontext.h>
 
-#include <game/server/GameCore/Database/DB.h>
-
 #include <base/tl/array.h>
 
     enum TYPE {
@@ -44,7 +42,6 @@ public:
 public:
     struct AccountPool
     {
-        CDB *m_pDB;
         array<FaBao *> m_pFaBao;
     };
 
