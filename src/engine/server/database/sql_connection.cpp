@@ -42,21 +42,6 @@ bool CSqlConnection::Options(std::string Option, std::string Value)
     return true;
 }
 
-bool CSqlConnection::SetCharacter(std::string StrCsName)
-{
-    return Options("OPT_CHARSET_NAME", StrCsName);
-}
-
-bool CSqlConnection::SetConnTimeout(int Second)
-{
-    return Options("OPT_CONNECT_TIMEOUT", std::to_string(Second));
-}
-
-bool CSqlConnection::SetReconnect(bool Reconn)
-{
-    return Options("OPT_RECONNECT", std::to_string(Reconn ? 1 : 0));
-}
-
 bool CSqlConnection::Query(std::string Sql)
 {
     if (!m_pStatement)
@@ -84,10 +69,10 @@ bool CSqlConnection::Execute(std::string Sql)
 
 void CSqlConnection::Release()
 {
-    // 释放结果集
+    // Free results
     FreeResult();
 
-    // 关闭连接并置空指针
+    // Close connect and delete pointer
     if (m_pConnection)
     {
         m_pConnection->close();
@@ -95,7 +80,7 @@ void CSqlConnection::Release()
         m_pConnection = nullptr;
     }
 
-    // 清理语句对象
+    // Clean
     if (m_pStatement)
     {
         delete m_pStatement;

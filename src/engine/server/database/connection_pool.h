@@ -1,4 +1,6 @@
-#pragma once
+/* Copyright(C) 2022 - 2025 ST-Chara */
+#ifndef ENGINE_SERVER_DATABASE_CONNECTION_POOL_H
+#define ENGINE_SERVER_DATABASE_CONNECTION_POOL_H
 #include "sql_connection.h"
 #include <mutex>
 #include <deque>
@@ -36,3 +38,5 @@ private:
     std::deque<CSqlConnection *> m_qIdle;
     std::deque<CSqlConnection *> m_qBusy;
 };
+
+#endif

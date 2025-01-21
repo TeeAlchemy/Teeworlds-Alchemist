@@ -50,17 +50,17 @@ CSqlConnection *CConnectionPool::GetOneConn()
                 m_qBusy.push_back(pConn);
             else
             {
-                // 删除无效的连接
+                // Remove useless.
                 delete pConn;
                 pConn = nullptr;
 
-                // 创建新的连接
+                // Create new connection
                 pConn = new CSqlConnection;
                 if (pConn && pConn->Connect(m_pDriver, m_User, m_Password, m_DbName, m_Hostname, m_Port))
                     m_qBusy.push_back(pConn);
                 else
                 {
-                    // 如果连接失败，删除新创建的连接
+                    // Failed, create new one
                     delete pConn;
                     pConn = nullptr;
                 }
@@ -68,7 +68,7 @@ CSqlConnection *CConnectionPool::GetOneConn()
         }
         else
         {
-            // 如果没有空闲连接，创建新的连接
+            // if no free, new one
             pConn = new CSqlConnection;
             if (pConn && pConn->Connect(m_pDriver, m_User, m_Password, m_DbName, m_Hostname, m_Port))
                 m_qBusy.push_back(pConn);
@@ -98,7 +98,6 @@ void CConnectionPool::ReleaseOneConn(CSqlConnection *pConn)
         m_qIdle.push_back(pConn);
     }
 
-    // 修正删除连接的逻辑
     while (m_qIdle.size() > m_nPoolSize)
     {
         CSqlConnection *pConn = m_qIdle.front();
@@ -116,7 +115,7 @@ void CConnectionPool::Destroy()
 {
     std::lock_guard<std::mutex> locker(m_mtx);
 
-    // 删除所有空闲连接
+    // idle to die
     while (!m_qIdle.empty())
     {
         CSqlConnection *pConn = m_qIdle.front();
@@ -124,7 +123,7 @@ void CConnectionPool::Destroy()
         delete pConn;
     }
 
-    // 删除所有忙碌连接
+    // busy to die
     while (!m_qBusy.empty())
     {
         CSqlConnection *pConn = m_qBusy.front();
@@ -139,8 +138,5 @@ void CConnectionPool::AddIdelQueue()
     if (pConn && pConn->Connect(m_pDriver, m_User, m_Password, m_DbName, m_Hostname, m_Port))
         m_qIdle.push_back(pConn);
     else
-    {
-        // 如果连接失败，删除新创建的连接
         delete pConn;
-    }
 }
