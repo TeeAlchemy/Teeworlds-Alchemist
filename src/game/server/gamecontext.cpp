@@ -72,9 +72,9 @@ CGameContext::CGameContext()
 
 CGameContext::~CGameContext()
 {
-	for(int i = 0; i < m_LaserDots.size(); i++)
+	for (int i = 0; i < m_LaserDots.size(); i++)
 		Server()->SnapFreeID(m_LaserDots[i].m_SnapID);
-	for(int i = 0; i < m_HammerDots.size(); i++)
+	for (int i = 0; i < m_HammerDots.size(); i++)
 		Server()->SnapFreeID(m_HammerDots[i].m_SnapID);
 
 	for (int i = 0; i < MAX_CLIENTS; i++)
@@ -288,7 +288,7 @@ void CGameContext::CreateLaserDotEvent(vec2 Pos0, vec2 Pos1, int LifeSpan)
 	State.m_Pos1 = Pos1;
 	State.m_LifeSpan = LifeSpan;
 	State.m_SnapID = Server()->SnapNewID();
-	
+
 	m_LaserDots.add(State);
 }
 
@@ -298,7 +298,7 @@ void CGameContext::CreateHammerDotEvent(vec2 Pos, int LifeSpan)
 	State.m_Pos = Pos;
 	State.m_LifeSpan = LifeSpan;
 	State.m_SnapID = Server()->SnapNewID();
-	
+
 	m_HammerDots.add(State);
 }
 
@@ -308,7 +308,7 @@ void CGameContext::CreateLoveEvent(vec2 Pos)
 	State.m_Pos = Pos;
 	State.m_LifeSpan = Server()->TickSpeed();
 	State.m_SnapID = Server()->SnapNewID();
-	
+
 	m_LoveDots.add(State);
 }
 
@@ -485,12 +485,12 @@ void CGameContext::OnTick()
 	}
 
 	int DotIter;
-	
+
 	DotIter = 0;
-	while(DotIter < m_LaserDots.size())
+	while (DotIter < m_LaserDots.size())
 	{
 		m_LaserDots[DotIter].m_LifeSpan--;
-		if(m_LaserDots[DotIter].m_LifeSpan <= 0)
+		if (m_LaserDots[DotIter].m_LifeSpan <= 0)
 		{
 			Server()->SnapFreeID(m_LaserDots[DotIter].m_SnapID);
 			m_LaserDots.remove_index(DotIter);
@@ -498,12 +498,12 @@ void CGameContext::OnTick()
 		else
 			DotIter++;
 	}
-	
+
 	DotIter = 0;
-	while(DotIter < m_HammerDots.size())
+	while (DotIter < m_HammerDots.size())
 	{
 		m_HammerDots[DotIter].m_LifeSpan--;
-		if(m_HammerDots[DotIter].m_LifeSpan <= 0)
+		if (m_HammerDots[DotIter].m_LifeSpan <= 0)
 		{
 			Server()->SnapFreeID(m_HammerDots[DotIter].m_SnapID);
 			m_HammerDots.remove_index(DotIter);
@@ -511,13 +511,13 @@ void CGameContext::OnTick()
 		else
 			DotIter++;
 	}
-	
+
 	DotIter = 0;
-	while(DotIter < m_LoveDots.size())
+	while (DotIter < m_LoveDots.size())
 	{
 		m_LoveDots[DotIter].m_LifeSpan--;
 		m_LoveDots[DotIter].m_Pos.y -= 5.0f;
-		if(m_LoveDots[DotIter].m_LifeSpan <= 0)
+		if (m_LoveDots[DotIter].m_LifeSpan <= 0)
 		{
 			Server()->SnapFreeID(m_LoveDots[DotIter].m_SnapID);
 			m_LoveDots.remove_index(DotIter);
@@ -1901,6 +1901,13 @@ bool CGameContext::VotPlaceCard(IConsole::IResult *pResult, void *pUserData)
 	int Capacity = pSelf->ItemHelper()->GetCapacity(Card);
 	int ExistCard = -1;
 
+	if (!nlohmann::json::accept(pPlayer->m_AccData.m_aItems[Select].m_aExtra))
+	{
+		pSelf->SetVoteExtraText(ClientID, "BUG! Contact Admin.");
+		pSelf->ClearVotes(pResult->GetClientID());
+		return true;
+	}
+
 	nlohmann::json Json = nlohmann::json::parse(pPlayer->m_AccData.m_aItems[Select].m_aExtra);
 	if (!Json["Extra"].contains("Cards") || Json["Extra"]["Cards"].empty())
 	{
@@ -1909,7 +1916,7 @@ bool CGameContext::VotPlaceCard(IConsole::IResult *pResult, void *pUserData)
 			Json["Extra"]["Cards"].push_back({{"id", Card}, {"num", 1}});
 			pPlayer->m_AccData.m_aItems[Select].m_aExtra = Json.dump();
 			pPlayer->m_AccData.m_aItems[Select].m_Capacity = Capacity;
-			//pSelf->m_aPlayerVotes[ClientID].m_Confirm = false;
+			// pSelf->m_aPlayerVotes[ClientID].m_Confirm = false;
 
 			pPlayer->m_AccData.m_aItems[Card].m_Num--;
 
@@ -1937,7 +1944,7 @@ bool CGameContext::VotPlaceCard(IConsole::IResult *pResult, void *pUserData)
 	{
 		if (ExistCard != -1)
 		{
-			if(Json["Extra"]["Cards"][ExistCard]["num"] >= pSelf->ItemHelper()->GetMaxPlace(ExistCard))
+			if (Json["Extra"]["Cards"][ExistCard]["num"] >= pSelf->ItemHelper()->GetMaxPlace(ExistCard))
 			{
 				pSelf->SetVoteExtraText(ClientID, "You have reached the limit");
 				pSelf->ClearVotes(pResult->GetClientID());
@@ -1954,7 +1961,7 @@ bool CGameContext::VotPlaceCard(IConsole::IResult *pResult, void *pUserData)
 	else
 		pSelf->SetVoteExtraText(ClientID, "Not enough capacity!");
 
-	//pSelf->m_aPlayerVotes[ClientID].m_Confirm = false;
+	// pSelf->m_aPlayerVotes[ClientID].m_Confirm = false;
 
 	pSelf->TW()->Account()->SaveAccountData(ClientID, TABLE_ITEM, pPlayer->m_AccData);
 	pSelf->ClearVotes(pResult->GetClientID());
@@ -1989,6 +1996,13 @@ bool CGameContext::VotSeparateCard(IConsole::IResult *pResult, void *pUserData)
 	int Card = pResult->GetInteger(0);
 	int Select = pSelf->m_aPlayerVotes[CID].m_Select[SPlayerVote::EVoteSelect::ITEM];
 
+	if (!nlohmann::json::accept(pSelf->GetPlayer(CID)->GetExtra(Select)))
+	{
+		pSelf->SetVoteExtraText(CID, "BUG! Contact Admin.");
+		pSelf->ClearVotes(CID);
+		return true;
+	}
+
 	nlohmann::json Json = nlohmann::json::parse(pSelf->GetPlayer(CID)->GetExtra(Select));
 	if (Json["Extra"].contains("Cards") && !Json["Extra"]["Cards"].empty())
 	{
@@ -1998,7 +2012,7 @@ bool CGameContext::VotSeparateCard(IConsole::IResult *pResult, void *pUserData)
 			if (Card == int(j["id"]))
 			{
 				pSelf->SetVoteExtraText(CID, "You separate {} from {}!", pSelf->ItemHelper()->GetItemName(int(j["id"])), pSelf->ItemHelper()->GetItemName(Select));
-				if(int(j["num"]) > 1)
+				if (int(j["num"]) > 1)
 					Json["Extra"]["Cards"][ToBeRemove]["num"] = int(Json["Extra"]["Cards"][ToBeRemove]["num"]) - 1;
 				else
 					Json["Extra"]["Cards"].erase(ToBeRemove);
@@ -2014,7 +2028,7 @@ bool CGameContext::VotSeparateCard(IConsole::IResult *pResult, void *pUserData)
 		pSelf->Server()->Kick(CID, "服务器出现错误！请联系开发者QQ:1562151175！感谢！");
 		return true;
 	}
-	
+
 	pSelf->CreateSoundGlobal(SOUND_CTF_RETURN, CID);
 	pSelf->ClearVotes(CID);
 	pSelf->TW()->Account()->SaveAccountData(CID, TABLE_ACCOUNT, pSelf->GetPlayer(CID)->m_AccData);
@@ -2147,22 +2161,22 @@ void CGameContext::OnSnap(int ClientID)
 	m_World.Snap(ClientID);
 	m_Events.Snap(ClientID);
 
-	//Snap laser dots
-	for(int i=0; i < m_LaserDots.size(); i++)
+	// Snap laser dots
+	for (int i = 0; i < m_LaserDots.size(); i++)
 	{
-		if(ClientID >= 0)
+		if (ClientID >= 0)
 		{
-			vec2 CheckPos = (m_LaserDots[i].m_Pos0 + m_LaserDots[i].m_Pos1)*0.5f;
-			float dx = m_apPlayers[ClientID]->m_ViewPos.x-CheckPos.x;
-			float dy = m_apPlayers[ClientID]->m_ViewPos.y-CheckPos.y;
-			if(absolute(dx) > 1000.0f || absolute(dy) > 800.0f)
+			vec2 CheckPos = (m_LaserDots[i].m_Pos0 + m_LaserDots[i].m_Pos1) * 0.5f;
+			float dx = m_apPlayers[ClientID]->m_ViewPos.x - CheckPos.x;
+			float dy = m_apPlayers[ClientID]->m_ViewPos.y - CheckPos.y;
+			if (absolute(dx) > 1000.0f || absolute(dy) > 800.0f)
 				continue;
-			if(distance(m_apPlayers[ClientID]->m_ViewPos, CheckPos) > 1100.0f)
+			if (distance(m_apPlayers[ClientID]->m_ViewPos, CheckPos) > 1100.0f)
 				continue;
 		}
-		
+
 		CNetObj_Laser *pObj = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(NETOBJTYPE_LASER, m_LaserDots[i].m_SnapID, sizeof(CNetObj_Laser)));
-		if(pObj)
+		if (pObj)
 		{
 			pObj->m_X = (int)m_LaserDots[i].m_Pos1.x;
 			pObj->m_Y = (int)m_LaserDots[i].m_Pos1.y;
@@ -2171,21 +2185,21 @@ void CGameContext::OnSnap(int ClientID)
 			pObj->m_StartTick = Server()->Tick();
 		}
 	}
-	for(int i=0; i < m_HammerDots.size(); i++)
+	for (int i = 0; i < m_HammerDots.size(); i++)
 	{
-		if(ClientID >= 0)
+		if (ClientID >= 0)
 		{
 			vec2 CheckPos = m_HammerDots[i].m_Pos;
-			float dx = m_apPlayers[ClientID]->m_ViewPos.x-CheckPos.x;
-			float dy = m_apPlayers[ClientID]->m_ViewPos.y-CheckPos.y;
-			if(absolute(dx) > 1000.0f || absolute(dy) > 800.0f)
+			float dx = m_apPlayers[ClientID]->m_ViewPos.x - CheckPos.x;
+			float dy = m_apPlayers[ClientID]->m_ViewPos.y - CheckPos.y;
+			if (absolute(dx) > 1000.0f || absolute(dy) > 800.0f)
 				continue;
-			if(distance(m_apPlayers[ClientID]->m_ViewPos, CheckPos) > 1100.0f)
+			if (distance(m_apPlayers[ClientID]->m_ViewPos, CheckPos) > 1100.0f)
 				continue;
 		}
-		
+
 		CNetObj_Projectile *pObj = static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, m_HammerDots[i].m_SnapID, sizeof(CNetObj_Projectile)));
-		if(pObj)
+		if (pObj)
 		{
 			pObj->m_X = (int)m_HammerDots[i].m_Pos.x;
 			pObj->m_Y = (int)m_HammerDots[i].m_Pos.y;
@@ -2195,21 +2209,21 @@ void CGameContext::OnSnap(int ClientID)
 			pObj->m_Type = WEAPON_HAMMER;
 		}
 	}
-	for(int i=0; i < m_LoveDots.size(); i++)
+	for (int i = 0; i < m_LoveDots.size(); i++)
 	{
-		if(ClientID >= 0)
+		if (ClientID >= 0)
 		{
 			vec2 CheckPos = m_LoveDots[i].m_Pos;
-			float dx = m_apPlayers[ClientID]->m_ViewPos.x-CheckPos.x;
-			float dy = m_apPlayers[ClientID]->m_ViewPos.y-CheckPos.y;
-			if(absolute(dx) > 1000.0f || absolute(dy) > 800.0f)
+			float dx = m_apPlayers[ClientID]->m_ViewPos.x - CheckPos.x;
+			float dy = m_apPlayers[ClientID]->m_ViewPos.y - CheckPos.y;
+			if (absolute(dx) > 1000.0f || absolute(dy) > 800.0f)
 				continue;
-			if(distance(m_apPlayers[ClientID]->m_ViewPos, CheckPos) > 1100.0f)
+			if (distance(m_apPlayers[ClientID]->m_ViewPos, CheckPos) > 1100.0f)
 				continue;
 		}
-		
+
 		CNetObj_Pickup *pObj = static_cast<CNetObj_Pickup *>(Server()->SnapNewItem(NETOBJTYPE_PICKUP, m_LoveDots[i].m_SnapID, sizeof(CNetObj_Pickup)));
-		if(pObj)
+		if (pObj)
 		{
 			pObj->m_X = (int)m_LoveDots[i].m_Pos.x;
 			pObj->m_Y = (int)m_LoveDots[i].m_Pos.y;
@@ -2529,13 +2543,18 @@ void CGameContext::InitVotes(int ClientID)
 		char aCmd[64];
 		bool HaveCards = false;
 		int Capacity = 0;
-		nlohmann::json Json = nlohmann::json::parse(pP->m_AccData.m_aItems[SelectItem].m_aExtra);
-		if (Json["Extra"].contains("Cards") && !Json["Extra"]["Cards"].empty())
+
+		nlohmann::json Json;
+		if (nlohmann::json::accept(pP->m_AccData.m_aItems[SelectItem].m_aExtra))
 		{
-			HaveCards = true;
-			for (const auto &j : Json["Extra"]["Cards"])
-				Capacity += ItemHelper()->GetCapacity(int(j["id"])) * int(j["num"]);
-			pP->m_AccData.m_aItems[SelectItem].m_Capacity = Capacity;
+			Json = nlohmann::json::parse(pP->m_AccData.m_aItems[SelectItem].m_aExtra);
+			if (Json["Extra"].contains("Cards") && !Json["Extra"]["Cards"].empty())
+			{
+				HaveCards = true;
+				for (const auto &j : Json["Extra"]["Cards"])
+					Capacity += ItemHelper()->GetCapacity(int(j["id"])) * int(j["num"]);
+				pP->m_AccData.m_aItems[SelectItem].m_Capacity = Capacity;
+			}
 		}
 
 		SetVoteLastPage(PAGE_INVENTORY);

@@ -314,6 +314,9 @@ int CItemHelper::GetMaxPlace(int ID)
 int CItemHelper::GetCard(std::string Extra, int CardID)
 {
     // int64 ProcessTime = time_get();
+    if(!nlohmann::json::accept(Extra))
+        return 0;
+
     nlohmann::json Json = nlohmann::json::parse(Extra);
     if (Json.at("Extra").contains("Cards") && !Json.at("Extra").at("Cards").empty())
 	{
