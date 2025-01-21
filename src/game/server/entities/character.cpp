@@ -285,19 +285,7 @@ void CCharacter::FireWeapon()
 
 	vec2 ProjStartPos = m_Pos + Direction * GetProximityRadius() * 0.75f;
 	float MoreForce = 1.f + float(GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_FORCE)) * 2.f;
-	int ExtraDMG = GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_DAMAGE) * 5;
-
-	int Electron = GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_ELECTRON);
-	if (Electron)
-	{
-		for (int i = 0; i < 25; i++)
-		{
-			float Spreading[] = {-0.185f, -0.130f, -0.050f, 0.050f, 0.130f, 0.185f};
-			float a = GetAngle(Direction);
-			a += Spreading[i + 3];
-			new CLightning(GameWorld(), m_Pos, vec2(cosf(a), sinf(a)), 200, 100, m_pPlayer->GetCID(), ExtraDMG); // ExtraDMG is needed.
-		}
-	}
+	int ExtraDMG = GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_DAMAGE)*2;
 
 	switch (m_ActiveWeapon)
 	{
@@ -306,6 +294,18 @@ void CCharacter::FireWeapon()
 		// reset objects Hit
 		m_NumObjectsHit = 0;
 		GameServer()->CreateSound(m_Pos, SOUND_HAMMER_FIRE);
+
+		int Electron = GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_ELECTRON);
+		if (Electron)
+		{
+			for (int i = 0; i < 5; i++)
+			{
+				float Spreading[] = {-0.185f, -0.130f, -0.050f, 0.050f, 0.130f, 0.185f};
+				float a = GetAngle(Direction);
+				a += Spreading[i + 3];
+				new CLightning(GameWorld(), m_Pos, vec2(cosf(a), sinf(a)), 200, 100, m_pPlayer->GetCID(), ExtraDMG); // ExtraDMG is needed.
+			}
+		}
 
 		CCharacter *apEnts[MAX_CLIENTS];
 		float ExtraRange = 0.f;

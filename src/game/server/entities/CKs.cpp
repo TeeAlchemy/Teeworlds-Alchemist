@@ -46,12 +46,17 @@ void CKs::Tick()
 void CKs::Picking(int Time, CPlayer *Player)
 {
 	int CID = Player->GetCID();
-	int Extra = ITYPE_PICKAXE; // 2 use, awa
+	int Extra = ITYPE_PICKAXE; // 3 use, awa
 	if (m_Type == ITEM_LOG)
 		Extra = ITYPE_AXE;
 
 	Extra = GameServer()->ItemHelper()->GetCard(Player->GetExtraHolding(Extra), ITEM_CARD_DAMAGE);
-	m_Health -= Time - (Extra * 500); // TODO: Config
+	if (Extra == ITYPE_AXE)
+		Extra = Time * 2; // TODO: Config
+	else
+		Extra = Time * Extra; // TODO: Config
+
+	m_Health -= Time + Extra;
 	
 	if (m_Health <= 0)
 	{

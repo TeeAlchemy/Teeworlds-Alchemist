@@ -3,6 +3,7 @@
 #include <game/generated/protocol.h>
 #include <game/server/gamecontext.h>
 #include "growingexplosion.h"
+#include "lightning.h"
 #include "projectile.h"
 
 CProjectile::CProjectile(CGameWorld *pGameWorld, int Type, int Owner, vec2 Pos, vec2 Dir, int Span,
@@ -68,6 +69,30 @@ void CProjectile::Tick()
 
 	if(!OwnerChar || !OwnerChar->GetPlayer())
 		return MarkForDestroy();
+
+
+	if ((Server()->Tick() - m_StartTick) % 10 == 0 || Server()->Tick() - m_StartTick < 3)
+	{
+		int Electron = GameServer()->ItemHelper()->GetCard(GameServer()->GetPlayer(m_Owner)->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_ELECTRON);
+		if (Electron)
+		{
+			if(m_Type == WEAPON_SHOTGUN)
+			{
+				float a = GetAngle(normalize(CurPos - PrevPos));
+				new CLightning(GameWorld(), CurPos, vec2(cosf(a), sinf(a)), 100, 25, m_Owner, clamp(m_Damage, 1, m_Damage/2));
+			}
+			else
+			{
+				for (int i = 0; i < 3; i++)
+				{
+					float Spreading[] = {-0.185f, -0.130f, -0.050f, 0.050f, 0.130f, 0.185f};
+					float a = GetAngle(normalize(CurPos - PrevPos));
+					a += Spreading[i + 3];
+					new CLightning(GameWorld(), CurPos, vec2(cosf(a), sinf(a)), 200, 100, m_Owner, clamp(m_Damage, 1, m_Damage/2));
+				}
+			}
+		}
+	}
 
 	m_LifeSpan--;
 

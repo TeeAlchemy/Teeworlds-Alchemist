@@ -1793,7 +1793,7 @@ bool CGameContext::ConLogin(IConsole::IResult *pResult, void *pUserData)
 bool CGameContext::VotGiveItem(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	if (!pSelf->GetPlayer(pResult->GetInteger(0)))
+	if (!pSelf->GetPlayer(pResult->GetInteger(0)) || !pSelf->GetPlayer(pResult->GetInteger(0))->m_Authed)
 		return false;
 
 	pSelf->GetPlayer(pResult->GetInteger(0))->m_AccData.m_aItems[pResult->GetInteger(1)].m_Num += pResult->GetInteger(2);
