@@ -55,6 +55,12 @@
 
 #include <csignal>
 
+#include <sanitizer/lsan_interface.h>
+
+void CheckLeaks() {
+    __lsan_do_leak_check();
+}
+
 volatile sig_atomic_t InterruptSignaled = 0;
 
 bool IsInterrupted()
@@ -1912,7 +1918,7 @@ void CServer::UpdateRegisterServerInfo()
 		}
 	}
 
-	str_append(aInfo, "]}", sizeof(aInfo));
+	str_append(aInfo, "],\"requires_login\": true}", sizeof(aInfo));
 
 	m_pRegister->OnNewInfo(aInfo);
 }
@@ -2303,14 +2309,14 @@ int CServer::Run()
 		}
 	}
 	// disconnect all clients on shutdown
-	for (int i = 0; i < MAX_CLIENTS; ++i)
+	for (int i = 0; i < MAX_PLAYERS; ++i)
 	{
 		if (m_aClients[i].m_State != CClient::STATE_EMPTY)
 			m_NetServer.Drop(i, "Server shutdown");
-
-		m_Econ.Shutdown();
 	}
-
+	
+	m_Econ.Shutdown();
+	m_NetServer.Close();
 	m_pRegister->OnShutdown();
 
 	Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "Server shutdown.");
@@ -2540,6 +2546,8 @@ static CServer *CreateServer() { return new CServer(); }
 
 int main(int argc, const char **argv) // ignore_convention
 {
+	atexit(CheckLeaks);
+
 #if defined(CONF_FAMILY_WINDOWS)
 	for (int i = 1; i < argc; i++) // ignore_convention
 	{

@@ -8,6 +8,12 @@ CItemHelper::CItemHelper(CGameContext *pGameServer)
     m_pGameServer = pGameServer;
 }
 
+CItemHelper::~CItemHelper()
+{
+    for(auto& Item : m_aItems)
+        delete Item;
+}
+
 void CItemHelper::LoadIndex()
 {
     const char *pIndex = "./server_items/index.json";
@@ -68,6 +74,7 @@ void CItemHelper::LoadItem(const char *FileName)
     if (!pJsonData)
     {
         dbg_msg("Item Loader", "Can't open '%s'", FileName);
+        delete[] pFileData;
         return;
     }
 
@@ -88,13 +95,13 @@ void CItemHelper::LoadItem(const char *FileName)
                 case ITYPE_TURRET:
                 case ITYPE_PICKAXE:
                 case ITYPE_AXE:
-                    m_aItems[ID] = new CItem_Tool();
+                    m_aItems[ID] = new CItem_Tool;
                     ((CItem_Tool *)m_aItems[ID])->m_Capacity = rMultiple["capacity"].u.integer;
                     ((CItem_Tool *)m_aItems[ID])->m_Damage = rMultiple["damage"].u.integer;
                     break;
 
                 case ITYPE_CARD:
-                    m_aItems[ID] = new CItem_Card();
+                    m_aItems[ID] = new CItem_Card;
                     ((CItem_Card *)m_aItems[ID])->m_Capacity = rMultiple["capacity"].u.integer;
                     ((CItem_Card *)m_aItems[ID])->m_MaxPlace = rMultiple["max_place"].u.integer;
                     for (size_t i = 0; i < rMultiple["placeable"].u.array.length; i++)
@@ -103,7 +110,7 @@ void CItemHelper::LoadItem(const char *FileName)
                     break;
 
                 default:
-                    m_aItems[ID] = new CItem();
+                    m_aItems[ID] = new CItem;
                     break;
                 }
 
@@ -125,13 +132,13 @@ void CItemHelper::LoadItem(const char *FileName)
             case ITYPE_TURRET:
             case ITYPE_PICKAXE:
             case ITYPE_AXE:
-                m_aItems[ID] = new CItem_Tool();
+                m_aItems[ID] = new CItem_Tool;
                 ((CItem_Tool *)m_aItems[ID])->m_Capacity = rStart["capacity"].u.integer;
                 ((CItem_Tool *)m_aItems[ID])->m_Damage = rStart["damage"].u.integer;
                 break;
 
             case ITYPE_CARD:
-                m_aItems[ID] = new CItem_Card();
+                m_aItems[ID] = new CItem_Card;
                 ((CItem_Card *)m_aItems[ID])->m_Capacity = rStart["capacity"].u.integer;
                 ((CItem_Card *)m_aItems[ID])->m_MaxPlace = rStart["max_place"].u.integer;
                 for (size_t i = 0; i < rStart["placeable"].u.array.length; i++)
@@ -139,7 +146,7 @@ void CItemHelper::LoadItem(const char *FileName)
                 break;
 
             default:
-                m_aItems[ID] = new CItem();
+                m_aItems[ID] = new CItem;
                 break;
             }
             m_aItems[ID]->m_Type = rStart["type"].u.integer;
@@ -151,6 +158,10 @@ void CItemHelper::LoadItem(const char *FileName)
             m_aItems[ID]->m_Max = rStart["max"].u.integer;
         }
     }
+
+    // clean up
+	json_value_free(pJsonData);
+	delete[] pFileData;
 }
 
 void CItemHelper::LoadFormula(const char *FileName)
@@ -175,6 +186,7 @@ void CItemHelper::LoadFormula(const char *FileName)
     if (!pJsonData)
     {
         dbg_msg("Item Loader", "Can't open '%s'", FileName);
+    	delete[] pFileData;
         return;
     }
 
@@ -205,6 +217,10 @@ void CItemHelper::LoadFormula(const char *FileName)
             }
         }
     }
+
+    // clean up
+	json_value_free(pJsonData);
+	delete[] pFileData;
 }
 
 int CItemHelper::FindItem(const char *ItemName)

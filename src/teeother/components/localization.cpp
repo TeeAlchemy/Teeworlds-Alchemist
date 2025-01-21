@@ -162,6 +162,7 @@ bool CLocalization::Init()
 
 	// clean up
 	json_value_free(pJsonData);
+	delete[] pFileData;
 	return true;
 }
 

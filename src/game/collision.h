@@ -25,7 +25,8 @@ public:
 	bool IsTileSolid(int x, int y, bool IncludeDeath = false) const;
 
 	CCollision();
-	void Init(class CLayers *pLayers);
+	~CCollision();
+	void Init(class IKernel* pKernel, int WorldID);
 	bool CheckPoint(float x, float y, bool IncludeDeath = false) { return IsTileSolid(round(x), round(y), IncludeDeath); }
 	bool CheckPoint(vec2 Pos) { return CheckPoint(Pos.x, Pos.y); }
 	int GetCollisionAt(float x, float y) { return GetTile(round_to_int(x), round_to_int(y)); }
@@ -36,6 +37,8 @@ public:
 	void MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, int *pBounces);
 	void MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elasticity);
 	bool TestBox(vec2 Pos, vec2 Size);
+
+	CLayers* GetLayers() const { return m_pLayers; }
 };
 
 #endif

@@ -939,6 +939,7 @@ foreach(target ${TARGETS_OWN})
   target_include_directories(${target} PRIVATE ${CURL_INCLUDE_DIRS})
 
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+  target_link_options(${target} PUBLIC $<$<AND:$<CXX_COMPILER_ID:GNU>,$<PLATFORM_ID:Linux>>:-fsanitize=address -static-libasan>)
 
   target_compile_definitions(${target} PRIVATE CONF_SQL)
   target_include_directories(${target} SYSTEM PRIVATE ${MYSQL_INCLUDE_DIRS})

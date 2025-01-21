@@ -82,35 +82,19 @@ CGameContext::~CGameContext()
 		delete m_apPlayers[i];
 	if (!m_Resetting)
 		delete m_pVoteOptionHeap;
+
 	delete m_pBotEngine;
+	delete m_pController;
+	delete m_pTWorldController;
+	delete m_pItemHelper;
+	delete m_pDB;
+	delete m_pChatAI;
 }
 
 void CGameContext::OnSetAuthed(int ClientID, int Level)
 {
 	if (m_apPlayers[ClientID])
 		m_apPlayers[ClientID]->m_Authed = Level;
-}
-
-void CGameContext::Clear()
-{
-	CHeap *pVoteOptionHeap = m_pVoteOptionHeap;
-	CVoteOptionServer *pVoteOptionFirst = m_pVoteOptionFirst;
-	CVoteOptionServer *pVoteOptionLast = m_pVoteOptionLast;
-	int NumVoteOptions = m_NumVoteOptions;
-	CTuningParams Tuning = m_Tuning;
-
-	delete m_pDB;
-
-	m_Resetting = true;
-	this->~CGameContext();
-	mem_zero(this, sizeof(*this));
-	new (this) CGameContext(RESET);
-
-	m_pVoteOptionHeap = pVoteOptionHeap;
-	m_pVoteOptionFirst = pVoteOptionFirst;
-	m_pVoteOptionLast = pVoteOptionLast;
-	m_NumVoteOptions = NumVoteOptions;
-	m_Tuning = Tuning;
 }
 
 class CCharacter *CGameContext::GetPlayerChar(int ClientID)
@@ -2103,9 +2087,7 @@ void CGameContext::OnInit(int WorldID)
 	for (int i = 0; i < NUM_NETOBJTYPES; i++)
 		Server()->SnapSetStaticsize(i, m_NetObjHandler.GetObjSize(i));
 
-	m_pLayers = new CLayers();
-	m_pLayers->Init(Kernel(), WorldID);
-	m_Collision.Init(m_pLayers);
+	m_Collision.Init(Kernel(), WorldID);
 
 	m_pTWorldController = new TWorldController(this);
 
@@ -2114,7 +2096,7 @@ void CGameContext::OnInit(int WorldID)
 
 	// create all entities from the game layer
 	// initialize cores
-	CMapItemLayerTilemap *pTileMap = m_pLayers->GameLayer();
+	CMapItemLayerTilemap *pTileMap = m_Collision.GetLayers()->GameLayer();
 	CTile *pTiles = (CTile *)Kernel()->RequestInterface<IMap>(WorldID)->GetData(pTileMap->m_Data);
 	for (int y = 0; y < pTileMap->m_Height; y++)
 	{
@@ -2137,9 +2119,7 @@ void CGameContext::OnInit(int WorldID)
 
 void CGameContext::OnShutdown()
 {
-	delete m_pController;
-	m_pController = 0;
-	Clear();
+	delete this;
 }
 
 void CGameContext::OnSnap(int ClientID)

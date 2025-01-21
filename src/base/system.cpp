@@ -939,6 +939,8 @@ typedef CRITICAL_SECTION LOCKINTERNAL;
 			sock->ipv6sock = -1;
 			sock->type &= ~NETTYPE_IPV6;
 		}
+
+		free(sock);
 		return 0;
 	}
 
@@ -1020,78 +1022,97 @@ typedef CRITICAL_SECTION LOCKINTERNAL;
 	{
 		NETSOCKET sock = (NETSOCKET_INTERNAL *)malloc(sizeof(*sock));
 		*sock = invalid_socket;
-		NETADDR tmpbindaddr = bindaddr;
-		int broadcast = 1;
-		int socket = -1;
 
 		if (bindaddr.type & NETTYPE_IPV4)
 		{
 			struct sockaddr_in addr;
-
-			/* bind, we should check for error */
+			NETADDR tmpbindaddr = bindaddr;
 			tmpbindaddr.type = NETTYPE_IPV4;
 			netaddr_to_sockaddr_in(&tmpbindaddr, &addr);
-			socket = priv_net_create_socket(AF_INET, SOCK_DGRAM, (struct sockaddr *)&addr, sizeof(addr), 0);
+			int socket = priv_net_create_socket(AF_INET, SOCK_DGRAM, (struct sockaddr *)&addr, sizeof(addr), 0);
 			if (socket >= 0)
 			{
 				sock->type |= NETTYPE_IPV4;
 				sock->ipv4sock = socket;
 
 				/* set broadcast */
+				int broadcast = 1;
 				if (setsockopt(socket, SOL_SOCKET, SO_BROADCAST, (const char *)&broadcast, sizeof(broadcast)) != 0)
-					dbg_msg("socket", "Setting BROADCAST on ipv4 failed: %d", errno);
+				{
+					dbg_msg("socket", "Setting BROADCAST on ipv4 failed: %d", net_errno());
+				}
 
 				{
 					/* set DSCP/TOS */
 					int iptos = 0x10 /* IPTOS_LOWDELAY */;
-					// int iptos = 46; /* High Priority */
 					if (setsockopt(socket, IPPROTO_IP, IP_TOS, (char *)&iptos, sizeof(iptos)) != 0)
-						dbg_msg("socket", "Setting TOS on ipv4 failed: %d", errno);
+					{
+						dbg_msg("socket", "Setting TOS on ipv4 failed: %d", net_errno());
+					}
 				}
 			}
 		}
 
+#if defined(CONF_WEBSOCKETS)
+		if (bindaddr.type & NETTYPE_WEBSOCKET_IPV4)
+		{
+			char addr_str[NETADDR_MAXSTRSIZE];
+			NETADDR tmpbindaddr = bindaddr;
+			tmpbindaddr.type = NETTYPE_WEBSOCKET_IPV4;
+			net_addr_str(&tmpbindaddr, addr_str, sizeof(addr_str), 0);
+			int socket = websocket_create(addr_str, tmpbindaddr.port);
+			if (socket >= 0)
+			{
+				sock->type |= NETTYPE_WEBSOCKET_IPV4;
+				sock->web_ipv4sock = socket;
+			}
+		}
+#endif
+
 		if (bindaddr.type & NETTYPE_IPV6)
 		{
 			struct sockaddr_in6 addr;
-
-			/* bind, we should check for error */
+			NETADDR tmpbindaddr = bindaddr;
 			tmpbindaddr.type = NETTYPE_IPV6;
 			netaddr_to_sockaddr_in6(&tmpbindaddr, &addr);
-			socket = priv_net_create_socket(AF_INET6, SOCK_DGRAM, (struct sockaddr *)&addr, sizeof(addr), 0);
+			int socket = priv_net_create_socket(AF_INET6, SOCK_DGRAM, (struct sockaddr *)&addr, sizeof(addr), 0);
 			if (socket >= 0)
 			{
 				sock->type |= NETTYPE_IPV6;
 				sock->ipv6sock = socket;
 
 				/* set broadcast */
+				int broadcast = 1;
 				if (setsockopt(socket, SOL_SOCKET, SO_BROADCAST, (const char *)&broadcast, sizeof(broadcast)) != 0)
-					dbg_msg("socket", "Setting BROADCAST on ipv6 failed: %d", errno);
+				{
+					dbg_msg("socket", "Setting BROADCAST on ipv6 failed: %d", net_errno());
+				}
 
+				// TODO: setting IP_TOS on ipv6 with setsockopt is not supported on Windows, see https://github.com/ddnet/ddnet/issues/7605
+#if !defined(CONF_FAMILY_WINDOWS)
 				{
 					/* set DSCP/TOS */
 					int iptos = 0x10 /* IPTOS_LOWDELAY */;
-					// int iptos = 46; /* High Priority */
 					if (setsockopt(socket, IPPROTO_IP, IP_TOS, (char *)&iptos, sizeof(iptos)) != 0)
-						dbg_msg("socket", "Setting TOS on ipv6 failed: %d", errno);
+					{
+						dbg_msg("socket", "Setting TOS on ipv6 failed: %d", net_errno());
+					}
 				}
+#endif
 			}
 		}
 
-		if (socket < 0)
+		if (sock->type == NETTYPE_INVALID)
 		{
 			free(sock);
 			sock = nullptr;
 		}
 		else
 		{
-			/* set non-blocking */
 			net_set_non_blocking(sock);
-
 			net_buffer_init(&sock->buffer);
 		}
 
-		/* return */
 		return sock;
 	}
 
@@ -1278,41 +1299,41 @@ typedef CRITICAL_SECTION LOCKINTERNAL;
 	{
 		NETSOCKET sock = (NETSOCKET_INTERNAL *)malloc(sizeof(*sock));
 		*sock = invalid_socket;
-		NETADDR tmpbindaddr = bindaddr;
 
 		if (bindaddr.type & NETTYPE_IPV4)
 		{
 			struct sockaddr_in addr;
-			int socket = -1;
-
-			/* bind, we should check for error */
+			NETADDR tmpbindaddr = bindaddr;
 			tmpbindaddr.type = NETTYPE_IPV4;
 			netaddr_to_sockaddr_in(&tmpbindaddr, &addr);
-			socket = priv_net_create_socket(AF_INET, SOCK_STREAM, (struct sockaddr *)&addr, sizeof(addr), 0);
-			if (socket >= 0)
+			int socket4 = priv_net_create_socket(AF_INET, SOCK_STREAM, (struct sockaddr *)&addr, sizeof(addr), 0);
+			if (socket4 >= 0)
 			{
 				sock->type |= NETTYPE_IPV4;
-				sock->ipv4sock = socket;
+				sock->ipv4sock = socket4;
 			}
 		}
 
 		if (bindaddr.type & NETTYPE_IPV6)
 		{
 			struct sockaddr_in6 addr;
-			int socket = -1;
-
-			/* bind, we should check for error */
+			NETADDR tmpbindaddr = bindaddr;
 			tmpbindaddr.type = NETTYPE_IPV6;
 			netaddr_to_sockaddr_in6(&tmpbindaddr, &addr);
-			socket = priv_net_create_socket(AF_INET6, SOCK_STREAM, (struct sockaddr *)&addr, sizeof(addr), 0);
-			if (socket >= 0)
+			int socket6 = priv_net_create_socket(AF_INET6, SOCK_STREAM, (struct sockaddr *)&addr, sizeof(addr), 0);
+			if (socket6 >= 0)
 			{
 				sock->type |= NETTYPE_IPV6;
-				sock->ipv6sock = socket;
+				sock->ipv6sock = socket6;
 			}
 		}
 
-		/* return */
+		if (sock->type == NETTYPE_INVALID)
+		{
+			free(sock);
+			sock = nullptr;
+		}
+
 		return sock;
 	}
 
@@ -2439,15 +2460,15 @@ typedef CRITICAL_SECTION LOCKINTERNAL;
 	}
 
 	int str_count(const char *str, const char *count)
-	{    
-	    int num = 0;
-	    str = str_find(str, count);
-	    while(str++)
-	    {
-	        str = str_find(str, count);
-	        num++;
-	    }
-	    return num;
+	{
+		int num = 0;
+		str = str_find(str, count);
+		while (str++)
+		{
+			str = str_find(str, count);
+			num++;
+		}
+		return num;
 	}
 
 	int bytes_be_to_int(const unsigned char *bytes)

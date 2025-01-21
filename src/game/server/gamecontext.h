@@ -61,7 +61,6 @@ enum EVotePages
 class CGameContext : public IGameServer
 {
 	class IConsole *m_pConsole;
-	class CLayers *m_pLayers;
 	class CBotEngine *m_pBotEngine;
 	class TWorldController *m_pTWorldController;
 
@@ -120,8 +119,6 @@ public:
 	CGameContext();
 	~CGameContext();
 	class CBotEngine *BotEngine() { return m_pBotEngine; }
-
-	void Clear();
 
 	CEventHandler m_Events;
 	CPlayer *m_apPlayers[MAX_CLIENTS];

@@ -1,4 +1,5 @@
 #pragma once
+#include <game/server/alloc.h>
 #include <cstring>
 #include <string>
 
@@ -75,6 +76,9 @@ enum
 
 struct CItem
 {
+    MACRO_ALLOC_HEAP()
+
+public:
     int m_Type;
     int m_ID;
     char m_aItemName[128];
@@ -144,6 +148,8 @@ private:
 public:
     CItem *Items(int ID) { return m_aItems[ID]; }
     CItemHelper(class CGameContext *pGameServer);
+    ~CItemHelper();
+
     void LoadIndex();
     void LoadItem(const char *FileName);
     void LoadFormula(const char *FileName);
