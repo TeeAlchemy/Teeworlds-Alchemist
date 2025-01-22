@@ -72,8 +72,12 @@ if(TARGET_OS STREQUAL "windows")
   set(AUTO_DEPENDENCIES_DEFAULT ON)
 endif()
 
+find_package(MaxMindDB QUIET)
+set(GEOLOCATION_DEFAULT ${MaxMindDB_FOUND})
+
 option(PREFER_BUNDLED_LIBS "Prefer bundled libraries over system libraries" ${AUTO_DEPENDENCIES_DEFAULT})
 option(DEV "Don't generate stuff necessary for packaging" OFF)
+option(GEOLOCATION "Enable geolocation support" ${GEOLOCATION_DEFAULT})
 
 # Set the default build type to Release
 if(NOT(CMAKE_BUILD_TYPE))
@@ -229,6 +233,9 @@ find_package(Git)
 find_package(Python3)
 find_package(Curl)
 find_package(MySQL)
+if(GEOLOCATION)
+  find_package(MaxMindDB REQUIRED)
+endif()
 
 if(TARGET_OS AND TARGET_OS STREQUAL "mac")
   find_program(DMG dmg)
@@ -609,6 +616,31 @@ add_executable(${TARGET_SERVER}
 target_link_libraries(${TARGET_SERVER} ${LIBS_SERVER})
 list(APPEND TARGETS_OWN ${TARGET_SERVER})
 list(APPEND TARGETS_LINK ${TARGET_SERVER})
+
+if(GEOLOCATION)
+  add_library(GeoLite2PP STATIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/geo/GeoLite2PP/GeoLite2PP.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/geo/GeoLite2PP/GeoLite2PP.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/geo/GeoLite2PP/GeoLite2PP_error_category.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/geo/GeoLite2PP/GeoLite2PP_error_category.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/geo/GeoLite2PP/GeoLite2PP_version.hpp
+  )
+  target_include_directories(GeoLite2PP PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/geo
+  )
+  add_library(GeoLite2PP::GeoLite2PP ALIAS GeoLite2PP)
+
+  target_sources(${TARGET_SERVER} PRIVATE
+    "src/geo/geolocation.cpp"
+    "src/geo/geolocation.h"
+  )
+
+  target_compile_definitions(${TARGET_SERVER} PRIVATE CONF_GEOLOCATION)
+  target_link_libraries(${TARGET_SERVER}
+    GeoLite2PP::GeoLite2PP
+    MaxMindDB::MaxMindDB
+  )
+endif()
 
 target_include_directories(${TARGET_SERVER} PRIVATE ${SERVER_INCLUDES_DIRS})
 

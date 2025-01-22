@@ -46,6 +46,10 @@
 #include "multi_worlds.h"
 #include "database/connection_pool.h"
 
+#ifdef CONF_GEOLOCATION
+#include <geo/geolocation.h>
+#endif
+
 #if defined(CONF_FAMILY_WINDOWS)
 #define _WIN32_WINNT 0x0501
 #define WIN32_LEAN_AND_MEAN
@@ -54,14 +58,12 @@
 #include <cstring> //fixes memset error
 #endif
 
-#include <csignal>
-
 #include <sanitizer/lsan_interface.h>
-
 void CheckLeaks() {
     __lsan_do_leak_check();
 }
 
+#include <csignal>
 volatile sig_atomic_t InterruptSignaled = 0;
 
 bool IsInterrupted()
@@ -1315,6 +1317,14 @@ void CServer::ProcessClientPacket(CNetChunk *pPacket)
 				}
 
 				SendServerInfo(m_NetServer.ClientAddr(ClientID), -1, SERVERINFO_EXTENDED, false);
+
+#ifdef CONF_GEOLOCATION
+				char aAddrStr[NETADDR_MAXSTRSIZE]{};
+				GetClientAddr(ClientID, aAddrStr, sizeof(aAddrStr));
+				std::string ip(aAddrStr);
+				SetClientLanguage(ClientID, m_pLocalization->LanguageCodeByCountryCode(Geolocation::get_country_iso_numeric_code(ip)));
+#endif
+
 				GameServer(WorldID)->OnClientEnter(ClientID);
 
 				ExpireServerInfo();
@@ -2320,6 +2330,10 @@ int CServer::Run()
 	m_NetServer.Close();
 	m_pRegister->OnShutdown();
 
+#ifdef CONF_GEOLOCATION
+	Geolocation::Shutdown();
+#endif
+
 	Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "Server shutdown.");
 	return 0;
 }
@@ -2520,6 +2534,7 @@ void CServer::RegisterCommands()
 	// register console commands in sub parts
 	m_ServerBan.InitServerBan(Console(), Storage(), this);
 	m_pGameServer->OnConsoleInit();
+	InitGeolocation();
 }
 
 int CServer::SnapNewID()
@@ -2712,4 +2727,22 @@ void CServer::InitClientBot(int ClientID)
 
 	// Send a connection ready message to the client
 	SendConnectionReady(ClientID);
+}
+
+void CServer::InitGeolocation()
+{
+#ifdef CONF_GEOLOCATION
+	const char aGeoDBFileName[] = "geo/GeoLite2-Country.mmdb";
+	char aBuf[512];
+	Storage()->GetDataPath(aGeoDBFileName, aBuf, sizeof(aBuf));
+	if(aBuf[0])
+	{
+		Geolocation::Initialize(aBuf);
+	}
+	else
+	{
+		str_format(aBuf, sizeof(aBuf), "Unable to find geolocation data file %s", aGeoDBFileName);
+		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", aBuf);
+	}
+#endif
 }

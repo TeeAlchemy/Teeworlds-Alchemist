@@ -325,6 +325,8 @@ public:
 
 	// Bots
 	void InitClientBot(int ClientID) override;
+
+	void InitGeolocation();
 };
 
 class _StoreMultiworldIdentifiableStaticData

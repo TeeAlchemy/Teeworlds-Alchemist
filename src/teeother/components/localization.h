@@ -185,6 +185,7 @@ public:
 
 	// Localize
 	const char* Localize(const char* pLanguageCode, const char* pText);
+	const char *LanguageCodeByCountryCode(int CountryCode);
 };
 
 #endif
