@@ -5,7 +5,6 @@
 #include <game/server/bot.h>
 #include <game/server/gamecontext.h>
 #include <game/server/entities/CKs.h>
-#include <game/server/entities/tower-main.h>
 #include <game/server/GameCore/Account/account.h>
 #include <engine/shared/protocol.h>
 #include <engine/shared/config.h>
@@ -17,6 +16,32 @@ CGameControllerTeeDefense::CGameControllerTeeDefense(class CGameContext *pGameSe
 	m_IsTeamplay = true;
 	m_Wave = 0;
 	mem_zero(m_Zombie, sizeof(m_Zombie));
+
+	m_GameOverTick = -1;
+	m_pTower = nullptr;
+	m_ZombStart = 0;
+}
+
+void CGameControllerTeeDefense::Snap(int SnappingClient)
+{
+	CNetObj_GameInfo *pGameInfoObj = Server()->SnapNewItem<CNetObj_GameInfo>(0);
+	if (!pGameInfoObj)
+		return;
+
+	pGameInfoObj->m_GameFlags = m_GameFlags;
+	pGameInfoObj->m_GameStateFlags = 0;
+	if (m_GameOverTick != -1)
+		pGameInfoObj->m_GameStateFlags |= GAMESTATEFLAG_GAMEOVER;
+	if (GameServer()->m_World.m_Paused)
+		pGameInfoObj->m_GameStateFlags |= GAMESTATEFLAG_PAUSED;
+	pGameInfoObj->m_RoundStartTick = m_RoundStartTick;
+	pGameInfoObj->m_WarmupTimer = GameServer()->m_World.m_Paused ? m_UnpauseTimer : m_Warmup;
+
+	pGameInfoObj->m_ScoreLimit = m_pTower ? m_pTower->GetHealth() : 0;
+	pGameInfoObj->m_TimeLimit = 0;
+
+	pGameInfoObj->m_RoundNum = m_ZombStart;
+	pGameInfoObj->m_RoundCurrent = m_ZombLeft;
 }
 
 bool CGameControllerTeeDefense::OnEntity(int Index, vec2 Pos)
@@ -48,7 +73,7 @@ bool CGameControllerTeeDefense::OnEntity(int Index, vec2 Pos)
 		Type = ITEM_ENEGRY;
 		break;
 	case ENTITY_MAIN_TOWER:
-		new CTowerMain(&GameServer()->m_World, Pos);
+		m_pTower = new CTowerMain(&GameServer()->m_World, Pos);
 		break;
 
 	default:
@@ -63,12 +88,8 @@ bool CGameControllerTeeDefense::OnEntity(int Index, vec2 Pos)
 	return false;
 }
 
-void CGameControllerTeeDefense::InitBots()
+void CGameControllerTeeDefense::ResetBots()
 {
-	// Init bots
-	for (int i = 0; i < MAX_BOTS; i++)
-		GameServer()->AddBot();
-
 	for (auto &pPlayer : GameServer()->m_apPlayers)
 	{
 		if (!pPlayer || !pPlayer->m_pBot)
@@ -82,10 +103,20 @@ void CGameControllerTeeDefense::InitBots()
 	}
 }
 
+void CGameControllerTeeDefense::InitBots()
+{
+	// Init bots
+	for (int i = 0; i < MAX_BOTS; i++)
+		GameServer()->AddBot();
+
+	ResetBots();
+}
+
 void CGameControllerTeeDefense::StartRound()
 {
 	m_RoundStartTick = Server()->Tick();
 	m_GameOverTick = -1;
+	GameServer()->m_World.m_Paused = false;
 	// Zomb2
 	for (int i = MAX_PLAYERS; i < MAX_CLIENTS; i++) // bugfix
 		OnZombieKill(i);
@@ -95,6 +126,18 @@ void CGameControllerTeeDefense::StartRound()
 
 void CGameControllerTeeDefense::EndRound()
 {
+	if (m_Warmup) // game can't end when we are running warmup
+		return;
+
+	GameServer()->m_World.m_Paused = true;
+	m_GameOverTick = Server()->Tick();
+	m_SuddenDeath = 0;
+
+	m_Wave = 0;
+	mem_zero(m_Zombie, sizeof(m_Zombie));
+	m_pTower->Reset();
+
+	ResetBots();
 }
 
 void CGameControllerTeeDefense::OnCharacterSpawn(CCharacter *pChr)
@@ -120,7 +163,7 @@ int CGameControllerTeeDefense::OnCharacterDeath(class CCharacter *pVictim, class
 		if (pKiller && pKiller->GetTeam() == TEAM_HUMAN)
 		{
 			int Reward = ITEM_LOG;
-				int Rando = rand() % 100 + 1;
+			int Rando = rand() % 100 + 1;
 			if (Rando <= 50)
 				Reward = ITEM_LOG;
 			else if (Rando >= 51 && Rando <= 75)
@@ -178,6 +221,13 @@ void CGameControllerTeeDefense::Tick()
 	if (Players >= 1 && !m_Wave)
 		StartRound();
 
+	if (m_GameOverTick != -1)
+	{
+		// game over.. wait for restart
+		if (Server()->Tick() > m_GameOverTick + Server()->TickSpeed() * 10)
+			StartRound();
+	}
+
 	// do warmup
 	if (!GameServer()->m_World.m_Paused && m_Warmup)
 	{
@@ -193,7 +243,7 @@ void CGameControllerTeeDefense::Tick()
 	if (m_GameOverTick != -1)
 	{
 		// game over.. wait for restart
-		if (Server()->Tick() > m_GameOverTick + Server()->TickSpeed() * 10)
+		if (Server()->Tick() > m_GameOverTick + Server()->TickSpeed() * 5)
 		{
 			CycleMap();
 			PostReset();
@@ -214,10 +264,16 @@ void CGameControllerTeeDefense::Tick()
 	// game is Paused
 	if (GameServer()->m_World.m_Paused)
 		++m_RoundStartTick;
+
+	DoWincheck();
 }
 
 void CGameControllerTeeDefense::DoWincheck()
 {
+	if (!m_pTower)
+		return;
+	if (m_GameOverTick == -1 && !m_Warmup && !GameServer()->m_World.m_ResetRequested && m_pTower->GetHealth() <= 0)
+		EndRound();
 }
 
 bool CGameControllerTeeDefense::CanSpawn(int Team, vec2 *pPos)
@@ -332,6 +388,7 @@ void CGameControllerTeeDefense::DoZombMessage(int Which)
 {
 	if (!Which)
 	{
+		m_ZombStart = m_ZombLeft;
 		GameServer()->Broadcast(-1, "Wave {} started with {} Zombies!", m_Wave, m_ZombLeft);
 		return;
 	}

@@ -73,7 +73,7 @@ void CTowerMain::Tick()
 }
 void CTowerMain::Reset()
 {
-    GameServer()->m_World.DestroyEntity(this);
+    m_Health = g_Config.m_SvMaxTowerHealth;
 }
 
 void CTowerMain::Snap(int SnappingClient)

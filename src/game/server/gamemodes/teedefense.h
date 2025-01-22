@@ -3,31 +3,32 @@
 #ifndef GAME_SERVER_GAMEMODES_TD_H
 #define GAME_SERVER_GAMEMODES_TD_H
 #include <game/server/gamecontroller.h>
+#include <game/server/entities/tower-main.h>
 
 class CGameControllerTeeDefense : public IGameController
 {
 public:
 	CGameControllerTeeDefense(class CGameContext *pGameServer);
-
-	bool OnEntity(int Index, vec2 Pos) override;
+	void Tick() override;
+	void Snap(int SnappingClient) override;
 
 	void StartRound() override;
 	void EndRound() override;
+	void InitBots() override;
+	void DoWincheck() override;
+	bool CheckTeamBalance() override { return true; }
 
 	void OnCharacterSpawn(class CCharacter *pChr) override;
 	int OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon) override;
-	void Tick() override;
 	void OnPlayerConnect(class CPlayer *pPlayer) override;
 
-	void DoWincheck() override;
-
+	bool OnEntity(int Index, vec2 Pos) override;
 	bool CanSpawn(int Team, vec2 *pPos) override;
 
-	void InitBots() override;
-
-	bool CheckTeamBalance() override { return true; }
-
+	void ResetBots();
+private:
 	//Zomb2
+	int m_ZombStart;
 	int m_Wave;
 	int m_Zombie[NUM_ZOMB];//not sure about the amount of zombies
 	int m_ZombLeft;
@@ -41,5 +42,7 @@ public:
 	int GetZombieReihenfolge(int wavedrittel);
 
 	void OnZombieKill(int ClientID);
+
+	CTowerMain *m_pTower;
 };
 #endif
