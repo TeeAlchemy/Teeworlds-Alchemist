@@ -24,6 +24,12 @@
 #define MAYBE_UNUSED
 #endif
 
+#ifdef __GNUC__
+#define GNUC_ATTRIBUTE(x) __attribute__(x)
+#else
+#define GNUC_ATTRIBUTE(x)
+#endif
+
 #include <chrono>
 
 #include "types.h"
@@ -866,6 +872,8 @@ typedef long long int64;
 	// TeeUniverses
 	void str_append_num(char *dst, const char *src, int dst_size, int num);
 
+	int str_utf8_isstart(char c);
+
 	/*
 		Function: str_copy
 			Copies a string to another.
@@ -1153,6 +1161,13 @@ typedef long long int64;
 			- Guarantees that buffer string will contain zero-termination.
 	*/
 	void str_timestamp(char *buffer, int buffer_size);
+	void str_timestamp_format(char *buffer, int buffer_size, const char *format);
+	void str_timestamp_ex(time_t time, char *buffer, int buffer_size, const char *format)
+	GNUC_ATTRIBUTE((format(strftime, 4, 0)));
+
+#define FORMAT_TIME "%H:%M:%S"
+#define FORMAT_SPACE "%Y-%m-%d %H:%M:%S"
+#define FORMAT_NOSPACE "%Y-%m-%d_%H-%M-%S"
 
 	/* Group: Filesystem */
 

@@ -509,6 +509,8 @@ set_glob(ENGINE_SERVER GLOB src/engine/server
   database/connection_pool.h
   database/sql_connection.cpp
   database/sql_connection.h
+  database/sql_string_helpers.cpp
+  database/sql_string_helpers.h
   multi_worlds.cpp
   multi_worlds.h
   register.cpp

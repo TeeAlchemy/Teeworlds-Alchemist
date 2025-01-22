@@ -2091,16 +2091,32 @@ typedef CRITICAL_SECTION LOCKINTERNAL;
 		return 0;
 	}
 
-	void str_timestamp(char *buffer, int buffer_size)
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#endif
+	void str_timestamp_ex(time_t time_data, char *buffer, int buffer_size, const char *format)
 	{
-		time_t time_data;
 		struct tm *time_info;
-
-		time(&time_data);
 		time_info = localtime(&time_data);
-		strftime(buffer, buffer_size, "%Y-%m-%d_%H-%M-%S", time_info);
+		strftime(buffer, buffer_size, format, time_info);
 		buffer[buffer_size - 1] = 0; /* assure null termination */
 	}
+
+	void str_timestamp_format(char *buffer, int buffer_size, const char *format)
+	{
+		time_t time_data;
+		time(&time_data);
+		str_timestamp_ex(time_data, buffer, buffer_size, format);
+	}
+
+	void str_timestamp(char *buffer, int buffer_size)
+	{
+		str_timestamp_format(buffer, buffer_size, FORMAT_NOSPACE);
+	}
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 	int mem_comp(const void *a, const void *b, int size)
 	{
@@ -2216,7 +2232,7 @@ typedef CRITICAL_SECTION LOCKINTERNAL;
 		dst[dst_size - 1] = 0; /* assure null termination */
 	}
 
-	static int str_utf8_isstart(char c)
+	int str_utf8_isstart(char c)
 	{
 		if ((c & 0xC0) == 0x80) /* 10xxxxxx */
 			return 0;

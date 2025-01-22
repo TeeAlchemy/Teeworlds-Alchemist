@@ -12,15 +12,15 @@
 class CSqlConnection
 {
 public:
-    sql::ResultSet *m_pResult;
+	sql::ResultSet *m_pResult;
 	sql::Connection *m_pConnection;
 	sql::Statement *m_pStatement;
 
 public:
-    CSqlConnection();
-    ~CSqlConnection();
+	CSqlConnection();
+	~CSqlConnection();
 
-    // Connect
+	// Connect
 	bool Connect(sql::Driver *pDriver, std::string User, std::string Password, std::string DbName, std::string Hostname, unsigned short Port);
 
 	// Query
@@ -37,6 +37,8 @@ private:
 	void FreeResult();
 	bool Options(std::string Option, std::string Value);
 
+	// anti SQL injection
+	void ClearString(char *pString, int size);
 };
 
 #endif

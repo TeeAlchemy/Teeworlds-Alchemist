@@ -1,6 +1,7 @@
 /* Copyright(C) 2022 - 2024 ST-Chara */
 #include "account.h"
 #include <engine/server/database/connection_pool.h>
+#include <engine/server/database/sql_string_helpers.h>
 #include <thread>
 
 void CAccount::OnInit()
@@ -16,16 +17,19 @@ static void register_thread(void *user)
     int ClientID = Data->m_ClientID;
     CSqlConnection *pConn = CConnectionPool::GetConnPool()->GetOneConn();
 
+    auto Username = CSqlString<64>(Data->m_AccData.m_aUsername);
+    auto Password = CSqlString<64>(Data->m_AccData.m_aPassword);
+
     if (pConn)
     {
         char aBuf[512];
-        str_format(aBuf, sizeof(aBuf), "SELECT * from tw_Accounts WHERE Username = '%s';", Data->m_AccData.m_aUsername);
+        str_format(aBuf, sizeof(aBuf), "SELECT * from tw_Accounts WHERE Username = '%s';", Username.ClrStr());
         pConn->Query(aBuf);
         if (pConn->m_pResult->next())
             Data->m_pGameServer->Chat(ClientID, "This username is already in use.");
         else
         {
-            str_format(aBuf, sizeof(aBuf), "INSERT INTO tw_Accounts(Username, Password) VALUES ('%s', '%s');", Data->m_AccData.m_aUsername, Data->m_AccData.m_aPassword);
+            str_format(aBuf, sizeof(aBuf), "INSERT INTO tw_Accounts(Username, Password) VALUES ('%s', '%s');", Username.ClrStr(), Password.ClrStr());
             pConn->Execute(aBuf);
             Data->m_pGameServer->Chat(ClientID, "Account was created successfully.");
         }
@@ -54,16 +58,19 @@ static void login_thread(void *user)
     if (!P)
         return;
 
+    auto Username = CSqlString<64>(Data->m_AccData.m_aUsername);
+    auto Password = CSqlString<64>(Data->m_AccData.m_aPassword);
+
     CSqlConnection *pConn = CConnectionPool::GetConnPool()->GetOneConn();
 
     if (pConn)
     {
         char aBuf[512];
-        str_format(aBuf, sizeof(aBuf), "SELECT * from tw_Accounts WHERE Username = '%s';", Data->m_AccData.m_aUsername);
+        str_format(aBuf, sizeof(aBuf), "SELECT * from tw_Accounts WHERE Username = '%s';", Username.ClrStr());
         pConn->Query(aBuf);
         if (pConn->m_pResult->next())
         {
-            str_format(aBuf, sizeof(aBuf), "SELECT * from tw_Accounts WHERE Username = '%s' AND Password = '%s';", Data->m_AccData.m_aUsername, Data->m_AccData.m_aPassword);
+            str_format(aBuf, sizeof(aBuf), "SELECT * from tw_Accounts WHERE Username = '%s' AND Password = '%s';", Username.ClrStr(), Password.ClrStr());
             pConn->Query(aBuf);
             if (pConn->m_pResult->next())
             {
@@ -193,6 +200,9 @@ static void save_accdata_thread(void *user)
 
     CSqlConnection *pConn = CConnectionPool::GetConnPool()->GetOneConn();
 
+    auto Username = CSqlString<64>(Data->m_AccData.m_aUsername);
+    auto Password = CSqlString<64>(Data->m_AccData.m_aPassword);
+
     if (pConn)
     {
         try
@@ -209,7 +219,7 @@ static void save_accdata_thread(void *user)
                     str_format(aBuf, sizeof(aBuf), "UPDATE tw_Accounts SET "
                                                    "Username='%s',Password='%s',Language='%s',Sword=%d,Axe=%d,Pickaxe=%d "
                                                    "WHERE UserID=%d;",
-                               Data->m_AccData.m_aUsername, Data->m_AccData.m_aPassword, Data->m_Language, Data->m_AccData.m_Holding[ITYPE_SWORD], Data->m_AccData.m_Holding[ITYPE_AXE], Data->m_AccData.m_Holding[ITYPE_PICKAXE], UserID);
+                               Username.ClrStr(), Password.ClrStr(), Data->m_Language, Data->m_AccData.m_Holding[ITYPE_SWORD], Data->m_AccData.m_Holding[ITYPE_AXE], Data->m_AccData.m_Holding[ITYPE_PICKAXE], UserID);
                     pConn->Execute(aBuf);
                 }
                 break;
