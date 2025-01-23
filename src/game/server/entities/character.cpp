@@ -81,6 +81,10 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 	GameServer()->m_pController->OnCharacterSpawn(this);
 
 	m_SpawnProtect = true;
+
+	m_LockedCK = false;
+	m_LockPos = vec2(0, 0);
+
 	return true;
 }
 
@@ -588,6 +592,16 @@ void CCharacter::ResetInput()
 
 void CCharacter::Tick()
 {
+	if (m_LockedCK)
+	{
+		if (m_Input.m_Jump && !m_PrevInput.m_Jump)
+			m_LockedCK = false;
+		m_Core.m_HookState = HOOK_IDLE;
+		m_Input.m_Jump = 0;
+		m_Input.m_Direction = 0;
+		m_Input.m_Hook = 0;
+	}
+
 	if (m_pPlayer->m_ForceBalanced)
 	{
 		GameServer()->Broadcast(m_pPlayer->GetCID(), "You were moved to {} due to team balancing", GameServer()->m_pController->GetTeamName(m_pPlayer->GetTeam()));
@@ -596,6 +610,12 @@ void CCharacter::Tick()
 
 	m_Core.m_Input = m_Input;
 	m_Core.Tick(true, m_pPlayer->GetNextTuningParams());
+
+	if (m_LockedCK)
+	{
+		m_Core.m_Vel = vec2(0.0f, 0.0f);
+		m_Core.m_Pos = m_LockPos;
+	}
 
 	// handle death-tiles and leaving gamelayer
 	if (GameServer()->Collision()->GetCollisionAt(m_Pos.x + GetProximityRadius() / 3.f, m_Pos.y - GetProximityRadius() / 3.f) & CCollision::COLFLAG_DEATH ||

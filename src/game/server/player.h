@@ -182,6 +182,8 @@ public:
 
 	class CTurret *m_pTurret;
 	bool CreateTurret();
+
+	bool PressTab();
 };
 
 #endif

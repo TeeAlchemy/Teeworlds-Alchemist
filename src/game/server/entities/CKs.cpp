@@ -11,6 +11,7 @@ CKs::CKs(CGameWorld *pGameWorld, int Type, vec2 Pos)
 {
 	m_Type = Type;
 	m_Pos = Pos;
+	m_LockedPlayer = -1;
 
 	Reset();
 
@@ -21,6 +22,22 @@ void CKs::Reset()
 {
 }
 
+void CKs::HandleLock(CCharacter *pChr)
+{
+	if (!GameServer()->GetPlayerChar(m_LockedPlayer))
+		m_LockedPlayer = -1;
+
+	if (!pChr)
+		return;
+	
+	if (m_LockedPlayer == -1 && !pChr->m_LockedCK && pChr->GetPlayer()->PressTab())
+	{
+		pChr->m_LockedCK = true;
+		m_LockedPlayer = pChr->GetPlayer()->GetCID();
+		pChr->m_LockPos = GetPos();
+	}
+}
+
 void CKs::Tick()
 {
 	if (m_Health == 0)
@@ -29,7 +46,9 @@ void CKs::Tick()
 	// Check if a player intersected us
 	CCharacter *pChr = GameServer()->m_World.ClosestCharacter(GetPos(), 20.0f, 0);
 	if (pChr && pChr->IsAlive() && !pChr->GetPlayer()->GetZomb())
-	{		
+	{
+		HandleLock(pChr);
+
 		if (pChr->m_LatestInput.m_Fire & 1 && pChr->GetActiveWeapon() == WEAPON_HAMMER && pChr->m_MiningTick <= 0)
 		{
 			int Tool = ITYPE_PICKAXE;

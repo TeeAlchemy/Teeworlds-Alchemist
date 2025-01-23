@@ -434,3 +434,10 @@ bool CPlayer::CreateTurret()
 	m_pTurret = new CTurret(&GameServer()->m_World, GetCharacter()->GetPos(), GetCID());
 	return true;
 }
+
+bool CPlayer::PressTab()
+{
+	if (m_PlayerFlags & PLAYERFLAG_SCOREBOARD)
+		return true;
+	return false;
+}

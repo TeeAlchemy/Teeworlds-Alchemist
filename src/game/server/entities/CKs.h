@@ -21,12 +21,14 @@ public:
 	int m_Health;
 
 	int GetMaxHealth();
+	void HandleLock(CCharacter *pChr);
 
 private:
 	int m_CKID;
 	int m_Type;
 	int m_Subtype;
 	int m_SpawnTick;
+	int m_LockedPlayer;
 };
 
 #endif

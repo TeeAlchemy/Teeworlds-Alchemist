@@ -94,6 +94,9 @@ public:
 
 	bool m_InMining;
 	int m_MiningTick;
+
+	bool m_LockedCK;
+	vec2 m_LockPos;
 private:
 	// player controlling this character
 	class CPlayer *m_pPlayer;
