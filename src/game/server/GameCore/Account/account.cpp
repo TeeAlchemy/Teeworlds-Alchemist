@@ -2,6 +2,7 @@
 #include "account.h"
 #include <engine/server/database/connection_pool.h>
 #include <engine/server/database/sql_string_helpers.h>
+#include <engine/shared/config.h>
 #include <thread>
 
 void CAccount::OnInit()
@@ -286,9 +287,12 @@ void CAccount::HandleThread(void *user)
     AccountPool *pPool = (AccountPool *)user;
     while (true)
     {
-        thread_sleep(50);
         if (!pPool->m_pFaBao.size())
+        {
+            thread_sleep(g_Config.m_SvSqlWaitMs);
             continue;
+        }
+
         switch (pPool->m_pFaBao[0]->m_Type)
         {
         case TYPE::REG:

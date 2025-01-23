@@ -1799,8 +1799,8 @@ bool CGameContext::ConLogin(IConsole::IResult *pResult, void *pUserData)
 bool CGameContext::VotGiveItem(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
-	if (!pSelf->GetPlayer(pResult->GetInteger(0)) || !pSelf->GetPlayer(pResult->GetInteger(0))->m_Authed)
-		return false;
+	if (!pSelf->GetPlayer(pResult->GetInteger(0)) || !pSelf->GetPlayer(pResult->GetClientID()) || !pSelf->GetPlayer(pResult->GetClientID())->m_Authed)
+		return true;
 
 	pSelf->GetPlayer(pResult->GetInteger(0))->m_AccData.m_aItems[pResult->GetInteger(1)].m_Num += pResult->GetInteger(2);
 	pSelf->TW()->Account()->SaveAccountData(pResult->GetInteger(0), CGameContext::TABLE_ITEM, pSelf->GetPlayer(pResult->GetInteger(0))->m_AccData);
@@ -2067,6 +2067,19 @@ bool CGameContext::ConSkipWarmup(IConsole::IResult *pResult, void *pUserData)
 	return true;
 }
 
+bool CGameContext::ConStatusDB(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "StatusDB", "==== Status DB ====");
+	char aBuf[64];
+	for (int i = 0; i < pSelf->TW()->Account()->m_pPool->m_pFaBao.size(); i++)
+	{
+		str_format(aBuf, sizeof(aBuf), "(%d)Type: %d, ClientID: %d", i, pSelf->TW()->Account()->m_pPool->m_pFaBao[i]->m_Type, pSelf->TW()->Account()->m_pPool->m_pFaBao[i]->m_ClientID);
+		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "StatusDB", aBuf);
+	}
+	return true;
+}
+
 void CGameContext::OnConsoleInit()
 {
 	m_pServer = Kernel()->RequestInterface<IServer>();
@@ -2096,6 +2109,7 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("vote", "r", CFGFLAG_SERVER, ConVote, this, "Force a vote to yes/no");
 
 	Console()->Register("skip_warmup", "", CFGFLAG_SERVER, ConSkipWarmup, this, "Skip warmup");
+	Console()->Register("status_db", "", CFGFLAG_SERVER, ConStatusDB, this, "Get status of database");
 
 	Console()->Register("about", "", CFGFLAG_CHAT, ConAbout, this, "Show information about the mod");
 	Console()->Register("language", "?s", CFGFLAG_CHAT, ConLanguage, this, "[language code] - Select your language");

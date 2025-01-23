@@ -90,6 +90,7 @@ class CGameContext : public IGameServer
 	static void ConchainSpecialMotdupdate(IConsole::IResult *pResult, void *pUserData, IConsole::FCommandCallback pfnCallback, void *pCallbackUserData);
 	static void ChatConsolePrintCallback(const char *pLine, void *pUser);
 	static bool ConSkipWarmup(IConsole::IResult *pResult, void *pUserData);
+	static bool ConStatusDB(IConsole::IResult *pResult, void *pUser);
 	
 	static bool ConLanguage(IConsole::IResult *pResult, void *pUserData);
 	static bool ConAbout(IConsole::IResult *pResult, void *pUserData);

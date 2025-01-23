@@ -156,6 +156,7 @@ MACRO_CONFIG_STR(SvSqlDatabase, sv_sql_database, 256, "tdf", CFGFLAG_SERVER, "SQ
 MACRO_CONFIG_STR(SvSqlPrefix, sv_sql_prefix, 16, "tw", CFGFLAG_SERVER, "SQL Database table prefix")
 MACRO_CONFIG_INT(SvSqlPoolSize, sv_sql_pool_size, 1, 1, 20, CFGFLAG_SERVER, "SQL Pool Size")
 MACRO_CONFIG_INT(SvSqlTimeout, sv_sql_timeout, 1, 1, 20, CFGFLAG_SERVER, "SQL Timeout")
+MACRO_CONFIG_INT(SvSqlWaitMs, sv_sql_wait_ms, 10, 1, 100, CFGFLAG_SERVER, "SQL wait ms")
 
 //Zomb2
 MACRO_CONFIG_INT(SvZombWarmup, sv_zomb_warmup, 10, 0, 30, CFGFLAG_SERVER, "Number of seconds to do warmup before wave starts")
