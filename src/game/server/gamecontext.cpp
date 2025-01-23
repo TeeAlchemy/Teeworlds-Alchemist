@@ -2008,7 +2008,7 @@ bool CGameContext::VotSeparate(IConsole::IResult *pResult, void *pUserData)
 
 	if (!nlohmann::json::accept(pSelf->GetPlayer(CID)->GetExtra(Select)))
 	{
-		pSelf->TW()->Account()->SaveAccountData(CID, TABLE_ACCOUNT, pSelf->GetPlayer(CID)->m_AccData);
+		pSelf->TW()->Account()->SaveAccountData(CID, TABLE_ITEM, pSelf->GetPlayer(CID)->m_AccData);
 		pSelf->Server()->Kick(CID, "服务器出现错误！请联系开发者QQ:1562151175！感谢！");
 		return true;
 	}
@@ -2038,14 +2038,14 @@ bool CGameContext::VotSeparate(IConsole::IResult *pResult, void *pUserData)
 	}
 	else
 	{
-		pSelf->TW()->Account()->SaveAccountData(CID, TABLE_ACCOUNT, pSelf->GetPlayer(CID)->m_AccData);
+		pSelf->TW()->Account()->SaveAccountData(CID, TABLE_ITEM, pSelf->GetPlayer(CID)->m_AccData);
 		pSelf->Server()->Kick(CID, "服务器出现错误！请联系开发者QQ:1562151175！感谢！");
 		return true;
 	}
 
 	pSelf->CreateSoundGlobal(SOUND_CTF_RETURN, CID);
+	pSelf->TW()->Account()->SaveAccountData(CID, TABLE_ITEM, pSelf->GetPlayer(CID)->m_AccData);
 	pSelf->ClearVotes(CID);
-	pSelf->TW()->Account()->SaveAccountData(CID, TABLE_ACCOUNT, pSelf->GetPlayer(CID)->m_AccData);
 	return true;
 }
 

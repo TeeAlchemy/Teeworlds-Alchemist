@@ -71,7 +71,7 @@ void CProjectile::Tick()
 		return MarkForDestroy();
 
 
-	if ((Server()->Tick() - m_StartTick) % 10 == 0 || Server()->Tick() - m_StartTick < 3)
+	if ((Server()->Tick() - m_StartTick) % 25 == 0 || Server()->Tick() - m_StartTick < 3)
 	{
 		int Electron = GameServer()->ItemHelper()->GetCard(GameServer()->GetPlayer(m_Owner)->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_ELECTRON);
 		if (Electron)
@@ -79,7 +79,7 @@ void CProjectile::Tick()
 			if(m_Type == WEAPON_SHOTGUN)
 			{
 				float a = GetAngle(normalize(CurPos - PrevPos));
-				new CLightning(GameWorld(), CurPos, vec2(cosf(a), sinf(a)), 100, 25, m_Owner, clamp(m_Damage, 1, m_Damage/2));
+				new CLightning(GameWorld(), CurPos, vec2(cosf(a), sinf(a)), 100, 50, m_Owner, clamp(m_Damage, 1, m_Damage/2));
 			}
 			else
 			{
