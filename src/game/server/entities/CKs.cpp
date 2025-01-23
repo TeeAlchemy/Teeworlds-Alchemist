@@ -92,7 +92,7 @@ void CKs::Picking(int Time, CPlayer *Player)
 	}
 
 	GameServer()->Broadcast(CID, "{}- Picking: {} - {}- {}/{} left. Keep hit! -{}- Using: {} | Dmg : {} -", "\n\n\n\n", 
-							GameServer()->ItemHelper()->GetItemName(m_Type), "\n", m_Health, GetMaxHealth(), "\n", m_Type == ITEM_LOG ? GameServer()->ItemHelper()->GetItemName(Player->m_AccData.m_Holding[ITYPE_AXE]) : GameServer()->ItemHelper()->GetItemName(Player->m_AccData.m_Holding[ITYPE_PICKAXE]), GameServer()->ItemHelper()->GetDmg(Player->m_AccData.m_Holding[ITYPE_PICKAXE]));
+							GameServer()->ItemHelper()->GetItemName(m_Type), "\n", m_Health, GetMaxHealth(), "\n", m_Type == ITEM_LOG ? GameServer()->ItemHelper()->GetItemName(Player->m_AccData.m_Holding[ITYPE_AXE], false) : GameServer()->ItemHelper()->GetItemName(Player->m_AccData.m_Holding[ITYPE_PICKAXE], false), GameServer()->ItemHelper()->GetDmg(Player->m_AccData.m_Holding[ITYPE_PICKAXE]));
 	
 	Extra = GameServer()->ItemHelper()->GetCard(Player->GetExtraHolding(Extra), ITEM_CARD_QUICKLY_FIRE);
 	Player->GetCharacter()->m_MiningTick = 25 - Extra; // TODO: Config
