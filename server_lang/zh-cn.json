@@ -57,6 +57,10 @@
             "value": "--------------------- "
         },
         {
+            "key": "-> Skip Warmup*",
+            "value": "-> 跳过等待时间"
+        },
+        {
             "key": "===",
             "value": "===================="
         },
@@ -110,7 +114,7 @@
         },
         {
             "key": "An pickaxe made of enegry.",
-            "value": "用能量制成的镐子。"
+            "value": "用蕴能石制成的镐子。"
         },
         {
             "key": "An pickaxe made of gold.",
@@ -130,7 +134,7 @@
         },
         {
             "key": "An sword made of enegry.",
-            "value": "用能量制成的剑。"
+            "value": "用蕴能石制成的剑。"
         },
         {
             "key": "An sword made of gold.",
@@ -274,15 +278,15 @@
         },
         {
             "key": "Enegry",
-            "value": "能量"
+            "value": "蕴能石"
         },
         {
             "key": "Enegry Pickaxe",
-            "value": "能量镐"
+            "value": "蕴能镐"
         },
         {
             "key": "Enegry Sword",
-            "value": "能量剑"
+            "value": "蕴能剑"
         },
         {
             "key": "Fire! Fire! Fire!",
