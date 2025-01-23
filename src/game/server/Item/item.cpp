@@ -243,8 +243,11 @@ int CItemHelper::GetType(int ID)
     return m_aItems[ID]->m_Type;
 }
 
-const char *CItemHelper::GetItemName(int ID)
+const char *CItemHelper::GetItemName(int ID, bool IncludeZero)
 {
+    if (!IncludeZero && !ID)
+        return "Empty";
+
     if (!CheckItemVaild(ID))
         return "Hand";
     return m_aItems[ID]->m_aItemName;
@@ -272,7 +275,7 @@ int CItemHelper::GetProba(int ID)
     return m_aItems[ID]->m_Proba;
 }
 
-int CItemHelper::GetCapacity(int ID)
+int CItemHelper::GetMaxCapacity(int ID)
 {
     if (!CheckItemVaild(ID))
         return 0;
@@ -311,22 +314,53 @@ int CItemHelper::GetMaxPlace(int ID)
     return (((CItem_Card *)m_aItems[ID])->m_MaxPlace == 0) ? 999 : ((CItem_Card *)m_aItems[ID])->m_MaxPlace;
 }
 
-int CItemHelper::GetCard(std::string Extra, int CardID)
+int CItemHelper::GetImpl(std::string Extra, std::string What, int ID)
 {
     // int64 ProcessTime = time_get();
     if(!nlohmann::json::accept(Extra))
         return 0;
 
     nlohmann::json Json = nlohmann::json::parse(Extra);
-    if (Json.at("Extra").contains("Cards") && !Json.at("Extra").at("Cards").empty())
+    if (Json.at("Extra").contains(What) && !Json.at("Extra").at(What).empty())
 	{
-		for (const auto &j : Json["Extra"]["Cards"])
+		for (const auto &j : Json["Extra"][What])
         {
-    		if (j.contains("id") && CardID == int(j.at("id")))
+    		if (j.contains("id") && ID == int(j.at("id")))
                 return int(j.at("num"));
         }
     }
 
     // dbg_msg("CItemHelper", "in %.5fs", (float)(time_get()-ProcessTime)/time_freq());
     return 0;
+}
+
+int CItemHelper::GetCard(std::string Extra, int CardID)
+{
+    return GetImpl(Extra, "Cards", CardID);
+}
+
+int CItemHelper::GetPart(std::string Extra, int ItemID)
+{
+    return GetImpl(Extra, "Parts", ItemID);
+}
+
+int CItemHelper::GetCapacity(std::string Extra)
+{
+    // int64 ProcessTime = time_get();
+    if(!nlohmann::json::accept(Extra))
+        return 0;
+
+    int Capacity = 0;
+    nlohmann::json Json = nlohmann::json::parse(Extra);
+    if (Json.at("Extra").contains("Cards") && !Json.at("Extra").at("Cards").empty())
+	{
+		for (const auto &j : Json["Extra"]["Cards"])
+        {
+    		if (j.contains("id") && j.contains("num"))
+                Capacity += GetMaxCapacity(int(j.at("id"))) * int(j.at("num"));
+        }
+    }
+
+    // dbg_msg("CItemHelper", "in %.5fs", (float)(time_get()-ProcessTime)/time_freq());
+    return Capacity;
 }

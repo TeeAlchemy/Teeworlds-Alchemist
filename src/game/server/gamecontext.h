@@ -34,6 +34,7 @@ enum EVotePages
 	PAGE_CRAFT,
 	PAGE_CRAFT_SELECTED,
 	PAGE_EQUIPMENT,
+	PAGE_TURRET,
 };
 
 /*
@@ -162,7 +163,7 @@ public:
 
 	// helper functions
 	void CreateDamageInd(vec2 Pos, float AngleMod, int Amount, CClientMask Mask = CClientMask().set());
-	void CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, CClientMask Mask = CClientMask().set());
+	void CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, bool Fusion, CClientMask Mask = CClientMask().set());
 	void CreateHammerHit(vec2 Pos, CClientMask Mask = CClientMask().set());
 	void CreatePlayerSpawn(vec2 Pos, CClientMask Mask = CClientMask().set());
 	void CreateDeath(vec2 Pos, int Who, CClientMask Mask = CClientMask().set());
@@ -381,6 +382,11 @@ public:
 	void AddVote_ListCraft(int ItemType);
 	void AddVote_ListFormula(int ItemID);
 	void AddVote_Craft(int ItemID);
+	bool AddVote_ListExtraSeparate(int ItemID, std::string Type);
+	bool AddVote_ListExtraPlace(int ItemID, std::string Type);
+
+	// Return true if there are any card
+	bool UpdateItemCapacity(int ClientID, int ItemID);
 
 	// Helper functions
 	template <typename... Ts>
@@ -412,9 +418,10 @@ public:
 	static bool VotCheckItem(IConsole::IResult *pResult, void *pUserData);
 	static bool VotCraft(IConsole::IResult *pResult, void *pUserData);
 	static bool VotMake(IConsole::IResult *pResult, void *pUserData);
-	static bool VotPlaceCard(IConsole::IResult *pResult, void *pUserData);
+	static bool VotPlace(IConsole::IResult *pResult, void *pUserData);
 	static bool VotEquip(IConsole::IResult *pResult, void *pUserData);
-	static bool VotSeparateCard(IConsole::IResult *pResult, void *pUserData);
+	static bool VotSeparate(IConsole::IResult *pResult, void *pUserData);
+	static bool VotSetupTurret(IConsole::IResult *pResult, void *pUserData);
 
 private:
 	int m_VoteClientID;

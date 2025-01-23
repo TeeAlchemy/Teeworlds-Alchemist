@@ -6,7 +6,7 @@
                 "id": 24,
                 "name": "Beginner Turret",
                 "desc": "The beginning.",
-                "capacity": 25,
+                "capacity": 50,
                 "max": 1,
                 "formula": {
                     "Log": 70
@@ -16,7 +16,7 @@
                 "id": 25,
                 "name": "Intermediate Turret",
                 "desc": "The intermediate.",
-                "capacity": 50,
+                "capacity": 100,
                 "max": 1,
                 "formula": {
                     "Beginner Turret": 1,
@@ -29,7 +29,7 @@
                 "id": 26,
                 "name": "Advanced Turret",
                 "desc": "The End.",
-                "capacity": 100,
+                "capacity": 200,
                 "max": 1,
                 "formula": {
                     "Intermediate Turret": 1,

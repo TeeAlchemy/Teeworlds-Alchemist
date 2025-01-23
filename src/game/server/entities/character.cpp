@@ -339,11 +339,7 @@ void CCharacter::FireWeapon()
 
 			int Explosion = GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_EXPLOSION);
 			for (int i = 0; i < Explosion; i++)
-				GameServer()->CreateExplosion(vec2(m_Pos.x + random_int(-200, 200), m_Pos.y + random_int(-200, 200)), GetPlayer()->GetCID(), WEAPON_HAMMER, false);
-
-			int Fusion = GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_FUSION);
-			if (Fusion)
-				new CGrowingExplosion(GameWorld(), GetPos(), vec2(0, 0), GetPlayer()->GetCID(), 32.f * Fusion, GROWINGEXPLOSIONEFFECT_BOOM);
+				GameServer()->CreateExplosion(vec2(m_Pos.x + random_int(-200, 200), m_Pos.y + random_int(-200, 200)), GetPlayer()->GetCID(), WEAPON_HAMMER, false, false);
 
 			Hits++;
 		}
@@ -436,7 +432,7 @@ void CCharacter::FireWeapon()
 
 			new CElectro(GameWorld(), Start, To, vec2(cosf(a * 1.2f), sinf(a * 1.2f)) * 40, A);
 		}
-		new CLaser(GameWorld(), m_Pos, Direction, GameServer()->Tuning()->m_LaserReach, m_pPlayer->GetCID(), ExtraDMG, MoreForce);
+		new CLaser(GameWorld(), m_Pos, Direction, GameServer()->Tuning()->m_LaserReach, m_pPlayer->GetCID(), ExtraDMG, MoreForce, GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_FUSION));
 		GameServer()->CreateSound(m_Pos, SOUND_RIFLE_FIRE);
 	}
 	break;
@@ -460,9 +456,9 @@ void CCharacter::FireWeapon()
 	if (m_aWeapons[m_ActiveWeapon].m_Ammo > 0) // -1 == unlimited
 		m_aWeapons[m_ActiveWeapon].m_Ammo--;
 
-	int LessReloadTimer = 50 * GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_QUICKLY_FIRE);
+	int LessReloadTimer = 10 * GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_QUICKLY_FIRE);
 	if (!m_ReloadTimer)
-		m_ReloadTimer = g_pData->m_Weapons.m_aId[m_ActiveWeapon].m_Firedelay * Server()->TickSpeed() / 1000 - LessReloadTimer;
+		m_ReloadTimer = max(g_pData->m_Weapons.m_aId[m_ActiveWeapon].m_Firedelay * Server()->TickSpeed() / 1000 - LessReloadTimer, 0);
 }
 
 void CCharacter::HandleWeapons()

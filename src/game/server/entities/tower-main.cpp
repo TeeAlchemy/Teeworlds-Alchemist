@@ -82,7 +82,7 @@ void CTowerMain::Snap(int SnappingClient)
 
     for (int i = 0; i < aSize; i++)
     {
-        CNetObj_Projectile *pEff = static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, m_aIDs[i], sizeof(CNetObj_Projectile)));
+        CNetObj_Projectile *pEff = Server()->SnapNewItem<CNetObj_Projectile>(m_aIDs[i]);
         if (!pEff)
             continue;
 
@@ -100,7 +100,7 @@ void CTowerMain::Snap(int SnappingClient)
         vec2 PartPosStart = m_Pos + vec2(s_TowerSize * cos(AngleStep * i), s_TowerSize * sin(AngleStep * i));
         vec2 PartPosEnd = m_Pos + vec2(s_TowerSize * cos(AngleStep * (i + 1)), s_TowerSize * sin(AngleStep * (i + 1)));
 
-        CNetObj_Laser *pObj = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(NETOBJTYPE_LASER, m_alIDs[i], sizeof(CNetObj_Laser)));
+        CNetObj_Laser *pObj = Server()->SnapNewItem<CNetObj_Laser>(m_alIDs[i]);
         if (!pObj)
             return;
 

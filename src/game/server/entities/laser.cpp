@@ -4,7 +4,7 @@
 #include <game/server/gamecontext.h>
 #include "laser.h"
 
-CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEnergy, int Owner, int Damage, float Force)
+CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEnergy, int Owner, int Damage, float Force, bool Fusion)
 : CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER, Pos)
 {
 	m_Pos = Pos;
@@ -15,6 +15,7 @@ CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEner
 	m_Dir = Direction;
 	m_Bounces = 0;
 	m_EvalTick = 0;
+	m_Fusion = Fusion;
 	GameWorld()->InsertEntity(this);
 	DoBounce();
 }
@@ -71,7 +72,7 @@ void CLaser::DoBounce()
 			GameServer()->CreateSound(m_Pos, SOUND_RIFLE_BOUNCE);
 
 			if (GameServer()->ItemHelper()->GetCard(GameServer()->GetPlayer(m_Owner)->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_EXPLOSION))
-				GameServer()->CreateExplosion(To, m_Owner, WEAPON_RIFLE, false);
+				GameServer()->CreateExplosion(To, m_Owner, WEAPON_RIFLE, false, m_Fusion);
 		}
 	}
 	else
@@ -106,7 +107,7 @@ void CLaser::Snap(int SnappingClient)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	CNetObj_Laser *pObj = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(NETOBJTYPE_LASER, GetID(), sizeof(CNetObj_Laser)));
+	CNetObj_Laser *pObj = Server()->SnapNewItem<CNetObj_Laser>(GetID());
 	if(!pObj)
 		return;
 

@@ -83,7 +83,7 @@ void CKs::Snap(int SnappingClient)
 	if (NetworkClipped(SnappingClient))
 		return;
 
-	CNetObj_Pickup *pP = static_cast<CNetObj_Pickup *>(Server()->SnapNewItem(NETOBJTYPE_PICKUP, GetID(), sizeof(CNetObj_Pickup)));
+	CNetObj_Pickup *pP = Server()->SnapNewItem<CNetObj_Pickup>(GetID());
 	if (!pP)
 		return;
 

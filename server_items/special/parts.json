@@ -1,0 +1,45 @@
+{
+    "item": {
+        "type": 5,
+        "multiple": [
+            {
+                "id": 35,
+                "name": "",
+                "desc": "",
+                "capacity": 0,
+                "placeable": [3],
+                "max": 0,
+                "max_place": 0,
+                "formula": {
+                    "Log": 0,
+                    "Coal": 0,
+                    "Copper": 0,
+                    "Iron": 0,
+                    "Golden": 0,
+                    "Diamond": 0,
+                    "Enegry": 0,
+                    "Zombie's Heart": 0
+                }
+            },
+            {
+                "id": 36,
+                "name": "",
+                "desc": "",
+                "capacity": 40,
+                "placeable": [3],
+                "max": 3,
+                "max_place": 2,
+                "formula": {
+                    "Log": 100,
+                    "Coal": 340,
+                    "Copper": 500,
+                    "Iron": 200,
+                    "Golden": 100,
+                    "Diamond": 10,
+                    "Enegry": 5,
+                    "Zombie's Heart": 500
+                }
+            }
+        ]
+    }
+}

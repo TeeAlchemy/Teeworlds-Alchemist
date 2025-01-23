@@ -166,5 +166,6 @@ MACRO_CONFIG_INT(SvMaxZombieSpawn, sv_max_zombie_spawn, 1, 100, 20, CFGFLAG_SERV
 // TeeDefense
 MACRO_CONFIG_INT(SvMaxTowerHealth, sv_max_tower_health, 100, 1, 1000, CFGFLAG_SERVER, "Tower max health")
 MACRO_CONFIG_INT(SvPlayerMaxHealth, sv_player_max_health, 100, 1, 1000, CFGFLAG_SERVER, "Player max health")
+MACRO_CONFIG_INT(SvTurretRadius, sv_turret_radius, 12, 1, 1000, CFGFLAG_SERVER, "Turret's Radius = x + x * Level")
 
 #endif

@@ -8,6 +8,8 @@
 #include "GameCore/Account/account.h"
 #include "bot.h"
 
+#include "entities/turret.h"
+
 MACRO_ALLOC_POOL_ID_IMPL(CPlayer, MAX_CLIENTS *ENGINE_MAX_WORLDS + MAX_CLIENTS)
 
 IServer *CPlayer::Server() const { return m_pGameServer->Server(); }
@@ -24,7 +26,6 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, int Team)
 	m_SpectatorID = SPEC_FREEVIEW;
 	m_LastActionTick = Server()->Tick();
 	m_TeamChangeTick = Server()->Tick();
-	SetLanguage("zh-cn");
 
 	m_Authed = IServer::AUTHED_NO;
 
@@ -38,6 +39,8 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, int Team)
 	m_InitAcc = false;
 
 	ResetAccData();
+
+	m_pTurret = nullptr;
 }
 
 CPlayer::~CPlayer()
@@ -381,7 +384,7 @@ void CPlayer::ResetAccData()
 	{
 		m_AccData.m_aItems[i].m_Num = 0;
 		m_AccData.m_aItems[i].m_Capacity = 0;
-		nlohmann::json Json = R"({"Extra":{"Cards":[]}})"_json;
+		nlohmann::json Json = R"({"Extra":{"Cards":[], "Parts":[]}})"_json;
 		m_AccData.m_aItems[i].m_aExtra = Json.dump();
 	}
 }
@@ -419,4 +422,12 @@ bool CPlayer::GetZomb(int Type)
 	if (m_Zomb == Type)
 		return true;
 	return false;
+}
+
+bool CPlayer::CreateTurret()
+{
+	if (!GetCharacter())
+		return false;
+	m_pTurret = new CTurret(&GameServer()->m_World, GetCharacter()->GetPos(), GetCID());
+	return true;
 }

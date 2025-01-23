@@ -559,6 +559,8 @@ set_glob(GAME_SERVER GLOB_RECURSE src/game/server
   entities/projectile.h
   entities/tower-main.cpp
   entities/tower-main.h
+  entities/turret.cpp
+  entities/turret.h
   GameCore/Account/account.cpp
   GameCore/Account/account.h
   GameCore/TWorldComponent.h

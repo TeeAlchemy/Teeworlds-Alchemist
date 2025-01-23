@@ -101,15 +101,16 @@ void CProjectile::Tick()
 		if(m_LifeSpan >= 0 || m_Weapon == WEAPON_GRENADE)
 			GameServer()->CreateSound(CurPos, m_SoundImpact);
 
+		int Fusion = GameServer()->ItemHelper()->GetCard(GameServer()->GetPlayer(m_Owner)->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_FUSION);
+		if (Fusion && m_Type != WEAPON_SHOTGUN)
+			new CGrowingExplosion(GameWorld(), CurPos, vec2(0, 0), m_Owner, 24.f * Fusion, GROWINGEXPLOSIONEFFECT_BOOM, Fusion);
+
 		if(m_Explosive || GameServer()->ItemHelper()->GetCard(OwnerChar->GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_EXPLOSION))
-				GameServer()->CreateExplosion(CurPos, m_Owner, m_Weapon, false);
+				GameServer()->CreateExplosion(CurPos, m_Owner, m_Weapon, false, Fusion);
 
 		else if(TargetChr)
 			TargetChr->TakeDamage(m_Direction * max(0.001f, m_Force), m_Damage, m_Owner, m_Weapon);
 
-		int Fusion = GameServer()->ItemHelper()->GetCard(GameServer()->GetPlayer(m_Owner)->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_FUSION);
-		if (Fusion)
-			new CGrowingExplosion(GameWorld(), CurPos, vec2(0, 0), m_Owner, 32.f * Fusion, GROWINGEXPLOSIONEFFECT_BOOM);
 
 		GameServer()->m_World.DestroyEntity(this);
 	}
@@ -137,7 +138,7 @@ void CProjectile::Snap(int SnappingClient)
 	if(NetworkClipped(SnappingClient, GetPos(Ct)))
 		return;
 
-	CNetObj_Projectile *pProj = static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, GetID(), sizeof(CNetObj_Projectile)));
+	CNetObj_Projectile *pProj = Server()->SnapNewItem<CNetObj_Projectile>(GetID());
 	if(pProj)
 		FillInfo(pProj);
 }

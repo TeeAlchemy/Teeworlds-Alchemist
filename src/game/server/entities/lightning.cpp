@@ -106,7 +106,7 @@ void CLightning::Snap(int SnappingClient)
 	if (NetworkClipped(SnappingClient))
 		return;
 
-	CNetObj_DDNetLaser *pObj = static_cast<CNetObj_DDNetLaser *>(GameServer()->Server()->SnapNewItem(NETOBJTYPE_DDNETLASER, GetID(), sizeof(CNetObj_DDNetLaser)));
+	CNetObj_DDNetLaser *pObj = Server()->SnapNewItem<CNetObj_DDNetLaser>(GetID());
 	if (!pObj)
 		return;
 

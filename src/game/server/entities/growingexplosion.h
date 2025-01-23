@@ -22,7 +22,7 @@ enum
 class CGrowingExplosion : public CEntity
 {
 public:
-	CGrowingExplosion(CGameWorld *pGameWorld, vec2 Pos, vec2 Dir, int Owner, int Radius, int ExplosionEffect, bool NoClip = false);
+	CGrowingExplosion(CGameWorld *pGameWorld, vec2 Pos, vec2 Dir, int Owner, int Radius, int ExplosionEffect, bool Fusion, bool NoClip = false);
 	virtual ~CGrowingExplosion();
 	
 	virtual void Reset();
@@ -46,6 +46,7 @@ private:
 	int m_ExplosionEffect;
 	bool m_Hit[MAX_CLIENTS];
 
+	bool m_Fusion;
 	bool m_NoClip;
 };
 

@@ -9,16 +9,24 @@
             "value": " "
         },
         {
-            "key": "# Cards #",
-            "value": "# 卡牌 #"
-        },
-        {
             "key": "# Global-Notice: {}",
             "value": "# 全局通知: {}"
         },
         {
             "key": "# {} {}/{}",
             "value": "# {} {}/{} "
+        },
+        {
+            "key": "## Placement ##",
+            "value": "## 放置 ##"
+        },
+        {
+            "key": "##### Cards #####",
+            "value": "##### 卡牌 #####"
+        },
+        {
+            "key": "##### Parts #####",
+            "value": "##### 组件 #####"
         },
         {
             "key": "'{}' called for vote to kick you",
@@ -39,14 +47,6 @@
         {
             "key": "- Craft!",
             "value": "- 合成!"
-        },
-        {
-            "key": "- Current -",
-            "value": "- 已放置的 -"
-        },
-        {
-            "key": "- Placement -",
-            "value": "- 可放置的 -"
         },
         {
             "key": "---",
@@ -165,6 +165,10 @@
             "value": "爆！"
         },
         {
+            "key": "BUG! Contact Admin.",
+            "value": "有BUG！请联系管理员."
+        },
+        {
             "key": "Be your own.",
             "value": "做你自己。"
         },
@@ -239,6 +243,10 @@
         {
             "key": "Credits: {}",
             "value": "开发者: {}"
+        },
+        {
+            "key": "Current: {}",
+            "value": "当前: {}"
         },
         {
             "key": "DIAMOND!",
@@ -645,6 +653,10 @@
             "value": "你必须等待 {} 秒才能发起另一个投票"
         },
         {
+            "key": "You need to equip a turret!",
+            "value": "你需要装备一个炮塔!"
+        },
+        {
             "key": "You picked up a {}",
             "value": "你得到了一个{}"
         },
@@ -713,6 +725,10 @@
             "value": "{}血量: {}/{}"
         },
         {
+            "key": "⎋ Set up Turret",
+            "value": "⎋ 放置炮塔"
+        },
+        {
             "key": "⏎ Back",
             "value": "⏎ 返回上一页"
         },
@@ -723,6 +739,10 @@
         {
             "key": "▹ {} ({})",
             "value": "▹ {} ({}) "
+        },
+        {
+            "key": "▾ Equipment",
+            "value": "▾ 装备"
         },
         {
             "key": "▾ {}",
@@ -757,6 +777,10 @@
             "value": "☞ 物品栏 ✪"
         },
         {
+            "key": "☞ Turret ☯",
+            "value": "☞ 炮塔 ☯"
+        },
+        {
             "key": "☪ Craft",
             "value": "☪ 合成"
         },
@@ -775,6 +799,10 @@
         {
             "key": "☪ Player Menu",
             "value": "☪ 玩家菜单"
+        },
+        {
+            "key": "☪ Turret",
+            "value": "☪ 炮塔"
         },
         {
             "key": "➳ {} - {}",

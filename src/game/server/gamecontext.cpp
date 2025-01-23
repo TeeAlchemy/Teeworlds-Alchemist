@@ -76,6 +76,8 @@ CGameContext::~CGameContext()
 		Server()->SnapFreeID(m_LaserDots[i].m_SnapID);
 	for (int i = 0; i < m_HammerDots.size(); i++)
 		Server()->SnapFreeID(m_HammerDots[i].m_SnapID);
+	for (int i = 0; i < m_LoveDots.size(); i++)
+		Server()->SnapFreeID(m_LoveDots[i].m_SnapID);
 
 	for (int i = 0; i < MAX_CLIENTS; i++)
 		delete m_apPlayers[i];
@@ -132,7 +134,7 @@ void CGameContext::CreateHammerHit(vec2 Pos, CClientMask Mask)
 	}
 }
 
-void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, CClientMask Mask)
+void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, bool Fusion, CClientMask Mask)
 {
 	// create the event
 	CNetEvent_Explosion *pEvent = m_Events.Create<CNetEvent_Explosion>(Mask);
@@ -141,8 +143,6 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 		pEvent->m_X = (int)Pos.x;
 		pEvent->m_Y = (int)Pos.y;
 	}
-
-	CreateExtraEffect(Pos, 0, Mask);
 
 	if (!NoDamage)
 	{
@@ -166,9 +166,15 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 
 		if (GetPlayer(Owner))
 		{
-			int Electron = ItemHelper()->GetCard(GetPlayer(Owner)->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_ELECTRON);
+			float Electron = float(ItemHelper()->GetCard(GetPlayer(Owner)->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_ELECTRON));
+
+
 			if (Electron)
-				new CGrowingExplosion(&m_World, Pos, vec2(0, 0), Owner, 5.f * Electron, GROWINGEXPLOSIONEFFECT_ELECTRIC);
+			{
+				if (Fusion)
+					Electron = 0.5f;
+				new CGrowingExplosion(&m_World, Pos, vec2(0, 0), Owner, 5.f * Electron, GROWINGEXPLOSIONEFFECT_ELECTRIC, Fusion);
+			}
 		}
 	}
 }
@@ -1878,7 +1884,7 @@ bool CGameContext::VotMake(IConsole::IResult *pResult, void *pUserData)
 	return true;
 }
 
-bool CGameContext::VotPlaceCard(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::VotPlace(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int ClientID = pResult->GetClientID();
@@ -1894,11 +1900,12 @@ bool CGameContext::VotPlaceCard(IConsole::IResult *pResult, void *pUserData)
 		return true;
 	}*/
 
-	int Select = pSelf->m_aPlayerVotes[pResult->GetClientID()].m_Select[SPlayerVote::EVoteSelect::ITEM];
-	int Card = pResult->GetInteger(0);
+	int Select = pResult->GetInteger(0);
+	std::string Type = pResult->GetString(1);
+	int Card = pResult->GetInteger(2);
 	pSelf->SetVoteExtraText(ClientID, "You placed {} on {}!", pSelf->ItemHelper()->GetItemName(Card), pSelf->ItemHelper()->GetItemName(Select));
 
-	int Capacity = pSelf->ItemHelper()->GetCapacity(Card);
+	int Capacity = pSelf->ItemHelper()->GetMaxCapacity(Card);
 	int ExistCard = -1;
 
 	if (!nlohmann::json::accept(pPlayer->m_AccData.m_aItems[Select].m_aExtra))
@@ -1909,11 +1916,11 @@ bool CGameContext::VotPlaceCard(IConsole::IResult *pResult, void *pUserData)
 	}
 
 	nlohmann::json Json = nlohmann::json::parse(pPlayer->m_AccData.m_aItems[Select].m_aExtra);
-	if (!Json["Extra"].contains("Cards") || Json["Extra"]["Cards"].empty())
+	if (!Json["Extra"].contains(Type) || Json["Extra"][Type].empty())
 	{
-		if (Capacity <= pSelf->ItemHelper()->GetCapacity(Select))
+		if (Capacity <= pSelf->ItemHelper()->GetMaxCapacity(Select))
 		{
-			Json["Extra"]["Cards"].push_back({{"id", Card}, {"num", 1}});
+			Json["Extra"][Type].push_back({{"id", Card}, {"num", 1}});
 			pPlayer->m_AccData.m_aItems[Select].m_aExtra = Json.dump();
 			pPlayer->m_AccData.m_aItems[Select].m_Capacity = Capacity;
 			// pSelf->m_aPlayerVotes[ClientID].m_Confirm = false;
@@ -1931,29 +1938,29 @@ bool CGameContext::VotPlaceCard(IConsole::IResult *pResult, void *pUserData)
 	else
 	{
 		int CurrentIndex = -1;
-		for (const auto &j : Json["Extra"]["Cards"])
+		for (const auto &j : Json["Extra"][Type])
 		{
 			CurrentIndex++;
-			Capacity += pSelf->ItemHelper()->GetCapacity(int(j["id"])) * int(j["num"]);
+			Capacity += pSelf->ItemHelper()->GetMaxCapacity(int(j["id"])) * int(j["num"]);
 			if (j["id"] == Card)
 				ExistCard = CurrentIndex;
 		}
 	}
 
-	if (Capacity <= pSelf->ItemHelper()->GetCapacity(Select))
+	if (Capacity <= pSelf->ItemHelper()->GetMaxCapacity(Select))
 	{
 		if (ExistCard != -1)
 		{
-			if (Json["Extra"]["Cards"][ExistCard]["num"] >= pSelf->ItemHelper()->GetMaxPlace(ExistCard))
+			if (Json["Extra"][Type][ExistCard]["num"] >= pSelf->ItemHelper()->GetMaxPlace(ExistCard))
 			{
 				pSelf->SetVoteExtraText(ClientID, "You have reached the limit");
 				pSelf->ClearVotes(pResult->GetClientID());
 				return true;
 			}
-			Json["Extra"]["Cards"][ExistCard]["num"] = int(Json["Extra"]["Cards"][ExistCard]["num"]) + 1;
+			Json["Extra"][Type][ExistCard]["num"] = int(Json["Extra"][Type][ExistCard]["num"]) + 1;
 		}
 		else
-			Json["Extra"]["Cards"].push_back({{"id", Card}, {"num", 1}});
+			Json["Extra"][Type].push_back({{"id", Card}, {"num", 1}});
 		pPlayer->m_AccData.m_aItems[Select].m_aExtra = Json.dump();
 		pPlayer->m_AccData.m_aItems[Select].m_Capacity = Capacity;
 		pPlayer->m_AccData.m_aItems[Card].m_Num--;
@@ -1989,35 +1996,39 @@ bool CGameContext::VotEquip(IConsole::IResult *pResult, void *pUserData)
 	return true;
 }
 
-bool CGameContext::VotSeparateCard(IConsole::IResult *pResult, void *pUserData)
+bool CGameContext::VotSeparate(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	int CID = pResult->GetClientID();
-	int Card = pResult->GetInteger(0);
-	int Select = pSelf->m_aPlayerVotes[CID].m_Select[SPlayerVote::EVoteSelect::ITEM];
+	int Select = pResult->GetInteger(0);
+	std::string Type = pResult->GetString(1);
+	int Item = pResult->GetInteger(2);
 
 	if (!nlohmann::json::accept(pSelf->GetPlayer(CID)->GetExtra(Select)))
 	{
-		pSelf->SetVoteExtraText(CID, "BUG! Contact Admin.");
-		pSelf->ClearVotes(CID);
+		pSelf->TW()->Account()->SaveAccountData(CID, TABLE_ACCOUNT, pSelf->GetPlayer(CID)->m_AccData);
+		pSelf->Server()->Kick(CID, "服务器出现错误！请联系开发者QQ:1562151175！感谢！");
 		return true;
 	}
 
 	nlohmann::json Json = nlohmann::json::parse(pSelf->GetPlayer(CID)->GetExtra(Select));
-	if (Json["Extra"].contains("Cards") && !Json["Extra"]["Cards"].empty())
+
+	if (Json["Extra"].contains(Type) && !Json["Extra"][Type].empty())
 	{
 		int ToBeRemove = 0;
-		for (const auto &j : Json["Extra"]["Cards"])
+		for (const auto &j : Json["Extra"][Type])
 		{
-			if (Card == int(j["id"]))
+			if (Item == int(j["id"]))
 			{
 				pSelf->SetVoteExtraText(CID, "You separate {} from {}!", pSelf->ItemHelper()->GetItemName(int(j["id"])), pSelf->ItemHelper()->GetItemName(Select));
+
 				if (int(j["num"]) > 1)
-					Json["Extra"]["Cards"][ToBeRemove]["num"] = int(Json["Extra"]["Cards"][ToBeRemove]["num"]) - 1;
+					Json["Extra"][Type][ToBeRemove]["num"] = int(Json["Extra"][Type][ToBeRemove]["num"]) - 1;
 				else
-					Json["Extra"]["Cards"].erase(ToBeRemove);
+					Json["Extra"][Type].erase(ToBeRemove);
+
 				pSelf->GetPlayer(CID)->SetExtra(Select, Json.dump());
-				pSelf->GetPlayer(CID)->m_AccData.m_aItems[Card].m_Num++;
+				pSelf->GetPlayer(CID)->m_AccData.m_aItems[Item].m_Num++;
 				break;
 			}
 			ToBeRemove++;
@@ -2025,6 +2036,7 @@ bool CGameContext::VotSeparateCard(IConsole::IResult *pResult, void *pUserData)
 	}
 	else
 	{
+		pSelf->TW()->Account()->SaveAccountData(CID, TABLE_ACCOUNT, pSelf->GetPlayer(CID)->m_AccData);
 		pSelf->Server()->Kick(CID, "服务器出现错误！请联系开发者QQ:1562151175！感谢！");
 		return true;
 	}
@@ -2032,6 +2044,15 @@ bool CGameContext::VotSeparateCard(IConsole::IResult *pResult, void *pUserData)
 	pSelf->CreateSoundGlobal(SOUND_CTF_RETURN, CID);
 	pSelf->ClearVotes(CID);
 	pSelf->TW()->Account()->SaveAccountData(CID, TABLE_ACCOUNT, pSelf->GetPlayer(CID)->m_AccData);
+	return true;
+}
+
+bool CGameContext::VotSetupTurret(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	if (pSelf->GetPlayer(pResult->GetClientID()))
+		pSelf->GetPlayer(pResult->GetClientID())->CreateTurret();
+	pSelf->ClearVotes(pResult->GetClientID());
 	return true;
 }
 
@@ -2077,9 +2098,10 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("craft", "i", CFGFLAG_VOTE, VotCraft, this, "[item] - Craft something");
 	Console()->Register("make", "", CFGFLAG_VOTE, VotMake, this, "make - Confirm to make something");
 	Console()->Register("checkitem", "i", CFGFLAG_VOTE, VotCheckItem, this, "[item] - Confirm to make something");
-	Console()->Register("placecard", "i", CFGFLAG_VOTE, VotPlaceCard, this, "[card] - Place card");
+	Console()->Register("place", "isi", CFGFLAG_VOTE, VotPlace, this, "[item][type][card] - Place card");
 	Console()->Register("equip", "i", CFGFLAG_VOTE, VotEquip, this, "[item] - Equip");
-	Console()->Register("separatecard", "i", CFGFLAG_VOTE, VotSeparateCard, this, "[card] - Separate Card");
+	Console()->Register("separate", "isi", CFGFLAG_VOTE, VotSeparate, this, "[item][type][card] - Separate Card");
+	Console()->Register("setupturret", "", CFGFLAG_VOTE, VotSetupTurret, this, "do it - Set up a turret");
 
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
 
@@ -2175,7 +2197,7 @@ void CGameContext::OnSnap(int ClientID)
 				continue;
 		}
 
-		CNetObj_Laser *pObj = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(NETOBJTYPE_LASER, m_LaserDots[i].m_SnapID, sizeof(CNetObj_Laser)));
+		CNetObj_Laser *pObj = Server()->SnapNewItem<CNetObj_Laser>(m_LaserDots[i].m_SnapID);
 		if (pObj)
 		{
 			pObj->m_X = (int)m_LaserDots[i].m_Pos1.x;
@@ -2198,7 +2220,7 @@ void CGameContext::OnSnap(int ClientID)
 				continue;
 		}
 
-		CNetObj_Projectile *pObj = static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, m_HammerDots[i].m_SnapID, sizeof(CNetObj_Projectile)));
+		CNetObj_Projectile *pObj = Server()->SnapNewItem<CNetObj_Projectile>(m_HammerDots[i].m_SnapID);
 		if (pObj)
 		{
 			pObj->m_X = (int)m_HammerDots[i].m_Pos.x;
@@ -2222,7 +2244,7 @@ void CGameContext::OnSnap(int ClientID)
 				continue;
 		}
 
-		CNetObj_Pickup *pObj = static_cast<CNetObj_Pickup *>(Server()->SnapNewItem(NETOBJTYPE_PICKUP, m_LoveDots[i].m_SnapID, sizeof(CNetObj_Pickup)));
+		CNetObj_Pickup *pObj = Server()->SnapNewItem<CNetObj_Pickup>(m_LoveDots[i].m_SnapID);
 		if (pObj)
 		{
 			pObj->m_X = (int)m_LoveDots[i].m_Pos.x;
@@ -2446,6 +2468,85 @@ void CGameContext::AddVote_Craft(int ItemID)
 	AddVote_VL(aCmd, "➳ {} - {}", ItemHelper()->GetItemName(ItemID), Items(ItemID)->m_aItemDesc);
 }
 
+bool CGameContext::AddVote_ListExtraSeparate(int ItemID, std::string Type)
+{
+	CPlayer *pP = GetPlayer(m_VoteClientID);
+	if (!pP)
+		return false;
+
+	CPlayer::SAccData Data = pP->m_AccData;
+
+	if (!nlohmann::json::accept(pP->GetExtra(ItemID)))
+	{
+		TW()->Account()->SaveAccountData(m_VoteClientID, TABLE_ACCOUNT, pP->m_AccData);
+		Server()->Kick(m_VoteClientID, "服务器出现错误！请联系开发者QQ:1562151175！感谢！");
+		return false;
+	}
+
+	nlohmann::json Json = nlohmann::json::parse(pP->GetExtra(ItemID));
+	bool IsEmpty = true;
+	char aCmd[64];
+
+	for (const auto &j : Json["Extra"][Type])
+	{
+		str_format(aCmd, sizeof(aCmd), "ccv_separate %d %s %d", ItemID, Type.c_str(), int(j["id"]));
+		AddVote_VL(aCmd, "★Separate one {}x{}({}*{})", ItemHelper()->GetItemName(int(j["id"])), int(j["num"]), ItemHelper()->GetMaxCapacity(int(j["id"])), int(j["num"]));
+		IsEmpty = false;
+	}
+
+	return !IsEmpty;
+}
+
+bool CGameContext::AddVote_ListExtraPlace(int ItemID, std::string Type)
+{
+	CPlayer *pP = GetPlayer(m_VoteClientID);
+	if (!pP)
+		return false;
+
+	CPlayer::SAccData Data = pP->m_AccData;
+
+	if (!nlohmann::json::accept(pP->GetExtra(ItemID)))
+	{
+		TW()->Account()->SaveAccountData(m_VoteClientID, TABLE_ACCOUNT, pP->m_AccData);
+		Server()->Kick(m_VoteClientID, "服务器出现错误！请联系开发者QQ:1562151175！感谢！");
+		return false;
+	}
+
+	nlohmann::json Json = nlohmann::json::parse(pP->GetExtra(ItemID));
+	char aCmd[64];
+	bool IsEmpty = true;
+
+	for (int i = 0; i < NUM_ITEM; i++)
+	{
+		if (Data.m_aItems[i].m_Num <= 0)
+			continue;
+
+		if (!Type.compare("Cards") && ItemHelper()->GetType(i) == ITYPE_CARD)
+		{
+			CItem_Card *pCard = (CItem_Card *)Items(i);
+			if (!(pCard->m_Placeable[ItemHelper()->GetType(ItemID)]))
+				continue;
+
+			IsEmpty = false;
+
+			str_format(aCmd, sizeof(aCmd), "ccv_place %d %s %d", ItemID, Type.c_str(), i);
+			AddVote_VL(aCmd, "☝ Place {}(x{},{})", ItemHelper()->GetItemName(i), pP->GetItemNum(i), ItemHelper()->GetMaxCapacity(i));
+			continue;
+		}
+
+		if (!Type.compare("Parts") && ItemHelper()->GetType(i) == ITYPE_MATERIAL)
+		{
+			IsEmpty = false;
+
+			str_format(aCmd, sizeof(aCmd), "ccv_place %d %s %d", ItemID, Type.c_str(), i);
+			AddVote_VL(aCmd, "☝ Place {}(x{},{})", ItemHelper()->GetItemName(i), pP->GetItemNum(i), ItemHelper()->GetMaxCapacity(i));
+			continue;
+		}
+	}
+
+	return !IsEmpty;
+}
+
 void CGameContext::AddVote_ListFormula(int Item)
 {
 	CPlayer *pP = GetPlayer(m_VoteClientID);
@@ -2509,6 +2610,7 @@ void CGameContext::InitVotes(int ClientID)
 		AddVote_Goto(PAGE_INVENTORY, "☞ Inventory ✪");
 		AddVote_Goto(PAGE_CRAFT, "☞ Craft ☺");
 		AddVote_Goto(PAGE_EQUIPMENT, "☞ Equipment ☭");
+		AddVote_Goto(PAGE_TURRET, "☞ Turret ☯");
 	}
 	break;
 
@@ -2541,21 +2643,8 @@ void CGameContext::InitVotes(int ClientID)
 	{
 		int SelectItem = PlayerVote.m_Select[SPlayerVote::ITEM];
 		char aCmd[64];
-		bool HaveCards = false;
-		int Capacity = 0;
-
-		nlohmann::json Json;
-		if (nlohmann::json::accept(pP->m_AccData.m_aItems[SelectItem].m_aExtra))
-		{
-			Json = nlohmann::json::parse(pP->m_AccData.m_aItems[SelectItem].m_aExtra);
-			if (Json["Extra"].contains("Cards") && !Json["Extra"]["Cards"].empty())
-			{
-				HaveCards = true;
-				for (const auto &j : Json["Extra"]["Cards"])
-					Capacity += ItemHelper()->GetCapacity(int(j["id"])) * int(j["num"]);
-				pP->m_AccData.m_aItems[SelectItem].m_Capacity = Capacity;
-			}
-		}
+		int Capacity = ItemHelper()->GetCapacity(pP->GetExtra(SelectItem));
+		pP->m_AccData.m_aItems[SelectItem].m_Capacity = Capacity;
 
 		SetVoteLastPage(PAGE_INVENTORY);
 		AddVote_Text("☪ Item Info");
@@ -2563,54 +2652,22 @@ void CGameContext::InitVotes(int ClientID)
 		AddVote_Text("Item: {}", ItemHelper()->GetItemName(SelectItem));
 		AddVote_Text("Description: {}", Items(SelectItem)->m_aItemDesc);
 		if (ItemHelper()->GetType(SelectItem) == ITYPE_CARD)
-			AddVote_Text("Need Capacity: {}", ItemHelper()->GetCapacity(SelectItem));
+			AddVote_Text("Need Capacity: {}", ItemHelper()->GetMaxCapacity(SelectItem));
 		else if (ItemHelper()->GetType(SelectItem) != ITYPE_MATERIAL)
-			AddVote_Text("Capacity: {}/{}", Capacity, ItemHelper()->GetCapacity(SelectItem));
+			AddVote_Text("Capacity: {}/{}", Capacity, ItemHelper()->GetMaxCapacity(SelectItem));
 		AddVote_Text("You have: {}", Data.m_aItems[SelectItem].m_Num);
 		AddVote_Space();
 
 		str_format(aCmd, sizeof(aCmd), "ccv_equip %d", SelectItem);
 		AddVote_VL(aCmd, "☝ Equip");
 		AddVote_Space();
-		bool Once = false;
-		bool IsEmpty = true;
-		AddVote_Text("# Cards #");
-		if (HaveCards)
+		AddVote_Text("##### Cards #####");
+		if(AddVote_ListExtraSeparate(SelectItem, "Cards"))
 		{
-			AddVote_Text("- Current -");
-			for (const auto &j : Json["Extra"]["Cards"])
-			{
-				str_format(aCmd, sizeof(aCmd), "ccv_separatecard %d", int(j["id"]));
-				AddVote_VL(aCmd, "★Separate one {}x{}({}*{})", ItemHelper()->GetItemName(int(j["id"])), int(j["num"]), ItemHelper()->GetCapacity(int(j["id"])), int(j["num"]));
-			}
-			IsEmpty = false;
+			AddVote_Space();
+			AddVote_Text("## Placement ##");
 		}
-		AddVote_Space();
-		Once = false;
-		for (int i = 0; i < NUM_ITEM; i++)
-		{
-			if (Data.m_aItems[i].m_Num <= 0)
-				continue;
-
-			if (ItemHelper()->GetType(i) == ITYPE_CARD)
-			{
-				CItem_Card *pCard = (CItem_Card *)Items(i);
-				if (!(pCard->m_Placeable[ItemHelper()->GetType(SelectItem)]))
-					continue;
-
-				if (!Once)
-					AddVote_Text("- Placement -");
-
-				Once = true;
-				IsEmpty = false;
-
-				str_format(aCmd, sizeof(aCmd), "ccv_placecard %d", i);
-				AddVote_VL(aCmd, "☝ Place {}(x{},{})", ItemHelper()->GetItemName(i), pP->GetItemNum(i), ItemHelper()->GetCapacity(i));
-				continue;
-			}
-		}
-		if (IsEmpty)
-			AddVote_Text("( ´・∧・`)Empty");
+		AddVote_ListExtraPlace(SelectItem, "Cards");
 		AddVote_Space();
 		AddVote_Back();
 	}
@@ -2662,11 +2719,10 @@ void CGameContext::InitVotes(int ClientID)
 	{
 		SetVoteLastPage(PAGE_MENU);
 		TW()->Account()->SyncAccountData(ClientID, TABLE_ITEM);
-		SetVoteLastPage(PAGE_MENU);
 		AddVote_Text("☪ Equipment");
-		AddVote_Text("Sword: {}", ItemHelper()->GetItemName(pP->m_AccData.m_Holding[ITYPE_SWORD]));
-		AddVote_Text("Axe: {}", ItemHelper()->GetItemName(pP->m_AccData.m_Holding[ITYPE_AXE]));
-		AddVote_Text("Pickaxe: {}", ItemHelper()->GetItemName(pP->m_AccData.m_Holding[ITYPE_PICKAXE]));
+		AddVote_Text("Sword: {}", ItemHelper()->GetItemName(pP->m_AccData.m_Holding[ITYPE_SWORD], false));
+		AddVote_Text("Axe: {}", ItemHelper()->GetItemName(pP->m_AccData.m_Holding[ITYPE_AXE], false));
+		AddVote_Text("Pickaxe: {}", ItemHelper()->GetItemName(pP->m_AccData.m_Holding[ITYPE_PICKAXE], false));
 		AddVote_Space();
 		CountItemNum(ClientID);
 		for (int i = 0; i < NUM_ITYPE; i++)
@@ -2689,6 +2745,53 @@ void CGameContext::InitVotes(int ClientID)
 		AddVote_ListInventory(PlayerVote.m_Select[SPlayerVote::EVoteSelect::EQUIPMENT], "ccv_equip", true);
 	}
 	break;
+
+	case PAGE_TURRET:
+	{
+		SetVoteLastPage(PAGE_MENU);
+		int TurretID = pP->m_AccData.m_Holding[ITYPE_TURRET];
+		AddVote_Text("☪ Turret");
+		AddVote_Text("Current: {}", ItemHelper()->GetItemName(TurretID, false));
+		AddVote_Space();
+		AddVote_Text("▾ Equipment");
+		AddVote_ListInventory(ITYPE_TURRET, "ccv_equip", true);
+
+		AddVote_Space();
+
+		if (TurretID)
+		{
+			if(!pP->m_pTurret)
+			{
+				AddVote_VL("ccv_setupturret", "⎋ Set up Turret");
+				AddVote_Space();
+			}
+			
+			AddVote_Text("##### Cards #####");
+			if(AddVote_ListExtraSeparate(TurretID, "Cards"))
+			{
+				AddVote_Space();
+				AddVote_Text("## Placement ##");
+			}
+			AddVote_ListExtraPlace(TurretID, "Cards");
+
+			AddVote_Space();
+
+			AddVote_Text("##### Parts #####");
+			if(AddVote_ListExtraSeparate(TurretID, "Parts"))
+			{
+				AddVote_Space();
+				AddVote_Text("## Placement ##");
+			}
+			AddVote_ListExtraPlace(TurretID, "Parts");
+		}
+		else
+			AddVote_Text("You need to equip a turret!");
+
+		AddVote_Space();
+		AddVote_Back();
+	}
+	break;
+
 	default:
 		break;
 	}
@@ -2742,4 +2845,27 @@ void CGameContext::CountItemNum(int ClientID)
 	}
 
 	std::copy(std::begin(ItemCount), std::end(ItemCount), m_apPlayers[ClientID]->m_AccData.m_ItemCount);
+}
+
+bool CGameContext::UpdateItemCapacity(int ClientID, int ItemID)
+{
+	bool HaveCard = false;
+	int Capacity = 0;
+
+	CPlayer *pP = GetPlayer(ClientID);
+	if (!pP)
+		return false;
+
+	nlohmann::json Json;
+	if (nlohmann::json::accept(pP->m_AccData.m_aItems[ItemID].m_aExtra))
+	{
+		Json = nlohmann::json::parse(pP->m_AccData.m_aItems[ItemID].m_aExtra);
+		if (Json["Extra"].contains("Cards") && !Json["Extra"]["Cards"].empty())
+		{
+			for (const auto &j : Json["Extra"]["Cards"])
+				Capacity += ItemHelper()->GetMaxCapacity(int(j["id"])) * int(j["num"]);
+			pP->m_AccData.m_aItems[ItemID].m_Capacity = Capacity;
+		}
+	}
+	return HaveCard;
 }

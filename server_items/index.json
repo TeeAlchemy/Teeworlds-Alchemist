@@ -11,6 +11,7 @@
         "server_items/tools/axe.json",
         "server_items/tools/pickaxe.json",
         "server_items/special/cards.json",
+        "server_items/special/parts.json",
         "server_items/special/turret.json",
         "server_items/special/zombie-heart.json"
     ]

@@ -82,14 +82,14 @@
                 "capacity": 55,
                 "placeable": [2, 3],
                 "max": 0,
-                "max_place": 1,
+                "max_place": 2,
                 "formula": {
-                    "Log": 70,
-                    "Copper": 200,
-                    "Iron": 200,
-                    "Coal": 400,
-                    "Enegry": 400,
-                    "Zombie's Heart": 50
+                    "Log": 7000,
+                    "Copper": 2000,
+                    "Iron": 2000,
+                    "Coal": 5000,
+                    "Enegry": 500,
+                    "Zombie's Heart": 3000
                 }
             },
             {

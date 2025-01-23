@@ -68,7 +68,7 @@ void CElectro::Snap(int SnappingClient)
 	if(NetworkClipped(SnappingClient))
 		return;
 
-	CNetObj_Laser *pObj = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(NETOBJTYPE_LASER, GetID(), sizeof(CNetObj_Laser)));
+	CNetObj_Laser *pObj = Server()->SnapNewItem<CNetObj_Laser>(GetID());
 	if(!pObj)
 		return;
 

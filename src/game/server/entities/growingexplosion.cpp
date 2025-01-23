@@ -5,7 +5,7 @@
 
 #include <game/server/gamecontext.h>
 
-CGrowingExplosion::CGrowingExplosion(CGameWorld *pGameWorld, vec2 Pos, vec2 Dir, int Owner, int Radius, int ExplosionEffect, bool NoClip)
+CGrowingExplosion::CGrowingExplosion(CGameWorld *pGameWorld, vec2 Pos, vec2 Dir, int Owner, int Radius, int ExplosionEffect, bool Fusion, bool NoClip)
 		: CEntity(pGameWorld, CGameWorld::ENTTYPE_GROWINGEXPLOSION, Pos),
 		m_pGrowingMap(NULL),
 		m_pGrowingMapVec(NULL)
@@ -21,6 +21,7 @@ CGrowingExplosion::CGrowingExplosion(CGameWorld *pGameWorld, vec2 Pos, vec2 Dir,
 	m_Owner = Owner;
 	m_ExplosionEffect = ExplosionEffect;
 
+	m_Fusion = Fusion;
 	m_NoClip = NoClip;
 	
 	mem_zero(m_Hit, sizeof(m_Hit));
@@ -177,13 +178,13 @@ void CGrowingExplosion::Tick()
 						case GROWINGEXPLOSIONEFFECT_BOOM:
 							if (random_prob(0.2f))
 							{
-								GameServer()->CreateExplosion(TileCenter, m_Owner, WEAPON_HAMMER, false);
+								GameServer()->CreateExplosion(TileCenter, m_Owner, WEAPON_HAMMER, false, m_Fusion);
 							}
 							break;
 						case GROWINGEXPLOSIONEFFECT_MERC:
 							if (random_prob(0.2f))
 							{
-								GameServer()->CreateExplosion(TileCenter, m_Owner, WEAPON_HAMMER, false);
+								GameServer()->CreateExplosion(TileCenter, m_Owner, WEAPON_HAMMER, false, m_Fusion);
 							}
 							break;
 						case GROWINGEXPLOSIONEFFECT_ELECTRIC:
@@ -219,7 +220,7 @@ void CGrowingExplosion::Tick()
 								{
 									int randNb = random_int(0, NumPossibleStartPoint-1);
 									vec2 StartPoint = PossibleStartPoint[randNb];
-									GameServer()->CreateLaserDotEvent(StartPoint, EndPoint, Server()->TickSpeed()/6);
+									GameServer()->CreateLaserDotEvent(StartPoint, EndPoint, 2);
 								}
 								
 								if(random_prob(0.1f))

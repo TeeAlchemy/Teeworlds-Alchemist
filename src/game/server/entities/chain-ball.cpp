@@ -82,7 +82,7 @@ void CChainBall::Snap(int SnappingClient)
     {
         float shiftedAngle = angle(normalize(m_Anchor - m_Pos)) + 2.0 * pi * static_cast<float>(i) / static_cast<float>(numIds);
 
-        CNetObj_Projectile *pProj = static_cast<CNetObj_Projectile *>(Server()->SnapNewItem(NETOBJTYPE_PROJECTILE, m_aIDs[i], sizeof(CNetObj_Projectile)));
+        CNetObj_Projectile *pProj = Server()->SnapNewItem<CNetObj_Projectile>(m_aIDs[i]);
         pProj->m_X = (int)(m_Pos.x + 64.f * cos(shiftedAngle));
         pProj->m_Y = (int)(m_Pos.y + 64.f * sin(shiftedAngle));
         pProj->m_VelX = (int)(0.0f);
@@ -91,7 +91,7 @@ void CChainBall::Snap(int SnappingClient)
         pProj->m_Type = WEAPON_SHOTGUN;
     }
 
-    CNetObj_Laser *pLaser = static_cast<CNetObj_Laser *>(Server()->SnapNewItem(NETOBJTYPE_LASER, GetID(), sizeof(CNetObj_Laser)));
+    CNetObj_Laser *pLaser = Server()->SnapNewItem<CNetObj_Laser>(GetID());
     if (!pLaser)
         return;
 

@@ -157,16 +157,20 @@ public:
     int FindItem(const char *ItemName);
 
     int GetType(int ID);
-    const char *GetItemName(int ID);
+    const char *GetItemName(int ID, bool IncludeZero = true);
     int GetItemID(const char ItemName[64]);
     int GetDmg(int ID);
     int GetProba(int ID);
-    int GetCapacity(int ID);
+    int GetMaxCapacity(int ID);
     void GetFormula(int ID, int *Formula);
     int GetMax(int ID);
     int GetMaxHealth(int ID);
     int GetMaxPlace(int CardID);
+
+    int GetImpl(std::string Extra, std::string What, int CardID);
     int GetCard(std::string Extra, int CardID);
+    int GetPart(std::string Extra, int ItemID);
+    int GetCapacity(std::string Extra);
 
     bool CheckItemVaild(int ID, int Type = -1) // -1 for all
     {

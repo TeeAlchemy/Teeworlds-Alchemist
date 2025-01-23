@@ -179,6 +179,9 @@ public:
 	bool m_WantSpawn;
 	bool m_CanSnap;
 	int m_Team;
+
+	class CTurret *m_pTurret;
+	bool CreateTurret();
 };
 
 #endif
