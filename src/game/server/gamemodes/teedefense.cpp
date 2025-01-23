@@ -100,6 +100,7 @@ void CGameControllerTeeDefense::ResetBots()
 			pPlayer->m_pBot->m_aTargetAllow[i] = false;
 
 		pPlayer->m_pBot->m_aTargetAllow[ETarget::TARGET_PLAYER] = true;
+		pPlayer->m_pBot->m_aTargetAllow[ETarget::TARGET_AIR] = true;
 	}
 }
 

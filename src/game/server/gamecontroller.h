@@ -52,7 +52,6 @@ protected:
 
 	int m_aTeamscore[2];
 
-	int m_Warmup;
 	int m_UnpauseTimer;
 	int m_RoundCount;
 
@@ -153,6 +152,7 @@ public:
 	const char *GameType() { return m_pGameType; }
 
 	bool m_IsTeamplay;
+	int m_Warmup;
 };
 
 #endif

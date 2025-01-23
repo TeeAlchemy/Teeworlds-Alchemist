@@ -45,6 +45,9 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, int Team)
 
 CPlayer::~CPlayer()
 {
+	if (m_pTurret)
+		delete m_pTurret;
+
 	if (m_pBot)
 		delete m_pBot;
 
@@ -412,7 +415,7 @@ void CPlayer::InitZombie(int Zomb)
 	
 	default:
 		Server()->SetClientName(GetCID(), "Zaby");
-		str_copy(m_TeeInfos.m_SkinName, "Zaby", sizeof(m_TeeInfos.m_SkinName));
+		str_copy(m_TeeInfos.m_SkinName, "zaby", sizeof(m_TeeInfos.m_SkinName));
 		break;
 	}
 }

@@ -136,6 +136,9 @@ void CGameContext::CreateHammerHit(vec2 Pos, CClientMask Mask)
 
 void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, bool Fusion, CClientMask Mask)
 {
+	if (!GetPlayer(Owner))
+		return;
+
 	// create the event
 	CNetEvent_Explosion *pEvent = m_Events.Create<CNetEvent_Explosion>(Mask);
 	if (pEvent)
@@ -153,6 +156,9 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 		int Num = m_World.FindEntities(Pos, Radius, (CEntity **)apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
 		for (int i = 0; i < Num; i++)
 		{
+			if (GetPlayer(Owner)->GetTeam() == apEnts[i]->GetPlayer()->GetTeam())
+				continue;
+			
 			vec2 Diff = apEnts[i]->GetPos() - Pos;
 			vec2 ForceDir(0, 1);
 			float l = length(Diff);
@@ -164,17 +170,13 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 				apEnts[i]->TakeDamage(ForceDir * Dmg * 2, (int)Dmg, Owner, Weapon);
 		}
 
-		if (GetPlayer(Owner))
+		float Electron = float(ItemHelper()->GetCard(GetPlayer(Owner)->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_ELECTRON));
+
+		if (Electron)
 		{
-			float Electron = float(ItemHelper()->GetCard(GetPlayer(Owner)->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_ELECTRON));
-
-
-			if (Electron)
-			{
-				if (Fusion)
-					Electron = 0.5f;
-				new CGrowingExplosion(&m_World, Pos, vec2(0, 0), Owner, 5.f * Electron, GROWINGEXPLOSIONEFFECT_ELECTRIC, Fusion);
-			}
+			if (Fusion)
+				Electron = 0.5f;
+			new CGrowingExplosion(&m_World, Pos, vec2(0, 0), Owner, 5.f * Electron, GROWINGEXPLOSIONEFFECT_ELECTRIC, Fusion);
 		}
 	}
 }
@@ -547,12 +549,12 @@ void CGameContext::OnTick()
 			if (m_VoteUpdate)
 			{
 				// count votes
-				char aaBuf[MAX_CLIENTS][NETADDR_MAXSTRSIZE] = {{0}};
-				for (int i = 0; i < MAX_CLIENTS; i++)
+				char aaBuf[MAX_PLAYERS][NETADDR_MAXSTRSIZE] = {{0}};
+				for (int i = 0; i < MAX_PLAYERS; i++)
 					if (m_apPlayers[i])
 						Server()->GetClientAddr(i, aaBuf[i], NETADDR_MAXSTRSIZE);
-				bool aVoteChecked[MAX_CLIENTS] = {0};
-				for (int i = 0; i < MAX_CLIENTS; i++)
+				bool aVoteChecked[MAX_PLAYERS] = {0};
+				for (int i = 0; i < MAX_PLAYERS; i++)
 				{
 					if (!m_apPlayers[i] || m_apPlayers[i]->GetTeam() == TEAM_SPECTATORS || aVoteChecked[i] || m_apPlayers[i]->m_IsBot) // don't count in votes by spectators
 						continue;
@@ -2056,6 +2058,15 @@ bool CGameContext::VotSetupTurret(IConsole::IResult *pResult, void *pUserData)
 	return true;
 }
 
+bool CGameContext::ConSkipWarmup(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	if (pSelf->m_pController->m_Warmup)
+		pSelf->m_pController->m_Warmup = 1;
+	
+	return true;
+}
+
 void CGameContext::OnConsoleInit()
 {
 	m_pServer = Kernel()->RequestInterface<IServer>();
@@ -2083,6 +2094,8 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("force_vote", "ss?r", CFGFLAG_SERVER, ConForceVote, this, "Force a voting option");
 	Console()->Register("clear_votes", "", CFGFLAG_SERVER, ConClearVotes, this, "Clears the voting options");
 	Console()->Register("vote", "r", CFGFLAG_SERVER, ConVote, this, "Force a vote to yes/no");
+
+	Console()->Register("skip_warmup", "", CFGFLAG_SERVER, ConSkipWarmup, this, "Skip warmup");
 
 	Console()->Register("about", "", CFGFLAG_CHAT, ConAbout, this, "Show information about the mod");
 	Console()->Register("language", "?s", CFGFLAG_CHAT, ConLanguage, this, "[language code] - Select your language");
@@ -2611,6 +2624,8 @@ void CGameContext::InitVotes(int ClientID)
 		AddVote_Goto(PAGE_CRAFT, "☞ Craft ☺");
 		AddVote_Goto(PAGE_EQUIPMENT, "☞ Equipment ☭");
 		AddVote_Goto(PAGE_TURRET, "☞ Turret ☯");
+		AddVote_Space();
+		AddVote_VL("skip_warmup", "-> Skip Warmup*");
 	}
 	break;
 
@@ -2662,7 +2677,7 @@ void CGameContext::InitVotes(int ClientID)
 		AddVote_VL(aCmd, "☝ Equip");
 		AddVote_Space();
 		AddVote_Text("##### Cards #####");
-		if(AddVote_ListExtraSeparate(SelectItem, "Cards"))
+		if (AddVote_ListExtraSeparate(SelectItem, "Cards"))
 		{
 			AddVote_Space();
 			AddVote_Text("## Placement ##");
@@ -2760,14 +2775,14 @@ void CGameContext::InitVotes(int ClientID)
 
 		if (TurretID)
 		{
-			if(!pP->m_pTurret)
+			if (!pP->m_pTurret)
 			{
 				AddVote_VL("ccv_setupturret", "⎋ Set up Turret");
 				AddVote_Space();
 			}
-			
+
 			AddVote_Text("##### Cards #####");
-			if(AddVote_ListExtraSeparate(TurretID, "Cards"))
+			if (AddVote_ListExtraSeparate(TurretID, "Cards"))
 			{
 				AddVote_Space();
 				AddVote_Text("## Placement ##");
@@ -2777,7 +2792,7 @@ void CGameContext::InitVotes(int ClientID)
 			AddVote_Space();
 
 			AddVote_Text("##### Parts #####");
-			if(AddVote_ListExtraSeparate(TurretID, "Parts"))
+			if (AddVote_ListExtraSeparate(TurretID, "Parts"))
 			{
 				AddVote_Space();
 				AddVote_Text("## Placement ##");
