@@ -1877,7 +1877,7 @@ bool CGameContext::VotMake(IConsole::IResult *pResult, void *pUserData)
 			}
 			else
 			{
-				if (nlohmann::json::accept(pPlayer->m_AccData.m_aItems[i].m_aExtra))
+				if (pSelf->Items(Item)->m_Formula[i] > 0 && nlohmann::json::accept(pPlayer->m_AccData.m_aItems[i].m_aExtra))
 				{
 					nlohmann::json Json = nlohmann::json::parse(pPlayer->m_AccData.m_aItems[i].m_aExtra);
 					if(!Json["Extra"]["Cards"].empty() || !Json["Extra"]["Parts"].empty())
