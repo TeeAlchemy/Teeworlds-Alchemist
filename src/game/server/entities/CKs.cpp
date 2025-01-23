@@ -26,9 +26,14 @@ void CKs::HandleLock(CCharacter *pChr)
 {
 	if (!GameServer()->GetPlayerChar(m_LockedPlayer))
 		m_LockedPlayer = -1;
+	else if (!GameServer()->GetPlayerChar(m_LockedPlayer)->m_LockedCK)
+		m_LockedPlayer = -1;
 
 	if (!pChr)
 		return;
+
+	if (!pChr->m_LockedCK)
+		m_LockedPlayer = -1;
 	
 	if (m_LockedPlayer == -1 && !pChr->m_LockedCK && pChr->GetPlayer()->PressTab())
 	{
