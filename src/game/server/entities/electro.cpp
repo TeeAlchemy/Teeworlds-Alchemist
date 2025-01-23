@@ -2,6 +2,7 @@
 /* If you are missing that file, acquire a complete release at ninslash.com.                 */
 #include <game/generated/protocol.h>
 #include <game/server/gamecontext.h>
+#include <engine/shared/config.h>
 #include "electro.h"
 
 CElectro::CElectro(CGameWorld *pGameWorld, vec2 Start, vec2 End, vec2 Offset, int Left)
@@ -62,6 +63,9 @@ void CElectro::TickPaused()
 
 void CElectro::Snap(int SnappingClient)
 {
+	if(rand() % g_Config.m_SvGESnapTime != 0)
+		return;
+
 	if (!m_Render)
 		return;
 	

@@ -2150,7 +2150,7 @@ int CServer::Run()
 			while (t > TickStartTime(m_CurrentGameTick + 1))
 			{
 				m_CurrentGameTick++;
-				if ((m_CurrentGameTick % 2) == 0)
+				if ((m_CurrentGameTick % g_Config.m_SvSVSnapTick) == 0)
 					ShouldSnap = true;
 
 				NewTicks++;

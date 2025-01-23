@@ -106,7 +106,7 @@ void CProjectile::Tick()
 			new CGrowingExplosion(GameWorld(), CurPos, vec2(0, 0), m_Owner, 24.f * Fusion, GROWINGEXPLOSIONEFFECT_BOOM, Fusion);
 
 		if(m_Explosive || GameServer()->ItemHelper()->GetCard(OwnerChar->GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_EXPLOSION))
-				GameServer()->CreateExplosion(CurPos, m_Owner, m_Weapon, false, Fusion);
+				GameServer()->CreateExplosion(CurPos, m_Owner, m_Weapon, false, Fusion, m_Damage);
 
 		else if(TargetChr)
 			TargetChr->TakeDamage(m_Direction * max(0.001f, m_Force), m_Damage, m_Owner, m_Weapon);

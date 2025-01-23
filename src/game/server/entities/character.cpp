@@ -343,7 +343,7 @@ void CCharacter::FireWeapon()
 
 			int Explosion = GameServer()->ItemHelper()->GetCard(GetPlayer()->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_EXPLOSION);
 			for (int i = 0; i < Explosion; i++)
-				GameServer()->CreateExplosion(vec2(m_Pos.x + random_int(-200, 200), m_Pos.y + random_int(-200, 200)), GetPlayer()->GetCID(), WEAPON_HAMMER, false, false);
+				GameServer()->CreateExplosion(vec2(m_Pos.x + random_int(-200, 200), m_Pos.y + random_int(-200, 200)), GetPlayer()->GetCID(), WEAPON_HAMMER, false, false, ExtraDMG);
 
 			Hits++;
 		}

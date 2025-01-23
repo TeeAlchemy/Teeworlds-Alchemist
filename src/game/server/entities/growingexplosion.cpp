@@ -178,13 +178,13 @@ void CGrowingExplosion::Tick()
 						case GROWINGEXPLOSIONEFFECT_BOOM:
 							if (random_prob(0.2f))
 							{
-								GameServer()->CreateExplosion(TileCenter, m_Owner, WEAPON_HAMMER, false, m_Fusion);
+								GameServer()->CreateExplosion(TileCenter, m_Owner, WEAPON_HAMMER, false, m_Fusion, 1);
 							}
 							break;
 						case GROWINGEXPLOSIONEFFECT_MERC:
 							if (random_prob(0.2f))
 							{
-								GameServer()->CreateExplosion(TileCenter, m_Owner, WEAPON_HAMMER, false, m_Fusion);
+								GameServer()->CreateExplosion(TileCenter, m_Owner, WEAPON_HAMMER, false, m_Fusion, 1);
 							}
 							break;
 						case GROWINGEXPLOSIONEFFECT_ELECTRIC:

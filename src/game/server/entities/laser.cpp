@@ -72,7 +72,7 @@ void CLaser::DoBounce()
 			GameServer()->CreateSound(m_Pos, SOUND_RIFLE_BOUNCE);
 
 			if (GameServer()->ItemHelper()->GetCard(GameServer()->GetPlayer(m_Owner)->GetExtraHolding(ITYPE_SWORD), ITEM_CARD_EXPLOSION))
-				GameServer()->CreateExplosion(To, m_Owner, WEAPON_RIFLE, false, m_Fusion);
+				GameServer()->CreateExplosion(To, m_Owner, WEAPON_RIFLE, false, m_Fusion, m_Damage);
 		}
 	}
 	else

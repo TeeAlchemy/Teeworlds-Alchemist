@@ -169,4 +169,8 @@ MACRO_CONFIG_INT(SvMaxTowerHealth, sv_max_tower_health, 100, 1, 1000, CFGFLAG_SE
 MACRO_CONFIG_INT(SvPlayerMaxHealth, sv_player_max_health, 100, 1, 1000, CFGFLAG_SERVER, "Player max health")
 MACRO_CONFIG_INT(SvTurretRadius, sv_turret_radius, 12, 1, 1000, CFGFLAG_SERVER, "Turret's Radius = x + x * Level")
 
+// Anti-ping
+MACRO_CONFIG_INT(SvSVSnapTick, sv_sv_snap_tick, 2, 1, 20, CFGFLAG_SERVER, "How many ticks snap once")
+MACRO_CONFIG_INT(SvGESnapTime, sv_ge_snap_time, 2, 1, 20, CFGFLAG_SERVER, "Say: When?")
+
 #endif

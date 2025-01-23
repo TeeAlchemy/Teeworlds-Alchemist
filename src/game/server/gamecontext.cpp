@@ -134,17 +134,20 @@ void CGameContext::CreateHammerHit(vec2 Pos, CClientMask Mask)
 	}
 }
 
-void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, bool Fusion, CClientMask Mask)
+void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, bool Fusion, int Damage, CClientMask Mask)
 {
 	if (!GetPlayer(Owner))
 		return;
 
-	// create the event
-	CNetEvent_Explosion *pEvent = m_Events.Create<CNetEvent_Explosion>(Mask);
-	if (pEvent)
+	if(rand() % g_Config.m_SvGESnapTime == 0)
 	{
-		pEvent->m_X = (int)Pos.x;
-		pEvent->m_Y = (int)Pos.y;
+		// create the event
+		CNetEvent_Explosion *pEvent = m_Events.Create<CNetEvent_Explosion>(Mask);
+		if (pEvent)
+		{
+			pEvent->m_X = (int)Pos.x;
+			pEvent->m_Y = (int)Pos.y;
+		}
 	}
 
 	if (!NoDamage)
@@ -291,6 +294,9 @@ void CGameContext::CreateMapSoundGlobal(int MapSoundID, int Target)
 
 void CGameContext::CreateLaserDotEvent(vec2 Pos0, vec2 Pos1, int LifeSpan)
 {
+	if ((rand() % g_Config.m_SvGESnapTime) != 0)
+		return;
+
 	CGameContext::LaserDotState State;
 	State.m_Pos0 = Pos0;
 	State.m_Pos1 = Pos1;
@@ -302,6 +308,9 @@ void CGameContext::CreateLaserDotEvent(vec2 Pos0, vec2 Pos1, int LifeSpan)
 
 void CGameContext::CreateHammerDotEvent(vec2 Pos, int LifeSpan)
 {
+	if ((rand() % g_Config.m_SvGESnapTime) != 0)
+		return;
+
 	CGameContext::HammerDotState State;
 	State.m_Pos = Pos;
 	State.m_LifeSpan = LifeSpan;
@@ -312,6 +321,9 @@ void CGameContext::CreateHammerDotEvent(vec2 Pos, int LifeSpan)
 
 void CGameContext::CreateLoveEvent(vec2 Pos)
 {
+	if ((rand() % g_Config.m_SvGESnapTime) != 0)
+		return;
+
 	CGameContext::LoveDotState State;
 	State.m_Pos = Pos;
 	State.m_LifeSpan = Server()->TickSpeed();
@@ -1865,6 +1877,16 @@ bool CGameContext::VotMake(IConsole::IResult *pResult, void *pUserData)
 			}
 			else
 			{
+				if (nlohmann::json::accept(pPlayer->m_AccData.m_aItems[i].m_aExtra))
+				{
+					nlohmann::json Json = nlohmann::json::parse(pPlayer->m_AccData.m_aItems[i].m_aExtra);
+					if(!Json["Extra"]["Cards"].empty() || !Json["Extra"]["Parts"].empty())
+					{
+						IsOK = false;
+						pSelf->SetVoteExtraText(ClientID, "This item({}) contains cards/parts!", pSelf->ItemHelper()->GetItemName(i));
+						break;
+					}
+				}
 				if (pSelf->Items(Item)->m_Formula[i] > pPlayer->m_AccData.m_aItems[i].m_Num)
 				{
 					IsOK = false;
@@ -1880,7 +1902,10 @@ bool CGameContext::VotMake(IConsole::IResult *pResult, void *pUserData)
 		pPlayer->m_AccData.m_aItems[Item].m_Num++;
 		pSelf->SetVoteExtraText(ClientID, "You have successfully make a {}!", pSelf->Items(Item)->m_aItemName);
 		pSelf->TW()->Account()->SaveAccountData(ClientID, TABLE_ITEM, pPlayer->m_AccData);
+		pSelf->CreateSoundGlobal(SOUND_CTF_CAPTURE, ClientID);
 	}
+	else
+		pSelf->CreateSoundGlobal(SOUND_TEE_CRY, ClientID);
 
 	pSelf->ClearVotes(pResult->GetClientID());
 	return true;
@@ -1931,6 +1956,7 @@ bool CGameContext::VotPlace(IConsole::IResult *pResult, void *pUserData)
 
 			pSelf->TW()->Account()->SaveAccountData(ClientID, TABLE_ITEM, pPlayer->m_AccData);
 			pSelf->ClearVotes(pResult->GetClientID());
+			pSelf->CreateSoundGlobal(SOUND_CTF_CAPTURE, ClientID);
 			return true;
 		}
 		else
@@ -1957,6 +1983,7 @@ bool CGameContext::VotPlace(IConsole::IResult *pResult, void *pUserData)
 			{
 				pSelf->SetVoteExtraText(ClientID, "You have reached the limit");
 				pSelf->ClearVotes(pResult->GetClientID());
+				pSelf->CreateSoundGlobal(SOUND_WEAPON_NOAMMO, ClientID);
 				return true;
 			}
 			Json["Extra"][Type][ExistCard]["num"] = int(Json["Extra"][Type][ExistCard]["num"]) + 1;
@@ -1966,9 +1993,13 @@ bool CGameContext::VotPlace(IConsole::IResult *pResult, void *pUserData)
 		pPlayer->m_AccData.m_aItems[Select].m_aExtra = Json.dump();
 		pPlayer->m_AccData.m_aItems[Select].m_Capacity = Capacity;
 		pPlayer->m_AccData.m_aItems[Card].m_Num--;
+		pSelf->CreateSoundGlobal(SOUND_CTF_CAPTURE, ClientID);
 	}
 	else
+	{
 		pSelf->SetVoteExtraText(ClientID, "Not enough capacity!");
+		pSelf->CreateSoundGlobal(SOUND_WEAPON_NOAMMO, ClientID);
+	}
 
 	// pSelf->m_aPlayerVotes[ClientID].m_Confirm = false;
 
@@ -2213,6 +2244,9 @@ void CGameContext::OnSnap(int ClientID)
 	// Snap laser dots
 	for (int i = 0; i < m_LaserDots.size(); i++)
 	{
+		if (((g_Config.m_SvGESnapTime + i) % g_Config.m_SvGESnapTime) != 0)
+			continue;
+
 		if (ClientID >= 0)
 		{
 			vec2 CheckPos = (m_LaserDots[i].m_Pos0 + m_LaserDots[i].m_Pos1) * 0.5f;
@@ -2236,6 +2270,9 @@ void CGameContext::OnSnap(int ClientID)
 	}
 	for (int i = 0; i < m_HammerDots.size(); i++)
 	{
+		if (((g_Config.m_SvGESnapTime + i) % g_Config.m_SvGESnapTime) != 0)
+			continue;
+
 		if (ClientID >= 0)
 		{
 			vec2 CheckPos = m_HammerDots[i].m_Pos;
@@ -2260,6 +2297,9 @@ void CGameContext::OnSnap(int ClientID)
 	}
 	for (int i = 0; i < m_LoveDots.size(); i++)
 	{
+		if (((g_Config.m_SvGESnapTime + i) % g_Config.m_SvGESnapTime) != 0)
+			continue;
+
 		if (ClientID >= 0)
 		{
 			vec2 CheckPos = m_LoveDots[i].m_Pos;
@@ -2781,6 +2821,7 @@ void CGameContext::InitVotes(int ClientID)
 		int TurretID = pP->m_AccData.m_Holding[ITYPE_TURRET];
 		AddVote_Text("☪ Turret");
 		AddVote_Text("Current: {}", ItemHelper()->GetItemName(TurretID, false));
+		AddVote_Text("!!! Unfinished/未完成 !!!");
 		AddVote_Space();
 		AddVote_Text("▾ Equipment");
 		AddVote_ListInventory(ITYPE_TURRET, "ccv_equip", true);
@@ -2791,7 +2832,7 @@ void CGameContext::InitVotes(int ClientID)
 		{
 			if (!pP->m_pTurret)
 			{
-				AddVote_VL("ccv_setupturret", "⎋ Set up Turret");
+				//AddVote_VL("ccv_setupturret", "⎋ Set up Turret");
 				AddVote_Space();
 			}
 

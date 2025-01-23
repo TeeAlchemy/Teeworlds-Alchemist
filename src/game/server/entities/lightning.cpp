@@ -2,6 +2,7 @@
 /* If you are missing that file, acquire a complete release at ninslash.com.                 */
 #include <game/generated/protocol.h>
 #include <game/server/gamecontext.h>
+#include <engine/shared/config.h>
 #include "growingexplosion.h"
 #include "lightning.h"
 
@@ -103,6 +104,9 @@ void CLightning::TickPaused()
 
 void CLightning::Snap(int SnappingClient)
 {
+	if(rand() % g_Config.m_SvGESnapTime != 0)
+		return;
+
 	if (NetworkClipped(SnappingClient))
 		return;
 
