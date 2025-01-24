@@ -7,15 +7,19 @@
 
 void CAccount::OnInit()
 {
-    m_pPool = new AccountPool;
-
-    std::thread(&HandleThread, m_pPool).detach();
 }
 
 static void register_thread(void *user)
 {
     FaBao *Data = (FaBao *)user;
     int ClientID = Data->m_ClientID;
+    CPlayer *P = Data->m_pGameServer->GetPlayer(ClientID);
+    if (!P)
+    {
+        delete Data;
+        return;
+    }
+
     CSqlConnection *pConn = CConnectionPool::GetConnPool()->GetOneConn();
 
     auto Username = CSqlString<64>(Data->m_AccData.m_aUsername);
@@ -33,10 +37,12 @@ static void register_thread(void *user)
             str_format(aBuf, sizeof(aBuf), "INSERT INTO tw_Accounts(Username, Password) VALUES ('%s', '%s');", Username.ClrStr(), Password.ClrStr());
             pConn->Execute(aBuf);
             Data->m_pGameServer->Chat(ClientID, "Account was created successfully.");
+            Data->m_pGameServer->TW()->Account()->Login(ClientID, Username.ClrStr(), Password.ClrStr());
         }
     }
 
     CConnectionPool::GetConnPool()->ReleaseOneConn(pConn);
+    delete Data;
 }
 
 bool CAccount::Register(int ClientID, const char *Username, const char *Password)
@@ -46,8 +52,8 @@ bool CAccount::Register(int ClientID, const char *Username, const char *Password
     data->m_ClientID = ClientID;
     str_copy(data->m_AccData.m_aUsername, Username, sizeof data->m_AccData.m_aUsername);
     str_copy(data->m_AccData.m_aPassword, Password, sizeof data->m_AccData.m_aPassword);
-    data->m_Type = TYPE::REG;
-    m_pPool->m_pFaBao.add(data);
+
+    std::thread(&register_thread, data).detach();
     return true;
 }
 
@@ -57,7 +63,10 @@ static void login_thread(void *user)
     int ClientID = Data->m_ClientID;
     CPlayer *P = Data->m_pGameServer->GetPlayer(ClientID);
     if (!P)
+    {
+        delete Data;
         return;
+    }
 
     auto Username = CSqlString<64>(Data->m_AccData.m_aUsername);
     auto Password = CSqlString<64>(Data->m_AccData.m_aPassword);
@@ -99,6 +108,7 @@ static void login_thread(void *user)
     }
 
     CConnectionPool::GetConnPool()->ReleaseOneConn(pConn);
+    delete Data;
 }
 bool CAccount::Login(int ClientID, const char *Username, const char *Password)
 {
@@ -107,9 +117,8 @@ bool CAccount::Login(int ClientID, const char *Username, const char *Password)
     data->m_ClientID = ClientID;
     str_copy(data->m_AccData.m_aUsername, Username, sizeof data->m_AccData.m_aUsername);
     str_copy(data->m_AccData.m_aPassword, Password, sizeof data->m_AccData.m_aPassword);
-    data->m_Type = TYPE::LOG;
 
-    m_pPool->m_pFaBao.add(data);
+    std::thread(&login_thread, data).detach();
     return true;
 }
 
@@ -118,11 +127,13 @@ static void sync_accdata_thread(void *user)
     FaBao *Data = (FaBao *)user;
     int ClientID = Data->m_ClientID;
     CPlayer *P = Data->m_pGameServer->GetPlayer(ClientID);
-    if (!P)
+    if (!P || !P->m_AccData.m_UserID)
+    {
+        delete Data;
         return;
+    }
+
     int UserID = P->m_AccData.m_UserID;
-    if (!UserID)
-        return;
 
     CSqlConnection *pConn = CConnectionPool::GetConnPool()->GetOneConn();
 
@@ -178,6 +189,7 @@ static void sync_accdata_thread(void *user)
 
 
     CConnectionPool::GetConnPool()->ReleaseOneConn(pConn);
+    delete Data;
 }
 
 void CAccount::SyncAccountData(int ClientID, int Table)
@@ -187,9 +199,8 @@ void CAccount::SyncAccountData(int ClientID, int Table)
     data->m_ClientID = ClientID;
     data->m_Table = Table;
     str_copy(data->m_Language, GameServer()->GetPlayer(ClientID)->GetLanguage(), sizeof(data->m_Language));
-    data->m_Type = TYPE::SYNC;
 
-    m_pPool->m_pFaBao.add(data);
+    std::thread(&sync_accdata_thread, data).detach();
 }
 
 static void save_accdata_thread(void *user)
@@ -197,7 +208,10 @@ static void save_accdata_thread(void *user)
     FaBao *Data = (FaBao *)user;
     int UserID = Data->m_AccData.m_UserID;
     if (!UserID)
+    {
+        delete Data;
         return;
+    }
 
     CSqlConnection *pConn = CConnectionPool::GetConnPool()->GetOneConn();
 
@@ -263,6 +277,7 @@ static void save_accdata_thread(void *user)
     }
 
     CConnectionPool::GetConnPool()->ReleaseOneConn(pConn);
+    delete Data;
 }
 
 void CAccount::SaveAccountData(int ClientID, int Table, CPlayer::SAccData AccData)
@@ -277,48 +292,6 @@ void CAccount::SaveAccountData(int ClientID, int Table, CPlayer::SAccData AccDat
     for (int i = 0; i < NUM_ITEM; i++)
         data->m_aItems[i] = GameServer()->GetPlayer(ClientID)->m_AccData.m_aItems[i];
     str_copy(data->m_Language, GameServer()->GetPlayer(ClientID)->GetLanguage(), sizeof(data->m_Language));
-    data->m_Type = TYPE::SAVE;
 
-    m_pPool->m_pFaBao.add(data);
-}
-
-void CAccount::HandleThread(void *user)
-{
-    AccountPool *pPool = (AccountPool *)user;
-    while (true)
-    {
-        if (!pPool->m_pFaBao.size())
-        {
-            thread_sleep(g_Config.m_SvSqlWaitMs);
-            continue;
-        }
-
-        switch (pPool->m_pFaBao[0]->m_Type)
-        {
-        case TYPE::REG:
-            register_thread(pPool->m_pFaBao[0]);
-            break;
-
-        case TYPE::LOG:
-            login_thread(pPool->m_pFaBao[0]);
-            break;
-
-        case TYPE::SYNC:
-            sync_accdata_thread(pPool->m_pFaBao[0]);
-            break;
-
-        case TYPE::SAVE:
-            save_accdata_thread(pPool->m_pFaBao[0]);
-            break;
-
-        default:
-            // none
-            break;
-        }
-
-        if (pPool->m_pFaBao[0])
-            delete pPool->m_pFaBao[0];
-
-        pPool->m_pFaBao.remove_index(0);
-    }
+    std::thread(&save_accdata_thread, data).detach();
 }

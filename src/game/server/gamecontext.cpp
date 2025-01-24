@@ -1763,7 +1763,7 @@ bool CGameContext::ConRegister(IConsole::IResult *pResult, void *pUserData)
 	if (pSelf->GetPlayer(pResult->GetClientID())->LoggedIn())
 	{
 		pSelf->Chat(pResult->GetClientID(), "You're already logged in.");
-		return false;
+		return true;
 	}
 
 	if (pResult->NumArguments() != 2)
@@ -1772,10 +1772,16 @@ bool CGameContext::ConRegister(IConsole::IResult *pResult, void *pUserData)
 		return false;
 	}
 
-	char Username[512];
-	char Password[512];
+	char Username[64];
+	char Password[64];
 	str_copy(Username, pResult->GetString(0), sizeof(Username));
 	str_copy(Password, pResult->GetString(1), sizeof(Password));
+
+	if (str_length(Username) > 15 || str_length(Username) < 2 || str_length(Password) > 15 || str_length(Password) < 2)
+	{
+		pSelf->Chat(pResult->GetClientID(), "Username / Password must be 2-15 characters");
+		return true;
+	}
 
 	pSelf->TW()->Account()->Register(pResult->GetClientID(), Username, Password);
 
@@ -1797,8 +1803,8 @@ bool CGameContext::ConLogin(IConsole::IResult *pResult, void *pUserData)
 		return false;
 	}
 
-	char Username[512];
-	char Password[512];
+	char Username[64];
+	char Password[64];
 	str_copy(Username, pResult->GetString(0), sizeof(Username));
 	str_copy(Password, pResult->GetString(1), sizeof(Password));
 
@@ -2098,19 +2104,6 @@ bool CGameContext::ConSkipWarmup(IConsole::IResult *pResult, void *pUserData)
 	return true;
 }
 
-bool CGameContext::ConStatusDB(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "StatusDB", "==== Status DB ====");
-	char aBuf[64];
-	for (int i = 0; i < pSelf->TW()->Account()->m_pPool->m_pFaBao.size(); i++)
-	{
-		str_format(aBuf, sizeof(aBuf), "(%d)Type: %d, ClientID: %d", i, pSelf->TW()->Account()->m_pPool->m_pFaBao[i]->m_Type, pSelf->TW()->Account()->m_pPool->m_pFaBao[i]->m_ClientID);
-		pSelf->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "StatusDB", aBuf);
-	}
-	return true;
-}
-
 void CGameContext::OnConsoleInit()
 {
 	m_pServer = Kernel()->RequestInterface<IServer>();
@@ -2140,7 +2133,6 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("vote", "r", CFGFLAG_SERVER, ConVote, this, "Force a vote to yes/no");
 
 	Console()->Register("skip_warmup", "", CFGFLAG_SERVER, ConSkipWarmup, this, "Skip warmup");
-	Console()->Register("status_db", "", CFGFLAG_SERVER, ConStatusDB, this, "Get status of database");
 
 	Console()->Register("about", "", CFGFLAG_CHAT, ConAbout, this, "Show information about the mod");
 	Console()->Register("language", "?s", CFGFLAG_CHAT, ConLanguage, this, "[language code] - Select your language");

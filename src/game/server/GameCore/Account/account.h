@@ -4,20 +4,12 @@
 
 #include <game/server/GameCore/TWorldComponent.h>
 #include <game/server/gamecontext.h>
-
 #include <base/tl/array.h>
 
-    enum TYPE {
-        REG = 0,
-        LOG,
-        SYNC,
-        SAVE,
-    };
-
-struct FaBao
+class FaBao
 {
+public:
     // Base
-    int m_Type;
     CGameContext *m_pGameServer;
     int m_ClientID;
     CPlayer::SAccData m_AccData;
@@ -31,22 +23,13 @@ struct FaBao
 class CAccount : public TWorldComponent
 {
 public:
-    ~CAccount(){};
+    ~CAccount() {};
 
     virtual void OnInit();
     bool Register(int ClientID, const char *Username, const char *Password);
     bool Login(int ClientID, const char *Username, const char *Password);
     void SyncAccountData(int ClientID, int Table);
     void SaveAccountData(int ClientID, int Table, CPlayer::SAccData AccData);
-
-public:
-    struct AccountPool
-    {
-        array<FaBao *> m_pFaBao;
-    };
-
-    AccountPool *m_pPool;
-    static void HandleThread(void *user);
 };
 
 #endif
