@@ -512,7 +512,12 @@ list(APPEND TARGETS_OWN engine-shared game-shared)
 
 # Sources
 set_glob(ENGINE_SERVER GLOB src/engine/server
+  database/connection_pool.cpp
   database/connection_pool.h
+  database/sql_connection.cpp
+  database/sql_connection.h
+  database/sql_string_helpers.cpp
+  database/sql_string_helpers.h
   register.cpp
   register.h
   server.cpp
