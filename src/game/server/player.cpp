@@ -3,12 +3,18 @@
 #include <new>
 #include <engine/shared/config.h>
 #include <teeother/tl/nlohmann_json.h>
+
+#include "entities/character.h"
+#include "entities/turret.h"
+
+#include "gamecontext.h"
+#include "gamecontroller.h"
 #include "player.h"
 
 #include "GameCore/Account/account.h"
+#include "GameCore/TWorldController.h"
 #include "bot.h"
 
-#include "entities/turret.h"
 
 MACRO_ALLOC_POOL_ID_IMPL(CPlayer, MAX_CLIENTS *ENGINE_MAX_WORLDS + MAX_CLIENTS)
 

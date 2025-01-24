@@ -1,8 +1,12 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
-#include <game/generated/protocol.h>
-#include <game/server/gamecontext.h>
 #include <engine/shared/protocol.h>
+#include <game/generated/protocol.h>
+
+#include <game/server/entities/character.h>
+#include <game/server/gamecontext.h>
+#include <game/server/player.h>
+
 #include "main.h"
 
 CGameControllerMain::CGameControllerMain(class CGameContext *pGameServer)

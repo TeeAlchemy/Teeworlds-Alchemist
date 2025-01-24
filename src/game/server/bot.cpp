@@ -3,6 +3,7 @@
 #include <engine/shared/config.h>
 #include <game/layers.h>
 #include "gamecontext.h"
+#include "gamecontroller.h"
 
 #include "botengine.h"
 

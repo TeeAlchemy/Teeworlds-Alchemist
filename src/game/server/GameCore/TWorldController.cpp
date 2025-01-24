@@ -1,5 +1,6 @@
 /* Kurosio */
 #include <game/server/gamecontext.h>
+#include <game/server/player.h>
 
 #include "TWorldController.h"
 #include "Account/account.h"

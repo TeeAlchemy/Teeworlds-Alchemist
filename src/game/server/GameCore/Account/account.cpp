@@ -3,8 +3,10 @@
 #include <engine/server/database/connection_pool.h>
 #include <engine/server/database/sql_string_helpers.h>
 #include <engine/shared/config.h>
-#include <thread>
 
+#include <game/server/GameCore/TWorldController.h>
+
+#include <thread>
 void CAccount::OnInit()
 {
 }

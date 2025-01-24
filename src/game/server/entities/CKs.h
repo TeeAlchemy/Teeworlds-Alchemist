@@ -4,7 +4,7 @@
 #define GAME_SERVER_ENTITIES_CKS
 
 #include <game/server/entity.h>
-#include <game/server/player.h>
+
 const int PhysSize = 14;
 
 class CKs : public CEntity
@@ -16,12 +16,12 @@ public:
 	virtual void Tick();
 	virtual void TickPaused();
 	virtual void Snap(int SnappingClient);
-	virtual void Picking(int Time, CPlayer *Player);
+	virtual void Picking(int Time, class CPlayer *Player);
 
 	int m_Health;
 
 	int GetMaxHealth();
-	void HandleLock(CCharacter *pChr);
+	void HandleLock(class CCharacter *pChr);
 
 private:
 	int m_CKID;

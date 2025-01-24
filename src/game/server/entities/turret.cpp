@@ -1,5 +1,8 @@
 #include <engine/shared/config.h>
+
+#include <game/server/gamecontext.h>
 #include <game/server/player.h>
+
 #include "turret.h"
 
 CTurret::CTurret(CGameWorld *pGameWorld, vec2 Pos, int Owner) : CEntity(pGameWorld, CGameWorld::ENTTYPE_TURRET, Pos)
@@ -64,4 +67,9 @@ void CTurret::Snap(int SnappingClient)
 void CTurret::Reset()
 {
     
+}
+
+int CTurret::GetLevel()
+{
+    return m_Type - ITEM_TURRET_BEGINNER;
 }

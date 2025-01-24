@@ -176,6 +176,13 @@ enum
 
 enum
 {
+	WEAPON_GAME = -3,  // team switching etc
+	WEAPON_SELF = -2,  // console kill command
+	WEAPON_WORLD = -1, // death tiles etc
+};
+
+enum
+{
 	FLAG_MISSING=-3,
 	FLAG_ATSTAND,
 	FLAG_TAKEN,
@@ -580,7 +587,7 @@ Messages = [
         [
             NetIntRange("m_Killer", 0, "MAX_CLIENTS-1"),
             NetIntRange("m_Victim", 0, "MAX_CLIENTS-1"),
-            NetIntRange("m_Weapon", -3, "NUM_WEAPONS-1"),
+            NetIntRange("m_Weapon", "WEAPON_GAME", "NUM_WEAPONS-1"),
             NetIntAny("m_ModeSpecial"),
         ],
     ),

@@ -29,6 +29,11 @@
 #include "entities/growingexplosion.h"
 
 #include "gamecontext.h"
+#include "gamecontroller.h"
+#include "gameworld.h"
+#include "player.h"
+
+#include "GameCore/TWorldController.h"
 
 enum
 {
