@@ -5,6 +5,7 @@
 #include <game/server/GameCore/TWorldComponent.h>
 #include <game/server/gamecontext.h>
 #include <base/tl/array.h>
+#include <game/server/player.h>
 
 class FaBao
 {

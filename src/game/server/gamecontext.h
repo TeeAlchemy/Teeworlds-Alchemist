@@ -12,6 +12,9 @@
 
 #include <game/layers.h>
 #include <game/voting.h>
+#include <game/collision.h>
+#include <game/gamecore.h>
+#include "gameworld.h"
 
 #include <vector>
 

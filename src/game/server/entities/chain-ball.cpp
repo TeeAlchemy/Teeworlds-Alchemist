@@ -1,5 +1,6 @@
 #include <engine/server.h>
 #include <game/server/gamecontext.h>
+#include <game/server/player.h>
 #include <game/gamecore.h>
 
 #include "chain-ball.h"

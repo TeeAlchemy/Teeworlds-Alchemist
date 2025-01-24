@@ -68,3 +68,8 @@ void CTurret::Reset()
 {
     
 }
+
+int CTurret::GetLevel()
+{
+    return m_Type - ITEM_TURRET_BEGINNER;
+}

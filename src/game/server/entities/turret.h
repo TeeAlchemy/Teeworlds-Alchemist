@@ -15,7 +15,7 @@ public:
     void Reset() override;
 
     int GetOwner() { return m_Owner; }
-    int GetLevel() { return (m_Type - ITEM_TURRET_BEGINNER); }
+    int GetLevel();
 
 private:
     int m_Type;

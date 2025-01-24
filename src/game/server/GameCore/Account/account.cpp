@@ -5,7 +5,6 @@
 #include <engine/shared/config.h>
 
 #include <game/server/GameCore/TWorldController.h>
-#include <game/server/player.h>
 
 #include <thread>
 void CAccount::OnInit()
