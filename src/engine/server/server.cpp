@@ -200,7 +200,7 @@ template <class T>
 int CServerBan::BanExt(T *pBanPool, const typename T::CDataType *pData, int Seconds, const char *pReason)
 {
 	// validate address
-	if (Server()->m_RconClientID >= 0 && Server()->m_RconClientID < MAX_CLIENTS &&
+	if (Server()->m_RconClientID >= 0 && Server()->m_RconClientID < MAX_PLAYERS &&
 		Server()->m_aClients[Server()->m_RconClientID].m_State != CServer::CClient::STATE_EMPTY)
 	{
 		if (NetMatch(pData, Server()->m_NetServer.ClientAddr(Server()->m_RconClientID)))
@@ -209,7 +209,7 @@ int CServerBan::BanExt(T *pBanPool, const typename T::CDataType *pData, int Seco
 			return -1;
 		}
 
-		for (int i = 0; i < MAX_CLIENTS; ++i)
+		for (int i = 0; i < MAX_PLAYERS; ++i)
 		{
 			if (i == Server()->m_RconClientID || Server()->m_aClients[i].m_State == CServer::CClient::STATE_EMPTY)
 				continue;
@@ -223,7 +223,7 @@ int CServerBan::BanExt(T *pBanPool, const typename T::CDataType *pData, int Seco
 	}
 	else if (Server()->m_RconClientID == IServer::RCON_CID_VOTE)
 	{
-		for (int i = 0; i < MAX_CLIENTS; ++i)
+		for (int i = 0; i < MAX_PLAYERS; ++i)
 		{
 			if (Server()->m_aClients[i].m_State == CServer::CClient::STATE_EMPTY)
 				continue;
@@ -242,7 +242,7 @@ int CServerBan::BanExt(T *pBanPool, const typename T::CDataType *pData, int Seco
 
 	// drop banned clients
 	typename T::CDataType Data = *pData;
-	for (int i = 0; i < MAX_CLIENTS; ++i)
+	for (int i = 0; i < MAX_PLAYERS; ++i)
 	{
 		if (Server()->m_aClients[i].m_State == CServer::CClient::STATE_EMPTY)
 			continue;
@@ -284,7 +284,7 @@ bool CServerBan::ConBanExt(IConsole::IResult *pResult, void *pUser)
 	if (StrAllnum(pStr))
 	{
 		int ClientID = str_toint(pStr);
-		if (ClientID < 0 || ClientID >= MAX_CLIENTS || pThis->Server()->m_aClients[ClientID].m_State == CServer::CClient::STATE_EMPTY)
+		if (ClientID < 0 || ClientID >= MAX_PLAYERS || pThis->Server()->m_aClients[ClientID].m_State == CServer::CClient::STATE_EMPTY)
 			pThis->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "net_ban", "ban error (invalid client id)");
 		else
 			pThis->BanAddr(pThis->Server()->m_NetServer.ClientAddr(ClientID), Minutes * 60, pReason);
@@ -422,7 +422,7 @@ int CServer::TrySetClientName(int ClientID, const char *pName)
 	pName = aTrimmedName;
 
 	// make sure that two clients doesn't have the same name
-	for (int i = 0; i < MAX_CLIENTS; i++)
+	for (int i = 0; i < MAX_PLAYERS; i++)
 		if (i != ClientID && m_aClients[i].m_State >= CClient::STATE_READY)
 		{
 			if (str_comp(pName, m_aClients[i].m_aName) == 0)
@@ -485,7 +485,7 @@ void CServer::Kick(int ClientID, const char *pReason)
 {
 	m_aClients[ClientID].m_Bot = false;
 
-	if (ClientID < 0 || ClientID >= MAX_CLIENTS || m_aClients[ClientID].m_State == CClient::STATE_EMPTY)
+	if (ClientID < 0 || ClientID >= MAX_PLAYERS || m_aClients[ClientID].m_State == CClient::STATE_EMPTY)
 	{
 		Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "server", "invalid client id to kick");
 		return;
@@ -506,7 +506,7 @@ void CServer::Kick(int ClientID, const char *pReason)
 
 void CServer::RedirectClient(int ClientID, int Port, bool Verbose)
 {
-	if (ClientID < 0 || ClientID >= MAX_CLIENTS)
+	if (ClientID < 0 || ClientID >= MAX_PLAYERS)
 		return;
 
 	char aBuf[512];
@@ -1110,7 +1110,7 @@ void CServer::SendRconLineAuthed(const char *pLine, void *pUser)
 		return;
 	ReentryGuard++;
 
-	for (i = 0; i < MAX_CLIENTS; i++)
+	for (i = 0; i < MAX_PLAYERS; i++)
 	{
 		if (pThis->m_aClients[i].m_State != CClient::STATE_EMPTY && pThis->m_aClients[i].m_Authed >= pThis->m_RconAuthLevel)
 			pThis->SendRconLine(i, pLine);
@@ -1137,7 +1137,7 @@ void CServer::SendRconCmdRem(const IConsole::CCommandInfo *pCommandInfo, int Cli
 
 void CServer::UpdateClientRconCommands()
 {
-	int ClientID = Tick() % MAX_CLIENTS;
+	int ClientID = Tick() % MAX_PLAYERS;
 
 	if (m_aClients[ClientID].m_State != CClient::STATE_EMPTY && m_aClients[ClientID].m_Authed)
 	{
@@ -2301,7 +2301,7 @@ int CServer::Run()
 				PacketWaiting = x > 0 ? net_socket_read_wait(m_NetServer.Socket(), x) : true;
 			}
 		
-			for (int i = 0; i < MAX_CLIENTS; ++i)
+			for (int i = 0; i < MAX_PLAYERS; ++i)
 			{
 				if (m_aClients[i].m_State == CClient::STATE_REDIRECTED)
 				{
@@ -2409,7 +2409,7 @@ bool CServer::ConLogout(IConsole::IResult *pResult, void *pUser)
 {
 	CServer *pServer = (CServer *)pUser;
 
-	if (pServer->m_RconClientID >= 0 && pServer->m_RconClientID < MAX_CLIENTS &&
+	if (pServer->m_RconClientID >= 0 && pServer->m_RconClientID < MAX_PLAYERS &&
 		pServer->m_aClients[pServer->m_RconClientID].m_State != CServer::CClient::STATE_EMPTY)
 	{
 		CMsgPacker Msg(NETMSG_RCON_AUTH_STATUS, true);
@@ -2454,7 +2454,7 @@ void CServer::ConchainModCommandUpdate(IConsole::IResult *pResult, void *pUserDa
 		pfnCallback(pResult, pCallbackUserData);
 		if (pInfo && OldAccessLevel != pInfo->GetAccessLevel())
 		{
-			for (int i = 0; i < MAX_CLIENTS; ++i)
+			for (int i = 0; i < MAX_PLAYERS; ++i)
 			{
 				if (pThis->m_aClients[i].m_State == CServer::CClient::STATE_EMPTY || pThis->m_aClients[i].m_Authed != CServer::AUTHED_MOD ||
 					(pThis->m_aClients[i].m_pRconCmdToSend && str_comp(pResult->GetString(0), pThis->m_aClients[i].m_pRconCmdToSend->m_pName) >= 0))
