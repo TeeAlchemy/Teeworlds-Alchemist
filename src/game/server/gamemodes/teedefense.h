@@ -3,7 +3,6 @@
 #ifndef GAME_SERVER_GAMEMODES_TD_H
 #define GAME_SERVER_GAMEMODES_TD_H
 #include <game/server/gamecontroller.h>
-#include <game/server/entities/tower-main.h>
 
 class CGameControllerTeeDefense : public IGameController
 {
@@ -43,6 +42,6 @@ private:
 
 	void OnZombieKill(int ClientID);
 
-	CTowerMain *m_pTower;
+	class CTowerMain *m_pTower;
 };
 #endif

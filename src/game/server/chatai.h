@@ -1,8 +1,8 @@
 #ifndef ENGINE_SHARED_CHATGLM_H
-#define ENGINE_SHARED_CHATGLM
+#define ENGINE_SHARED_CHATGLM_H
+
 #include <engine/engine.h>
 #include <engine/shared/http.h>
-#include <engine/shared/jsonwriter.h>
 
 #include "gamecontext.h"
 

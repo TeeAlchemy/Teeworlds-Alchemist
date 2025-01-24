@@ -31,21 +31,21 @@ class TWorldController
     class CAccount *m_pAcc;
 
 public:
-    TWorldController(CGameContext *pGameServer);
+    TWorldController(class CGameContext *pGameServer);
     ~TWorldController();
 
-    CGameContext *m_pGameServer;
-	CGameContext *GS() const { return m_pGameServer; }
+    class CGameContext *m_pGameServer;
+	class CGameContext *GS() const { return m_pGameServer; }
 
-    CAccount *Account() const { return m_pAcc; }
+    class CAccount *Account() const { return m_pAcc; }
 
     // global systems
 	void OnTick();
 	bool OnMessage(int MsgID, void* pRawMsg, int ClientID);
-	bool OnPlayerHandleTile(CCharacter *pChr, int IndexCollision);
+	bool OnPlayerHandleTile(class CCharacter *pChr, int IndexCollision);
 	bool OnPlayerHandleMainMenu(int ClientID, int Menulist);
 	void OnInitAccount(int ClientID);
-	bool OnParsingVoteCommands(CPlayer *pPlayer, const char *CMD, int VoteID, int VoteID2, int Get, const char *GetText);
+	bool OnParsingVoteCommands(class CPlayer *pPlayer, const char *CMD, int VoteID, int VoteID2, int Get, const char *GetText);
 	void ResetClientData(int ClientID);
 };
 

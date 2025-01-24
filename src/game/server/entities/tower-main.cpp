@@ -1,8 +1,11 @@
-#include "tower-main.h"
+
+#include <engine/shared/config.h>
+
 #include <game/server/gamecontext.h>
 #include <game/server/player.h>
-#include <new>
-#include <engine/shared/config.h>
+
+#include "character.h"
+#include "tower-main.h"
 
 #define PickupPhysSizeS 14
 #define M_PI 3.14159265358979323846

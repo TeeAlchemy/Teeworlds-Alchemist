@@ -1,13 +1,19 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
+#include <engine/shared/protocol.h>
+#include <engine/shared/config.h>
+
 #include <game/generated/protocol.h>
 #include <game/mapitems.h>
 #include <game/server/bot.h>
 #include <game/server/gamecontext.h>
+#include <game/server/player.h>
+
 #include <game/server/entities/CKs.h>
+#include <game/server/entities/tower-main.h>
 #include <game/server/GameCore/Account/account.h>
-#include <engine/shared/protocol.h>
-#include <engine/shared/config.h>
+#include <game/server/GameCore/TWorldController.h>
+
 #include "teedefense.h"
 
 CGameControllerTeeDefense::CGameControllerTeeDefense(class CGameContext *pGameServer)

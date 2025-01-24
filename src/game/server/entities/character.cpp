@@ -2,8 +2,11 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <new>
 #include <engine/shared/config.h>
-#include <game/server/gamecontext.h>
+
 #include <game/mapitems.h>
+#include <game/server/gamecontext.h>
+#include <game/server/gamecontroller.h>
+#include <game/server/player.h>
 
 #include "character.h"
 #include "laser.h"

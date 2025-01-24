@@ -4,6 +4,7 @@
 #include <game/layers.h>
 #include <game/mapitems.h>
 #include "gamecontext.h"
+#include "player.h"
 
 #include "botengine.h"
 #include "bot.h"

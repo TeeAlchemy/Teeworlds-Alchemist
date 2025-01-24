@@ -3,6 +3,7 @@
 #include <game/gamecore.h>
 
 #include "chain-ball.h"
+#include "character.h"
 
 const float dt = 0.01f;
 

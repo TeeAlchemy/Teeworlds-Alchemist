@@ -17,12 +17,7 @@
 
 #include "Item/item.h"
 #include "eventhandler.h"
-#include "gamecontroller.h"
-#include "gameworld.h"
-#include "player.h"
 #include "botengine.h"
-
-#include "GameCore/TWorldController.h"
 
 class CChatAI;
 
@@ -121,9 +116,9 @@ public:
 	class CBotEngine *BotEngine() { return m_pBotEngine; }
 
 	CEventHandler m_Events;
-	CPlayer *m_apPlayers[MAX_CLIENTS];
+	class CPlayer *m_apPlayers[MAX_CLIENTS];
 
-	IGameController *m_pController;
+	class IGameController *m_pController;
 	CGameWorld m_World;
 
 	CChatAI *m_pChatAI;
@@ -242,7 +237,7 @@ public:
 	int CountBots();
 
 	/* SQL */
-	TWorldController *TW() const { return m_pTWorldController; };
+	class TWorldController *TW() const { return m_pTWorldController; };
 
 	enum
 	{

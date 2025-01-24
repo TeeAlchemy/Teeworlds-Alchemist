@@ -9,13 +9,6 @@
 
 #include <game/gamecore.h>
 
-enum
-{
-	WEAPON_GAME = -3,  // team switching etc
-	WEAPON_SELF = -2,  // console kill command
-	WEAPON_WORLD = -1, // death tiles etc
-};
-
 class CCharacter : public CEntity
 {
 	MACRO_ALLOC_POOL_ID()

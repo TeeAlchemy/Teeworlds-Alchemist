@@ -2,9 +2,13 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                 */
 #include <game/generated/protocol.h>
 #include <game/server/gamecontext.h>
-#include "CKs.h"
+#include <game/server/player.h>
 
 #include <game/server/GameCore/Account/account.h>
+#include <game/server/GameCore/TWorldController.h>
+
+#include "character.h"
+#include "CKs.h"
 
 CKs::CKs(CGameWorld *pGameWorld, int Type, vec2 Pos)
 	: CEntity(pGameWorld, CGameWorld::ENTTYPE_PICKUP, Pos, PhysSize)

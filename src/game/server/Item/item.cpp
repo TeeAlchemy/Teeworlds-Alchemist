@@ -1,7 +1,8 @@
-#include "item.h"
 #include <game/server/gamecontext.h>
 #include <engine/external/json-parser/json.h>
 #include <teeother/tl/nlohmann_json.h>
+
+#include "item.h"
 
 CItemHelper::CItemHelper(CGameContext *pGameServer)
 {

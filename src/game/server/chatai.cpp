@@ -1,6 +1,7 @@
 // (c) ST-Chara(Daiqian Yang) 2024 - 2024
-#include <engine/shared/json.h>
 #include <engine/shared/config.h>
+#include <engine/shared/json.h>
+#include <engine/shared/jsonwriter.h>
 #include <string>
 
 #include "chatai.h"

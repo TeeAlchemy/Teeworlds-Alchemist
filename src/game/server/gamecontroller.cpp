@@ -5,9 +5,11 @@
 
 #include <game/generated/protocol.h>
 
+#include "entities/character.h"
 #include "entities/pickup.h"
 #include "gamecontroller.h"
 #include "gamecontext.h"
+#include "player.h"
 
 IGameController::IGameController(class CGameContext *pGameServer)
 {

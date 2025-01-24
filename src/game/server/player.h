@@ -3,10 +3,7 @@
 #ifndef GAME_SERVER_PLAYER_H
 #define GAME_SERVER_PLAYER_H
 
-// this include should perhaps be removed
-#include "entities/character.h"
-#include "gamecontext.h"
-
+#include "alloc.h"
 #include <map>
 
 enum EZomb
@@ -23,7 +20,7 @@ class CPlayer
 	MACRO_ALLOC_POOL_ID()
 
 public:
-	CPlayer(CGameContext *pGameServer, int ClientID, int Team);
+	CPlayer(class CGameContext *pGameServer, int ClientID, int Team);
 	~CPlayer();
 
 	void TryRespawn();
@@ -38,12 +35,12 @@ public:
 	void PostTick();
 	void Snap(int SnappingClient);
 
-	void OnDirectInput(CNetObj_PlayerInput *NewInput);
-	void OnPredictedInput(CNetObj_PlayerInput *NewInput);
+	void OnDirectInput(class CNetObj_PlayerInput *NewInput);
+	void OnPredictedInput(class CNetObj_PlayerInput *NewInput);
 	void OnDisconnect();
 
 	void KillCharacter(int Weapon = WEAPON_GAME);
-	CCharacter *GetCharacter();
+	class CCharacter *GetCharacter();
 
 	const char *GetLanguage();
 	void SetLanguage(const char *pLanguage);
@@ -155,10 +152,10 @@ public:
 	std::string GetExtraHolding(int ItemType) { return GetExtra(GetHolding(ItemType)); }
 
 private:
-	CCharacter *m_pCharacter;
-	CGameContext *m_pGameServer;
+	class CCharacter *m_pCharacter;
+	class CGameContext *m_pGameServer;
 
-	CGameContext *GameServer() const { return m_pGameServer; }
+	class CGameContext *GameServer() const { return m_pGameServer; }
 	IServer *Server() const;
 
 	//
