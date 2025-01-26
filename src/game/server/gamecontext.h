@@ -94,6 +94,8 @@ class CGameContext : public IGameServer
 	static bool ConChatAI(IConsole::IResult *pResult, void *pUserData);
 	static bool ConRegister(IConsole::IResult *pResult, void *pUserData);
 	static bool ConLogin(IConsole::IResult *pResult, void *pUserData);
+	static bool ConSetWave(IConsole::IResult *pResult, void *pUserData);
+	static bool ConSetTowerHealth(IConsole::IResult *pResult, void *pUserData);
 
 	CGameContext(int Resetting);
 	void Construct(int Resetting);

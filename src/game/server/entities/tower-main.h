@@ -18,6 +18,7 @@ public:
 
     void TakeDamage(int Dmg);
     int GetHealth() { return m_Health; }
+    void SetHealth(int Health) { m_Health = Health; }
 
 private:
     int m_FlagID;

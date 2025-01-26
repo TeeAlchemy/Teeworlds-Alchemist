@@ -151,6 +151,9 @@ public:
 
 	const char *GameType() { return m_pGameType; }
 
+	virtual void SetWave(int Wave) {};
+	virtual void SetTowerHealth(int Health) {};
+
 	bool m_IsTeamplay;
 	int m_Warmup;
 };

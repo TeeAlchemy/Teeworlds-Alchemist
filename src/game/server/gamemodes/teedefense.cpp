@@ -469,3 +469,13 @@ void CGameControllerTeeDefense::OnPlayerConnect(class CPlayer *pPlayer)
 		GameServer()->Chat(ClientID, "Server Hoster/Developer E-Mail: ilovejel@163.com");
 	}
 }
+
+void CGameControllerTeeDefense::SetWave(int Wave)
+{
+	m_Wave = clamp(Wave, 1, Wave);
+}
+
+void CGameControllerTeeDefense::SetTowerHealth(int Health)
+{
+	SetTowerHealth(clamp(Health, 1, g_Config.m_SvMaxTowerHealth));
+}

@@ -1819,6 +1819,20 @@ bool CGameContext::ConLogin(IConsole::IResult *pResult, void *pUserData)
 	return true;
 }
 
+bool CGameContext::ConSetWave(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	pSelf->m_pController->SetWave(pResult->GetInteger(0));
+	return true;
+}
+
+bool CGameContext::ConSetTowerHealth(IConsole::IResult *pResult, void *pUserData)
+{
+	CGameContext *pSelf = (CGameContext *)pUserData;
+	pSelf->m_pController->SetTowerHealth(pResult->GetInteger(0));
+	return true;
+}
+
 bool CGameContext::VotGiveItem(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -2138,6 +2152,8 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("vote", "r", CFGFLAG_SERVER, ConVote, this, "Force a vote to yes/no");
 
 	Console()->Register("skip_warmup", "", CFGFLAG_SERVER, ConSkipWarmup, this, "Skip warmup");
+	Console()->Register("td_set_wave", "i", CFGFLAG_SERVER, ConSetWave, this, "[wave] - set teedefense wave");
+	Console()->Register("td_set_tower_health", "i", CFGFLAG_SERVER, ConSetTowerHealth, this, "[health] - set teedefense tower's health");
 
 	Console()->Register("about", "", CFGFLAG_CHAT, ConAbout, this, "Show information about the mod");
 	Console()->Register("language", "?s", CFGFLAG_CHAT, ConLanguage, this, "[language code] - Select your language");

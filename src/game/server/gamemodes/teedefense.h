@@ -24,6 +24,8 @@ public:
 	bool OnEntity(int Index, vec2 Pos) override;
 	bool CanSpawn(int Team, vec2 *pPos) override;
 
+	void SetWave(int Wave) override;
+	void SetTowerHealth(int Health) override;
 	void ResetBots();
 private:
 	//Zomb2
