@@ -26,7 +26,9 @@ jobs:
         sudo apt install libmaxminddb-dev libmariadb-dev-compat libmariadb-dev libssl-dev libmysqlcppconn-dev libicu-dev build-essential cmake python3 -y
 
     - name: Build in debug mode
-      run: cmake . -DCMAKE_BUILD_TYPE=Debug
+      run: |
+        cmake . -DCMAKE_BUILD_TYPE=Debug
+        make
 
     - name: Package Debug
       if: contains(matrix.os, 'ubuntu')
