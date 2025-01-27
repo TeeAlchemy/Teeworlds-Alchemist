@@ -322,7 +322,7 @@ set(DEP_MD5 $<TARGET_OBJECTS:md5>)
 # COPY DATA AND DLLS
 ########################################################################
 
-file(COPY data server_lang maps DESTINATION .)
+file(COPY data server_lang server_items maps DESTINATION .)
 set(COPY_FILES
   ${MYSQL_COPY_FILES}
   storage.cfg
@@ -814,7 +814,7 @@ set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME ${PROJECT_NAME})
 set(CPACK_TARGETS
   ${TARGET_SERVER}
 )
-set(CPACK_DIRS data server_lang maps)
+set(CPACK_DIRS data server_lang server_items maps)
 set(CPACK_FILES
   license.txt
   storage.cfg
