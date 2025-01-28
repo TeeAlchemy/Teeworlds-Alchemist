@@ -563,6 +563,8 @@ set_glob(GAME_SERVER GLOB_RECURSE src/game/server
   entities/turret.h
   GameCore/Account/account.cpp
   GameCore/Account/account.h
+  GameCore/command_processor.cpp
+  GameCore/command_processor.h
   GameCore/TWorldComponent.h
   GameCore/TWorldController.cpp
   GameCore/TWorldController.h
@@ -579,6 +581,7 @@ set_glob(GAME_SERVER GLOB_RECURSE src/game/server
   botengine.h
   chatai.cpp
   chatai.h
+  commands.h
   entity.cpp
   entity.h
   eventhandler.cpp

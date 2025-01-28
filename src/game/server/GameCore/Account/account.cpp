@@ -97,6 +97,7 @@ static void login_thread(void *user)
 
                 Data->m_pGameServer->Chat(ClientID, "You are now logged in.");
                 Data->m_pGameServer->Broadcast(ClientID, "Welcome {}!", Data->m_pGameServer->Server()->ClientName(ClientID));
+                Data->m_pGameServer->ClearVotes(ClientID);
                 P->m_InitAcc = true;
             }
             else
@@ -150,7 +151,7 @@ static void sync_accdata_thread(void *user)
             {
                 switch (Data->m_Table)
                 {
-                case CGameContext::TABLE_ACCOUNT:
+                case TABLE_ACCOUNT:
                 {
                     P->m_AccData.m_UserID = pConn->m_pResult->getInt("UserID");
                     P->m_AccData.m_Holding[ITYPE_SWORD] = pConn->m_pResult->getInt("Sword");
@@ -163,7 +164,7 @@ static void sync_accdata_thread(void *user)
                 }
                 break;
 
-                case CGameContext::TABLE_ITEM:
+                case TABLE_ITEM:
                 {
                     str_format(aBuf, sizeof(aBuf), "SELECT * from tw_Items WHERE UserID = %d;", UserID);
                     pConn->Query(aBuf);
@@ -231,7 +232,7 @@ static void save_accdata_thread(void *user)
             {
                 switch (Data->m_Table)
                 {
-                case CGameContext::TABLE_ACCOUNT:
+                case TABLE_ACCOUNT:
                 {
                     str_format(aBuf, sizeof(aBuf), "UPDATE tw_Accounts SET "
                                                    "Username='%s',Password='%s',Language='%s',Sword=%d,Axe=%d,Pickaxe=%d "
@@ -241,7 +242,7 @@ static void save_accdata_thread(void *user)
                 }
                 break;
 
-                case CGameContext::TABLE_ITEM:
+                case TABLE_ITEM:
                 {
                     for (int i = 0; i < NUM_ITEM; i++)
                     {

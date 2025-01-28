@@ -91,7 +91,7 @@ void CKs::Picking(int Time, CPlayer *Player)
 		Player->m_AccData.m_aItems[m_Type].m_Num++;
 		GameServer()->Chat(CID, "You picked up a {}", GameServer()->ItemHelper()->GetItemName(m_Type));
 		m_Health = GetMaxHealth();
-		GameServer()->TW()->Account()->SaveAccountData(CID, CGameContext::TABLE_ITEM, Player->m_AccData);
+		GameServer()->TW()->Account()->SaveAccountData(CID, TABLE_ITEM, Player->m_AccData);
 		GameServer()->ClearVotes(CID);
 	}
 

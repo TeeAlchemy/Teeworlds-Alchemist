@@ -183,7 +183,7 @@ int CGameControllerTeeDefense::OnCharacterDeath(class CCharacter *pVictim, class
 
 			pKiller->m_AccData.m_aItems[ITEM_ZOMBIEHEART].m_Num++;
 			pKiller->m_Score++;
-			GameServer()->TW()->Account()->SaveAccountData(pKiller->GetCID(), CGameContext::TABLE_ITEM, pKiller->m_AccData);
+			GameServer()->TW()->Account()->SaveAccountData(pKiller->GetCID(), TABLE_ITEM, pKiller->m_AccData);
 			GameServer()->ClearVotes(pKiller->GetCID());
 		}
 		DoZombMessage(m_ZombLeft--);

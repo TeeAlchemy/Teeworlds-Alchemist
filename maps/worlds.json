@@ -2,17 +2,9 @@
 	{
 		"name": "Shwar",
 		"path": "TDef-Shwar.map"
-	},	
+	},
 	{
-		"name": "DM2",
-		"path": "dm2.map"
-	},	
-	{
-		"name": "DM6",
-		"path": "dm6.map"
-	},	
-	{
-		"name": "DM7",
-		"path": "dm7.map"
+		"name": "Mine-Craft",
+		"path": "Mine-Craft.map"
 	}
 ]}

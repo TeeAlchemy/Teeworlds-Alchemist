@@ -33,6 +33,7 @@ enum EVotePages
 	PAGE_CRAFT_SELECTED,
 	PAGE_EQUIPMENT,
 	PAGE_TURRET,
+	PAGE_TRAVEL_WORLD,
 };
 
 /*
@@ -61,6 +62,7 @@ class CGameContext : public IGameServer
 	class IConsole *m_pConsole;
 	class CBotEngine *m_pBotEngine;
 	class TWorldController *m_pTWorldController;
+	class CCommandProcessor* m_pCommandProcessor;
 
 	IServer *m_pServer;
 	IStorage *m_pStorage;
@@ -92,8 +94,6 @@ class CGameContext : public IGameServer
 	static bool ConLanguage(IConsole::IResult *pResult, void *pUserData);
 	static bool ConAbout(IConsole::IResult *pResult, void *pUserData);
 	static bool ConChatAI(IConsole::IResult *pResult, void *pUserData);
-	static bool ConRegister(IConsole::IResult *pResult, void *pUserData);
-	static bool ConLogin(IConsole::IResult *pResult, void *pUserData);
 	static bool ConSetWave(IConsole::IResult *pResult, void *pUserData);
 	static bool ConSetTowerHealth(IConsole::IResult *pResult, void *pUserData);
 
@@ -111,11 +111,14 @@ class CGameContext : public IGameServer
 	int m_RespawnWorldID;
 
 public:
+	class IConsole *Console() { return m_pConsole; }
+	TWorldController *TW() const { return m_pTWorldController; };
+	CCommandProcessor* CommandProcessor() const { return m_pCommandProcessor; }
 	IServer *Server() const { return m_pServer; }
 	IStorage *Storage() const { return m_pStorage; }
-	class IConsole *Console() { return m_pConsole; }
 	CCollision *Collision() { return &m_Collision; }
 	CTuningParams *Tuning() { return &m_Tuning; }
+
 	CGameContext();
 	~CGameContext();
 	class CBotEngine *BotEngine() { return m_pBotEngine; }
@@ -241,15 +244,6 @@ public:
 	int GetBotWorldID(int ClientID) override;
 	int CountBots();
 
-	/* SQL */
-	class TWorldController *TW() const { return m_pTWorldController; };
-
-	enum
-	{
-		TABLE_ACCOUNT = 0,
-		TABLE_ITEM,
-	};
-
 	struct LaserDotState
 	{
 		vec2 m_Pos0;
@@ -310,23 +304,24 @@ public:
 	template <typename... Ts>
 	void Chat(int ClientID, const char *pText, Ts &&...args)
 	{
-		CNetMsg_Sv_Chat Msg;
+		CNetMsg_Sv_Chat Msg = {};
 		Msg.m_ClientID = -1;
 		Msg.m_Team = -1;
+		//dbg_msg("dada", "%s %d", pText, m_World);
 		SendNetworkMessage<CNetMsg_Sv_Chat>(Msg, -1, ClientID, pText, std::forward<Ts>(args)...);
 	}
 
 	template <typename... Ts>
 	void Motd(int ClientID, const char *pText, Ts &&...args)
 	{
-		CNetMsg_Sv_Motd Msg;
+		CNetMsg_Sv_Motd Msg = {};
 		SendNetworkMessage<CNetMsg_Sv_Motd>(Msg, -1, ClientID, pText, std::forward<Ts>(args)...);
 	}
 
 	template <typename... Ts>
 	void Broadcast(int ClientID, const char *pText, Ts &&...args)
 	{
-		CNetMsg_Sv_Broadcast Msg;
+		CNetMsg_Sv_Broadcast Msg = {};
 		SendNetworkMessage<CNetMsg_Sv_Broadcast>(Msg, -1, ClientID, pText, std::forward<Ts>(args)...);
 	}
 
@@ -404,25 +399,14 @@ public:
 	void AddVote_Space(int Num = 1);
 	template <typename... Ts>
 	void AddVote_Text(const char *pText, Ts &&...args) { AddVote_VL("ccv_null", pText, std::forward<Ts>(args)...); }
-	void SetVoteLastPage(int Page) { m_aPlayerVotes[m_VoteClientID].m_LastPage = Page; }
+	void SetVoteLastPage(int Page) { GetPlayerVote(m_VoteClientID)->m_LastPage = Page; }
 	void SetVoteClientID(int CID) { m_VoteClientID = CID; }
 	template <typename... Ts>
-	void SetVoteExtraText(int CID, const char *pExtraText, Ts &&...args) { str_copy(m_aPlayerVotes[CID].m_aExtraText, Server()->Localization()->Format(GetClientLanguage(CID), pExtraText, std::forward<Ts>(args)...).c_str(), VOTE_DESC_LENGTH); }
+	void SetVoteExtraText(int CID, const char *pExtraText, Ts &&...args) { str_copy(GetPlayerVote(CID)->m_aExtraText, Server()->Localization()->Format(GetClientLanguage(CID), pExtraText, std::forward<Ts>(args)...).c_str(), VOTE_DESC_LENGTH); }
 
 	// Vote Engine
 	void InitVotes(int ClientID);
 	void ClearVotes(int ClientID);
-
-	static bool VotGiveItem(IConsole::IResult *pResult, void *pUserData);
-	static bool VotSelectItem(IConsole::IResult *pResult, void *pUserData);
-	static bool VotGoto(IConsole::IResult *pResult, void *pUserData);
-	static bool VotCheckItem(IConsole::IResult *pResult, void *pUserData);
-	static bool VotCraft(IConsole::IResult *pResult, void *pUserData);
-	static bool VotMake(IConsole::IResult *pResult, void *pUserData);
-	static bool VotPlace(IConsole::IResult *pResult, void *pUserData);
-	static bool VotEquip(IConsole::IResult *pResult, void *pUserData);
-	static bool VotSeparate(IConsole::IResult *pResult, void *pUserData);
-	static bool VotSetupTurret(IConsole::IResult *pResult, void *pUserData);
 
 private:
 	int m_VoteClientID;

@@ -165,6 +165,11 @@ public:
 	virtual void Chain(const char *pName, FChainCommandCallback pfnChainFunc, void *pUser);
 	virtual void StoreCommands(bool Store);
 
+	char NextParam(const char *&pFormat);
+
+	int ParseCommandArgs(const char* pArgs, const char* pFormat, FCommandCallback pfnCallback, void* pContext) override;
+	bool ArgStringIsValid(const char* pFormat) override;
+
 	virtual bool LineIsValid(const char *pStr);
 	virtual void ExecuteLine(const char *pStr, int ClientID, const char *pLanguage = "en");
 	virtual void ExecuteLineFlag(const char *pStr, int ClientID, int FlagMask, const char *pLanguage = "en");

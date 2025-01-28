@@ -139,7 +139,7 @@ void CPlayer::Tick()
 	else if (m_InitAcc && !IsBot())
 	{
 		SetTeam(TEAM_HUMAN, false);
-		GameServer()->TW()->Account()->SyncAccountData(m_ClientID, CGameContext::TABLE_ITEM);
+		GameServer()->TW()->Account()->SyncAccountData(m_ClientID, TABLE_ITEM);
 		m_InitAcc = false;
 	}
 }

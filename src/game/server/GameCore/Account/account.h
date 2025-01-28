@@ -7,6 +7,12 @@
 #include <base/tl/array.h>
 #include <game/server/player.h>
 
+enum
+{
+    TABLE_ACCOUNT = 0,
+    TABLE_ITEM,
+};
+
 class FaBao
 {
 public:

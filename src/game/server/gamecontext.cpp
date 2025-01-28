@@ -19,6 +19,7 @@
 #include <teeother/tl/nlohmann_json.h>
 #include <teeother/components/localization.h>
 
+#include "GameCore/command_processor.h"
 #include "GameCore/Account/account.h"
 #include "Item/item.h"
 #include "chatai.h"
@@ -58,6 +59,7 @@ void CGameContext::Construct(int Resetting)
 	m_LockTeams = 0;
 	m_ConsoleOutputHandle_ChatPrint = -1;
 	m_ConsoleOutput_Target = -1;
+	m_pCommandProcessor = nullptr;
 
 	if (Resetting == NO_RESET)
 		m_pVoteOptionHeap = new CHeap();
@@ -92,6 +94,7 @@ CGameContext::~CGameContext()
 	delete m_pBotEngine;
 	delete m_pController;
 	delete m_pTWorldController;
+	delete m_pCommandProcessor;
 	delete m_pItemHelper;
 	delete m_pChatAI;
 }
@@ -144,7 +147,7 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 	if (!GetPlayer(Owner))
 		return;
 
-	if(rand() % g_Config.m_SvGESnapTime == 0)
+	if (rand() % g_Config.m_SvGESnapTime == 0)
 	{
 		// create the event
 		CNetEvent_Explosion *pEvent = m_Events.Create<CNetEvent_Explosion>(Mask);
@@ -166,7 +169,7 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 		{
 			if (GetPlayer(Owner)->GetTeam() == apEnts[i]->GetPlayer()->GetTeam())
 				continue;
-			
+
 			vec2 Diff = apEnts[i]->GetPos() - Pos;
 			vec2 ForceDir(0, 1);
 			float l = length(Diff);
@@ -771,67 +774,22 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			if (g_Config.m_SvSpamprotection && pPlayer->m_LastChat && pPlayer->m_LastChat + Server()->TickSpeed() > Server()->Tick())
 				return;
 
-			CNetMsg_Cl_Say *pMsg = (CNetMsg_Cl_Say *)pRawMsg;
-			int Team = pMsg->m_Team ? pPlayer->GetTeam() : CGameContext::CHAT_ALL;
-
-			// trim right and set maximum length to 128 utf8-characters
-			int Length = 0;
-			const char *p = pMsg->m_pMessage;
-			const char *pEnd = 0;
-			while (*p)
-			{
-				const char *pStrOld = p;
-				int Code = str_utf8_decode(&p);
-
-				// check if unicode is not empty
-				if (Code > 0x20 && Code != 0xA0 && Code != 0x034F && (Code < 0x2000 || Code > 0x200F) && (Code < 0x2028 || Code > 0x202F) &&
-					(Code < 0x205F || Code > 0x2064) && (Code < 0x206A || Code > 0x206F) && (Code < 0xFE00 || Code > 0xFE0F) &&
-					Code != 0xFEFF && (Code < 0xFFF9 || Code > 0xFFFC))
-				{
-					pEnd = 0;
-				}
-				else if (pEnd == 0)
-					pEnd = pStrOld;
-
-				if (++Length >= 127)
-				{
-					*(const_cast<char *>(p)) = 0;
-					break;
-				}
-			}
-			if (pEnd != 0)
-				*(const_cast<char *>(pEnd)) = 0;
-
-			// drop empty and autocreated spam messages (more than 16 characters per second)
-			if (Length == 0 || (pMsg->m_pMessage[0] != '/' && g_Config.m_SvSpamprotection && pPlayer->m_LastChat && pPlayer->m_LastChat + Server()->TickSpeed() * ((15 + Length) / 16) > Server()->Tick()))
+			// initialize variables
+			const auto pMsg = (CNetMsg_Cl_Say*)pRawMsg;
+			if(!str_utf8_check(pMsg->m_pMessage))
 				return;
+
+			int Team = pMsg->m_Team ? pPlayer->GetTeam() : CGameContext::CHAT_ALL;
 
 			pPlayer->m_LastChat = Server()->Tick();
 
-			if (pMsg->m_pMessage[0] == '/' || pMsg->m_pMessage[0] == '\\')
-			{
-				switch (m_apPlayers[ClientID]->m_Authed)
-				{
-				case IServer::AUTHED_ADMIN:
-					Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_ADMIN);
-					break;
-				case IServer::AUTHED_MOD:
-					Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_MOD);
-					break;
-				default:
-					Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_USER);
-				}
-
-				m_ConsoleOutput_Target = ClientID;
-
-				Console()->ExecuteLineFlag(pMsg->m_pMessage + 1, ClientID, CFGFLAG_CHAT, m_apPlayers[ClientID]->GetLanguage());
-
-				m_ConsoleOutput_Target = -1;
-
-				Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_ADMIN);
-			}
+			// check message
+			const auto firstChar = pMsg->m_pMessage[0];
+			if(firstChar == '/')
+				CommandProcessor()->Process(pMsg->m_pMessage, pPlayer, CFGFLAG_CHAT);
 			else
-				SendChat(ClientID, Team, pMsg->m_pMessage);
+				SendChat(ClientID, CHAT_ALL, pMsg->m_pMessage);
+			return;
 		}
 		else if (MsgID == NETMSGTYPE_CL_CALLVOTE)
 		{
@@ -843,12 +801,12 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 
 			if (str_comp_nocase(pMsg->m_pType, "option") == 0)
 			{
-				for (int i = 0; i < m_aPlayerVotes[ClientID].m_aVoteOptions.size(); ++i)
+				for (int i = 0; i < GetPlayerVote(ClientID)->m_aVoteOptions.size(); ++i)
 				{
-					if (str_comp_nocase(pMsg->m_pValue, m_aPlayerVotes[ClientID].m_aVoteOptions[i].m_aDescription) == 0)
+					if (str_comp_nocase(pMsg->m_pValue, GetPlayerVote(ClientID)->m_aVoteOptions[i].m_aDescription) == 0)
 					{
-						str_format(aDesc, sizeof(aDesc), "%s", m_aPlayerVotes[ClientID].m_aVoteOptions[i].m_aDescription);
-						str_format(aCmd, sizeof(aCmd), "%s", m_aPlayerVotes[ClientID].m_aVoteOptions[i].m_aCommand);
+						str_format(aDesc, sizeof(aDesc), "%s", GetPlayerVote(ClientID)->m_aVoteOptions[i].m_aDescription);
+						str_format(aCmd, sizeof(aCmd), "%s", GetPlayerVote(ClientID)->m_aVoteOptions[i].m_aCommand);
 					}
 				}
 			}
@@ -860,21 +818,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			}
 			else if (Command.find("ccv_") == 0)
 			{
-				switch (m_apPlayers[ClientID]->m_Authed)
-				{
-				case IServer::AUTHED_ADMIN:
-					Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_ADMIN);
-					break;
-				case IServer::AUTHED_MOD:
-					Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_MOD);
-					break;
-				default:
-					Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_USER);
-				}
-
-				Console()->ExecuteLineFlag(aCmd + 4, ClientID, CFGFLAG_VOTE);
-				Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_ADMIN);
-
+				CommandProcessor()->Process(aCmd + 3, pPlayer, CFGFLAG_VOTE);
 				return;
 			}
 
@@ -1761,64 +1705,6 @@ bool CGameContext::ConChatAI(IConsole::IResult *pResult, void *pUserData)
 	return true;
 }
 
-bool CGameContext::ConRegister(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-
-	if (pSelf->GetPlayer(pResult->GetClientID())->LoggedIn())
-	{
-		pSelf->Chat(pResult->GetClientID(), "You're already logged in.");
-		return true;
-	}
-
-	if (pResult->NumArguments() != 2)
-	{
-		pSelf->Chat(pResult->GetClientID(), "Usage: /register <username> <password>");
-		return false;
-	}
-
-	char Username[64];
-	char Password[64];
-	str_copy(Username, pResult->GetString(0), sizeof(Username));
-	str_copy(Password, pResult->GetString(1), sizeof(Password));
-
-	if (str_length(Username) > 15 || str_length(Username) < 2 || str_length(Password) > 15 || str_length(Password) < 2)
-	{
-		pSelf->Chat(pResult->GetClientID(), "Username / Password must be 2-15 characters");
-		return true;
-	}
-
-	pSelf->TW()->Account()->Register(pResult->GetClientID(), Username, Password);
-
-	return true;
-}
-
-bool CGameContext::ConLogin(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	if (pSelf->GetPlayer(pResult->GetClientID())->LoggedIn())
-	{
-		pSelf->Chat(pResult->GetClientID(), "You're already logged in.");
-		return false;
-	}
-
-	if (pResult->NumArguments() != 2)
-	{
-		pSelf->Chat(pResult->GetClientID(), "usage: /login <username> <password>");
-		return false;
-	}
-
-	char Username[64];
-	char Password[64];
-	str_copy(Username, pResult->GetString(0), sizeof(Username));
-	str_copy(Password, pResult->GetString(1), sizeof(Password));
-
-	pSelf->TW()->Account()->Login(pResult->GetClientID(), Username, Password);
-	pSelf->ClearVotes(pResult->GetClientID());
-
-	return true;
-}
-
 bool CGameContext::ConSetWave(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
@@ -1833,293 +1719,14 @@ bool CGameContext::ConSetTowerHealth(IConsole::IResult *pResult, void *pUserData
 	return true;
 }
 
-bool CGameContext::VotGiveItem(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	if (!pSelf->GetPlayer(pResult->GetInteger(0)) || !pSelf->GetPlayer(pResult->GetClientID()) || !pSelf->GetPlayer(pResult->GetClientID())->m_Authed)
-		return true;
 
-	pSelf->GetPlayer(pResult->GetInteger(0))->m_AccData.m_aItems[pResult->GetInteger(1)].m_Num += pResult->GetInteger(2);
-	pSelf->TW()->Account()->SaveAccountData(pResult->GetInteger(0), CGameContext::TABLE_ITEM, pSelf->GetPlayer(pResult->GetInteger(0))->m_AccData);
-	pSelf->ClearVotes(pResult->GetInteger(0));
-	return true;
-}
-
-bool CGameContext::VotSelectItem(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->GetPlayerVote(pResult->GetClientID())->m_Select[pResult->GetInteger(0)] = pResult->GetInteger(1);
-	pSelf->ClearVotes(pResult->GetClientID());
-	return true;
-}
-
-bool CGameContext::VotGoto(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->m_aPlayerVotes[pResult->GetClientID()].m_Page = pResult->GetInteger(0);
-	pSelf->m_aPlayerVotes[pResult->GetClientID()].m_Confirm = false;
-	pSelf->ClearVotes(pResult->GetClientID());
-	return true;
-}
-
-bool CGameContext::VotCraft(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->m_aPlayerVotes[pResult->GetClientID()].m_Page = PAGE_CRAFT_SELECTED;
-	pSelf->m_aPlayerVotes[pResult->GetClientID()].m_Select[SPlayerVote::ITEM] = pResult->GetInteger(0);
-	pSelf->ClearVotes(pResult->GetClientID());
-	return true;
-}
-
-bool CGameContext::VotMake(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-
-	int ClientID = pResult->GetClientID();
-	CPlayer *pPlayer = pSelf->GetPlayer(ClientID);
-	if (!pPlayer)
-		return false;
-
-	int Item = pSelf->m_aPlayerVotes[ClientID].m_Select[SPlayerVote::ITEM];
-
-	if (pSelf->ItemHelper()->GetMax(Item) && pPlayer->m_AccData.m_aItems[Item].m_Num >= pSelf->ItemHelper()->GetMax(Item))
-	{
-		pSelf->SetVoteExtraText(ClientID, "You have reached the limit");
-		if (pPlayer->GetCharacter())
-			pSelf->CreateSoundGlobal(SOUND_WEAPON_NOAMMO, ClientID);
-		return true;
-	}
-	// Check formula
-	bool IsOK = true;
-	for (int Checked = 0; Checked < 2; Checked++)
-	{
-		for (int i = 0; i < NUM_ITEM; i++)
-		{
-			if (Checked && IsOK)
-			{
-				if (pSelf->Items(Item)->m_Formula[i])
-					pPlayer->m_AccData.m_aItems[i].m_Num -= pSelf->Items(Item)->m_Formula[i];
-			}
-			else
-			{
-				if (pSelf->Items(Item)->m_Formula[i] > 0 && nlohmann::json::accept(pPlayer->m_AccData.m_aItems[i].m_aExtra))
-				{
-					nlohmann::json Json = nlohmann::json::parse(pPlayer->m_AccData.m_aItems[i].m_aExtra);
-					if(!Json["Extra"]["Cards"].empty() || !Json["Extra"]["Parts"].empty())
-					{
-						IsOK = false;
-						pSelf->SetVoteExtraText(ClientID, "This item({}) contains cards/parts!", pSelf->ItemHelper()->GetItemName(i));
-						break;
-					}
-				}
-				if (pSelf->Items(Item)->m_Formula[i] > pPlayer->m_AccData.m_aItems[i].m_Num)
-				{
-					IsOK = false;
-					pSelf->SetVoteExtraText(ClientID, "You don't have enough materials to make it.");
-					break;
-				}
-			}
-		}
-	}
-
-	if (IsOK)
-	{
-		pPlayer->m_AccData.m_aItems[Item].m_Num++;
-		pSelf->SetVoteExtraText(ClientID, "You have successfully make a {}!", pSelf->Items(Item)->m_aItemName);
-		pSelf->TW()->Account()->SaveAccountData(ClientID, TABLE_ITEM, pPlayer->m_AccData);
-		pSelf->CreateSoundGlobal(SOUND_CTF_CAPTURE, ClientID);
-	}
-	else
-		pSelf->CreateSoundGlobal(SOUND_TEE_CRY, ClientID);
-
-	pSelf->ClearVotes(pResult->GetClientID());
-	return true;
-}
-
-bool CGameContext::VotPlace(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	int ClientID = pResult->GetClientID();
-	CPlayer *pPlayer = pSelf->GetPlayer(ClientID);
-	if (!pPlayer)
-		return false;
-
-	/*if (!pSelf->m_aPlayerVotes[ClientID].m_Confirm)
-	{
-		pSelf->SetVoteExtraText(ClientID, "Are you sure?(This will not be reversible)");
-		pSelf->m_aPlayerVotes[ClientID].m_Confirm = true;
-		pSelf->ClearVotes(pResult->GetClientID());
-		return true;
-	}*/
-
-	int Select = pResult->GetInteger(0);
-	std::string Type = pResult->GetString(1);
-	int Card = pResult->GetInteger(2);
-	pSelf->SetVoteExtraText(ClientID, "You placed {} on {}!", pSelf->ItemHelper()->GetItemName(Card), pSelf->ItemHelper()->GetItemName(Select));
-
-	int Capacity = pSelf->ItemHelper()->GetMaxCapacity(Card);
-	int ExistCard = -1;
-
-	if (!nlohmann::json::accept(pPlayer->m_AccData.m_aItems[Select].m_aExtra))
-	{
-		pSelf->SetVoteExtraText(ClientID, "BUG! Contact Admin.");
-		pSelf->ClearVotes(pResult->GetClientID());
-		return true;
-	}
-
-	nlohmann::json Json = nlohmann::json::parse(pPlayer->m_AccData.m_aItems[Select].m_aExtra);
-	if (!Json["Extra"].contains(Type) || Json["Extra"][Type].empty())
-	{
-		if (Capacity <= pSelf->ItemHelper()->GetMaxCapacity(Select))
-		{
-			Json["Extra"][Type].push_back({{"id", Card}, {"num", 1}});
-			pPlayer->m_AccData.m_aItems[Select].m_aExtra = Json.dump();
-			pPlayer->m_AccData.m_aItems[Select].m_Capacity = Capacity;
-			// pSelf->m_aPlayerVotes[ClientID].m_Confirm = false;
-
-			pPlayer->m_AccData.m_aItems[Card].m_Num--;
-
-			pSelf->TW()->Account()->SaveAccountData(ClientID, TABLE_ITEM, pPlayer->m_AccData);
-			pSelf->ClearVotes(pResult->GetClientID());
-			pSelf->CreateSoundGlobal(SOUND_CTF_CAPTURE, ClientID);
-			return true;
-		}
-		else
-			pSelf->SetVoteExtraText(ClientID, "Not enough capacity!");
-		return false;
-	}
-	else
-	{
-		int CurrentIndex = -1;
-		for (const auto &j : Json["Extra"][Type])
-		{
-			CurrentIndex++;
-			Capacity += pSelf->ItemHelper()->GetMaxCapacity(int(j["id"])) * int(j["num"]);
-			if (j["id"] == Card)
-				ExistCard = CurrentIndex;
-		}
-	}
-
-	if (Capacity <= pSelf->ItemHelper()->GetMaxCapacity(Select))
-	{
-		if (ExistCard != -1)
-		{
-			if (Json["Extra"][Type][ExistCard]["num"] >= pSelf->ItemHelper()->GetMaxPlace(ExistCard))
-			{
-				pSelf->SetVoteExtraText(ClientID, "You have reached the limit");
-				pSelf->ClearVotes(pResult->GetClientID());
-				pSelf->CreateSoundGlobal(SOUND_WEAPON_NOAMMO, ClientID);
-				return true;
-			}
-			Json["Extra"][Type][ExistCard]["num"] = int(Json["Extra"][Type][ExistCard]["num"]) + 1;
-		}
-		else
-			Json["Extra"][Type].push_back({{"id", Card}, {"num", 1}});
-		pPlayer->m_AccData.m_aItems[Select].m_aExtra = Json.dump();
-		pPlayer->m_AccData.m_aItems[Select].m_Capacity = Capacity;
-		pPlayer->m_AccData.m_aItems[Card].m_Num--;
-		pSelf->CreateSoundGlobal(SOUND_CTF_CAPTURE, ClientID);
-	}
-	else
-	{
-		pSelf->SetVoteExtraText(ClientID, "Not enough capacity!");
-		pSelf->CreateSoundGlobal(SOUND_WEAPON_NOAMMO, ClientID);
-	}
-
-	// pSelf->m_aPlayerVotes[ClientID].m_Confirm = false;
-
-	pSelf->TW()->Account()->SaveAccountData(ClientID, TABLE_ITEM, pPlayer->m_AccData);
-	pSelf->ClearVotes(pResult->GetClientID());
-	return true;
-}
-
-bool CGameContext::VotCheckItem(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	pSelf->m_aPlayerVotes[pResult->GetClientID()].m_Page = PAGE_CHECK_ITEM;
-	pSelf->m_aPlayerVotes[pResult->GetClientID()].m_Select[SPlayerVote::ITEM] = pResult->GetInteger(0);
-	pSelf->ClearVotes(pResult->GetClientID());
-	return true;
-}
-
-bool CGameContext::VotEquip(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	int CID = pResult->GetClientID();
-	pSelf->GetPlayer(CID)->m_AccData.m_Holding[pSelf->ItemHelper()->GetType(pResult->GetInteger(0))] = pResult->GetInteger(0);
-	pSelf->CreateSoundGlobal(SOUND_PICKUP_NINJA, CID);
-	pSelf->SetVoteExtraText(CID, "You have successfully equipped the {}", pSelf->ItemHelper()->GetItemName(pResult->GetInteger(0)));
-	pSelf->ClearVotes(CID);
-	pSelf->TW()->Account()->SaveAccountData(CID, TABLE_ACCOUNT, pSelf->GetPlayer(CID)->m_AccData);
-	return true;
-}
-
-bool CGameContext::VotSeparate(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	int CID = pResult->GetClientID();
-	int Select = pResult->GetInteger(0);
-	std::string Type = pResult->GetString(1);
-	int Item = pResult->GetInteger(2);
-
-	if (!nlohmann::json::accept(pSelf->GetPlayer(CID)->GetExtra(Select)))
-	{
-		pSelf->TW()->Account()->SaveAccountData(CID, TABLE_ITEM, pSelf->GetPlayer(CID)->m_AccData);
-		pSelf->Server()->Kick(CID, "服务器出现错误！请联系开发者QQ:1562151175！感谢！");
-		return true;
-	}
-
-	nlohmann::json Json = nlohmann::json::parse(pSelf->GetPlayer(CID)->GetExtra(Select));
-
-	if (Json["Extra"].contains(Type) && !Json["Extra"][Type].empty())
-	{
-		int ToBeRemove = 0;
-		for (const auto &j : Json["Extra"][Type])
-		{
-			if (Item == int(j["id"]))
-			{
-				pSelf->SetVoteExtraText(CID, "You separate {} from {}!", pSelf->ItemHelper()->GetItemName(int(j["id"])), pSelf->ItemHelper()->GetItemName(Select));
-
-				if (int(j["num"]) > 1)
-					Json["Extra"][Type][ToBeRemove]["num"] = int(Json["Extra"][Type][ToBeRemove]["num"]) - 1;
-				else
-					Json["Extra"][Type].erase(ToBeRemove);
-
-				pSelf->GetPlayer(CID)->SetExtra(Select, Json.dump());
-				pSelf->GetPlayer(CID)->m_AccData.m_aItems[Item].m_Num++;
-				break;
-			}
-			ToBeRemove++;
-		}
-	}
-	else
-	{
-		pSelf->TW()->Account()->SaveAccountData(CID, TABLE_ITEM, pSelf->GetPlayer(CID)->m_AccData);
-		pSelf->Server()->Kick(CID, "服务器出现错误！请联系开发者QQ:1562151175！感谢！");
-		return true;
-	}
-
-	pSelf->CreateSoundGlobal(SOUND_CTF_RETURN, CID);
-	pSelf->TW()->Account()->SaveAccountData(CID, TABLE_ITEM, pSelf->GetPlayer(CID)->m_AccData);
-	pSelf->ClearVotes(CID);
-	return true;
-}
-
-bool CGameContext::VotSetupTurret(IConsole::IResult *pResult, void *pUserData)
-{
-	CGameContext *pSelf = (CGameContext *)pUserData;
-	if (pSelf->GetPlayer(pResult->GetClientID()))
-		pSelf->GetPlayer(pResult->GetClientID())->CreateTurret();
-	pSelf->ClearVotes(pResult->GetClientID());
-	return true;
-}
 
 bool CGameContext::ConSkipWarmup(IConsole::IResult *pResult, void *pUserData)
 {
 	CGameContext *pSelf = (CGameContext *)pUserData;
 	if (pSelf->m_pController->m_Warmup)
 		pSelf->m_pController->m_Warmup = 1;
-	
+
 	return true;
 }
 
@@ -2158,21 +1765,6 @@ void CGameContext::OnConsoleInit()
 	Console()->Register("about", "", CFGFLAG_CHAT, ConAbout, this, "Show information about the mod");
 	Console()->Register("language", "?s", CFGFLAG_CHAT, ConLanguage, this, "[language code] - Select your language");
 	Console()->Register("askai", "s", CFGFLAG_CHAT, ConChatAI, this, "[ask] - Ask Chat AI");
-
-	Console()->Register("register", "ss", CFGFLAG_CHAT, ConRegister, this, "[username] [password] - Register account");
-	Console()->Register("login", "ss", CFGFLAG_CHAT, ConLogin, this, "[username] [password] - Login your account");
-
-	Console()->Register("giveitem", "iii", CFGFLAG_CHAT, VotGiveItem, this, "[clientid] [itemid] [numitem] - Give item");
-
-	Console()->Register("selectitem", "ii", CFGFLAG_VOTE, VotSelectItem, this, "[][] - Select");
-	Console()->Register("goto", "i", CFGFLAG_VOTE, VotGoto, this, "[page] - Go to a vote page");
-	Console()->Register("craft", "i", CFGFLAG_VOTE, VotCraft, this, "[item] - Craft something");
-	Console()->Register("make", "", CFGFLAG_VOTE, VotMake, this, "make - Confirm to make something");
-	Console()->Register("checkitem", "i", CFGFLAG_VOTE, VotCheckItem, this, "[item] - Confirm to make something");
-	Console()->Register("place", "isi", CFGFLAG_VOTE, VotPlace, this, "[item][type][card] - Place card");
-	Console()->Register("equip", "i", CFGFLAG_VOTE, VotEquip, this, "[item] - Equip");
-	Console()->Register("separate", "isi", CFGFLAG_VOTE, VotSeparate, this, "[item][type][card] - Separate Card");
-	Console()->Register("setupturret", "", CFGFLAG_VOTE, VotSetupTurret, this, "do it - Set up a turret");
 
 	Console()->Chain("sv_motd", ConchainSpecialMotdupdate, this);
 
@@ -2220,6 +1812,9 @@ void CGameContext::OnInit(int WorldID)
 	m_pController->InitBots();
 
 	ItemHelper()->LoadIndex();
+
+	// initialize
+	m_pCommandProcessor = new CCommandProcessor(this);
 }
 
 void CGameContext::OnShutdown()
@@ -2486,7 +2081,7 @@ void CGameContext::AddVote(const char *Desc, const char *Cmd, int ClientID)
 	SPlayerVote::SVoteOptions Vote;
 	str_copy(Vote.m_aDescription, Desc, sizeof(Vote.m_aDescription));
 	str_copy(Vote.m_aCommand, Cmd, sizeof(Vote.m_aCommand));
-	m_aPlayerVotes[ClientID].m_aVoteOptions.add(Vote);
+	GetPlayerVote(ClientID)->m_aVoteOptions.add(Vote);
 
 	// inform clients about added option
 	CNetMsg_Sv_VoteOptionAdd OptionMsg;
@@ -2651,7 +2246,7 @@ void CGameContext::AddVote_Back()
 	if (!PlayerExists(m_VoteClientID))
 		return;
 
-	AddVote_Goto(m_aPlayerVotes[m_VoteClientID].m_LastPage, "⏎ Back");
+	AddVote_Goto(GetPlayerVote(m_VoteClientID)->m_LastPage, "⏎ Back");
 }
 
 void CGameContext::AddVote_Space(int Num)
@@ -2672,11 +2267,11 @@ void CGameContext::InitVotes(int ClientID)
 	SetVoteClientID(ClientID);
 
 	CPlayer::SAccData Data = pP->m_AccData;
-	SPlayerVote PlayerVote = m_aPlayerVotes[ClientID];
-	int Page = PlayerVote.m_Page;
+	SPlayerVote *PlayerVote = GetPlayerVote(ClientID);
+	int Page = PlayerVote->m_Page;
 	std::string ItemLists[NUM_ITYPE] = {"Pickaxe", "Axe", "Sword", "Turret", "Material", "Card"};
 
-	AddVote_Text("# Global-Notice: {}", PlayerVote.m_aExtraText);
+	AddVote_Text("# Global-Notice: {}", PlayerVote->m_aExtraText);
 	AddVote_Text("===");
 	switch (Page)
 	{
@@ -2691,6 +2286,7 @@ void CGameContext::InitVotes(int ClientID)
 		AddVote_Goto(PAGE_CRAFT, "☞ Craft ☺");
 		AddVote_Goto(PAGE_EQUIPMENT, "☞ Equipment ☭");
 		AddVote_Goto(PAGE_TURRET, "☞ Turret ☯");
+		AddVote_Goto(PAGE_TRAVEL_WORLD, "☞ Travel ☮");
 		AddVote_Space();
 		AddVote_VL("skip_warmup", "-> Skip Warmup*");
 	}
@@ -2705,7 +2301,7 @@ void CGameContext::InitVotes(int ClientID)
 		CountItemNum(ClientID);
 		for (int i = 0; i < NUM_ITYPE; i++)
 		{
-			if (PlayerVote.m_Select[SPlayerVote::ITEMLIST] != i)
+			if (PlayerVote->m_Select[SPlayerVote::ITEMLIST] != i)
 			{
 				char aCmd[64];
 				str_format(aCmd, sizeof(aCmd), "ccv_selectitem %d %d", SPlayerVote::ITEMLIST, i);
@@ -2717,13 +2313,13 @@ void CGameContext::InitVotes(int ClientID)
 		AddVote_Space();
 		AddVote_Back();
 		AddVote_Text("---------------------");
-		AddVote_ListInventory(PlayerVote.m_Select[SPlayerVote::EVoteSelect::ITEMLIST], "ccv_checkitem");
+		AddVote_ListInventory(PlayerVote->m_Select[SPlayerVote::EVoteSelect::ITEMLIST], "ccv_checkitem");
 	}
 	break;
 
 	case PAGE_CHECK_ITEM:
 	{
-		int SelectItem = PlayerVote.m_Select[SPlayerVote::ITEM];
+		int SelectItem = PlayerVote->m_Select[SPlayerVote::ITEM];
 		char aCmd[64];
 		int Capacity = ItemHelper()->GetCapacity(pP->GetExtra(SelectItem));
 		pP->m_AccData.m_aItems[SelectItem].m_Capacity = Capacity;
@@ -2763,7 +2359,7 @@ void CGameContext::InitVotes(int ClientID)
 		AddVote_Space();
 		for (int i = 0; i < NUM_ITYPE; i++)
 		{
-			if (PlayerVote.m_Select[SPlayerVote::ITEMLIST] != i)
+			if (PlayerVote->m_Select[SPlayerVote::ITEMLIST] != i)
 			{
 				char aCmd[64];
 				str_format(aCmd, sizeof(aCmd), "ccv_selectitem %d %d", SPlayerVote::ITEMLIST, i);
@@ -2775,7 +2371,7 @@ void CGameContext::InitVotes(int ClientID)
 		AddVote_Space();
 		AddVote_Back();
 		AddVote_Text("---------------------");
-		AddVote_ListCraft(PlayerVote.m_Select[SPlayerVote::ITEMLIST]);
+		AddVote_ListCraft(PlayerVote->m_Select[SPlayerVote::ITEMLIST]);
 	}
 	break;
 
@@ -2784,12 +2380,12 @@ void CGameContext::InitVotes(int ClientID)
 		SetVoteLastPage(PAGE_CRAFT);
 		AddVote_Text("☪ Craft");
 		AddVote_Space();
-		AddVote_Text("Item: {}", Items(PlayerVote.m_Select[SPlayerVote::ITEM])->m_aItemName);
-		AddVote_Text("Description: {}", Items(PlayerVote.m_Select[SPlayerVote::ITEM])->m_aItemDesc);
-		AddVote_Text("You have: {}", Data.m_aItems[PlayerVote.m_Select[SPlayerVote::ITEM]].m_Num);
+		AddVote_Text("Item: {}", Items(PlayerVote->m_Select[SPlayerVote::ITEM])->m_aItemName);
+		AddVote_Text("Description: {}", Items(PlayerVote->m_Select[SPlayerVote::ITEM])->m_aItemDesc);
+		AddVote_Text("You have: {}", Data.m_aItems[PlayerVote->m_Select[SPlayerVote::ITEM]].m_Num);
 		AddVote_Text("㊮ Formula:");
 		AddVote_Text("---");
-		AddVote_ListFormula(PlayerVote.m_Select[SPlayerVote::ITEM]);
+		AddVote_ListFormula(PlayerVote->m_Select[SPlayerVote::ITEM]);
 		AddVote_Text("===");
 		AddVote_VL("ccv_make", "- Craft!");
 		AddVote_Space(2);
@@ -2812,7 +2408,7 @@ void CGameContext::InitVotes(int ClientID)
 			if (i != ITYPE_PICKAXE && i != ITYPE_AXE && i != ITYPE_SWORD)
 				continue;
 
-			if (PlayerVote.m_Select[SPlayerVote::EQUIPMENT] != i)
+			if (PlayerVote->m_Select[SPlayerVote::EQUIPMENT] != i)
 			{
 				char aCmd[64];
 				str_format(aCmd, sizeof(aCmd), "ccv_selectitem %d %d", SPlayerVote::EQUIPMENT, i);
@@ -2824,7 +2420,7 @@ void CGameContext::InitVotes(int ClientID)
 		AddVote_Space();
 		AddVote_Back();
 		AddVote_Text("---------------------");
-		AddVote_ListInventory(PlayerVote.m_Select[SPlayerVote::EVoteSelect::EQUIPMENT], "ccv_equip", true);
+		AddVote_ListInventory(PlayerVote->m_Select[SPlayerVote::EVoteSelect::EQUIPMENT], "ccv_equip", true);
 	}
 	break;
 
@@ -2845,7 +2441,7 @@ void CGameContext::InitVotes(int ClientID)
 		{
 			if (!pP->m_pTurret)
 			{
-				//AddVote_VL("ccv_setupturret", "⎋ Set up Turret");
+				// AddVote_VL("ccv_setupturret", "⎋ Set up Turret");
 				AddVote_Space();
 			}
 
@@ -2875,6 +2471,24 @@ void CGameContext::InitVotes(int ClientID)
 	}
 	break;
 
+	case PAGE_TRAVEL_WORLD:
+	{
+		SetVoteLastPage(PAGE_MENU);
+		AddVote_Text("☪ Travel");
+		AddVote_Text("Transfer to other worlds");
+		AddVote_Space();
+
+		for (int i = 0; i < Server()->GetWorldsSize(); i++)
+		{
+			char aBuf[16];
+			str_format(aBuf, sizeof(aBuf), "ccv_travel %d", i);
+			AddVote_VL(aBuf, "◁ {}", Server()->GetWorldName(i));
+		}
+		AddVote_Space();
+		AddVote_Back();
+	}
+	break;
+
 	default:
 		break;
 	}
@@ -2884,7 +2498,7 @@ void CGameContext::InitVotes(int ClientID)
 
 void CGameContext::ClearVotes(int ClientID)
 {
-	m_aPlayerVotes[ClientID].m_aVoteOptions.clear();
+	GetPlayerVote(ClientID)->m_aVoteOptions.clear();
 
 	// send vote options
 	CNetMsg_Sv_VoteClearOptions ClearMsg;
