@@ -273,7 +273,7 @@ bool CCommandProcessor::VotPlace(IConsole::IResult *pResult, void *pUserData)
 	{
 		if (ExistCard != -1)
 		{
-			if (Json["Extra"][Type][ExistCard]["num"] >= pGS->ItemHelper()->GetMaxPlace(ExistCard))
+			if (Json["Extra"][Type][ExistCard].at("num") >= pGS->ItemHelper()->GetMaxPlace(Card))
 			{
 				pGS->SetVoteExtraText(ClientID, "You have reached the limit");
 				pGS->ClearVotes(pResult->GetClientID());
