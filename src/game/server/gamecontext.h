@@ -19,6 +19,8 @@
 #include "gameworld.h"
 #include "player.h"
 
+#include "timer.h"
+
 class CChatAI;
 
 /*
@@ -48,6 +50,7 @@ class CGameContext : public IGameServer
 	class IConsole *m_pConsole;
 	std::vector<CLayers> m_vLayers;
 	std::vector<CCollision> m_vCollision;
+	CTimerManager *m_pTimerManager;
 	CNetObjHandler m_NetObjHandler;
 	CTuningParams m_Tuning;
 

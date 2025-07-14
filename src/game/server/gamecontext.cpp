@@ -42,6 +42,8 @@ void CGameContext::Construct(int Resetting)
 
 	if (Resetting == NO_RESET)
 		m_pVoteOptionHeap = new CHeap();
+	
+	m_pTimerManager = 0;
 }
 
 CGameContext::CGameContext(int Resetting)
@@ -418,6 +420,8 @@ void CGameContext::OnTick()
 	m_World.m_Core.m_Tuning = m_Tuning;
 	m_World.Tick();
 
+	m_pTimerManager->UpdateAll();
+
 	// if(world.paused) // make sure that the game object always updates
 	m_pController->Tick();
 
@@ -539,6 +543,11 @@ void CGameContext::OnClientEnter(int ClientID)
 {
 	m_apPlayers[ClientID]->Respawn();
 	Chat(-1, "'{}' entered the game", Server()->ClientName(ClientID));
+
+	m_pTimerManager->CreateTimer(50, [this, ClientID]() {
+		dbg_msg("Test", "Cid: %d", ClientID);
+		Chat(ClientID, "Hello");
+	}, "client_enter", true)->Start();
 
 	char aBuf[512];
 	str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d", ClientID, Server()->ClientName(ClientID), m_apPlayers[ClientID]->GetTeam());
@@ -1686,6 +1695,7 @@ void CGameContext::OnInit()
 	m_pConsole = Kernel()->RequestInterface<IConsole>();
 	m_World.SetGameServer(this);
 	m_Events.SetGameServer(this);
+	m_pTimerManager = new CTimerManager();
 
 	for (int i = 0; i < NUM_NETOBJTYPES; i++)
 		Server()->SnapSetStaticsize(i, m_NetObjHandler.GetObjSize(i));
