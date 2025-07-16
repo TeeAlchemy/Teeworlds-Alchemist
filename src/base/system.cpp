@@ -70,12 +70,15 @@ extern "C"
 
 	static DBG_LOGGER loggers[16];
 	static int num_loggers = 0;
+	static int id_logger_file = 0;
 
 	static NETSTATS network_stats = {0};
 	static MEMSTATS memory_stats = {0};
 
-	void dbg_logger(DBG_LOGGER logger)
+	void dbg_logger(DBG_LOGGER logger, bool file)
 	{
+		if (file)
+			id_logger_file = num_loggers;
 		loggers[num_loggers++] = logger;
 	}
 
@@ -131,7 +134,27 @@ extern "C"
 		va_end(args);
 
 		for (i = 0; i < num_loggers; i++)
-			loggers[i](str);
+			if (!id_logger_file)
+				loggers[i](str);
+			else if (id_logger_file != i)
+				loggers[i](str);
+
+		if (id_logger_file)
+		{
+			str_format(str, sizeof(str), "%d-%d-%d %d:%d:%d | [%s]: ", 1900 + pTime->tm_year, pTime->tm_mon, pTime->tm_mday, pTime->tm_hour, pTime->tm_min, pTime->tm_sec, sys);
+			len = strlen(str);
+			msg = (char *)str + len;
+
+			va_start(args, fmt);
+#if defined(CONF_FAMILY_WINDOWS)
+			_vsnprintf(msg, sizeof(str) - len, fmt, args);
+#else
+		vsnprintf(msg, sizeof(str) - len, fmt, args);
+#endif
+			va_end(args);
+
+			loggers[id_logger_file](str);
+		}
 	}
 
 	static IOHANDLE logfile = 0;
@@ -148,7 +171,7 @@ extern "C"
 	{
 		logfile = io_open(filename, IOFLAG_WRITE);
 		if (logfile)
-			dbg_logger(logger_file);
+			dbg_logger(logger_file, true);
 		else
 			dbg_msg("dbg/logger", "failed to open '%s' for logging", filename);
 	}
@@ -916,6 +939,8 @@ typedef CRITICAL_SECTION LOCKINTERNAL;
 			sock->ipv6sock = -1;
 			sock->type &= ~NETTYPE_IPV6;
 		}
+
+		free(sock);
 		return 0;
 	}
 
@@ -997,78 +1022,97 @@ typedef CRITICAL_SECTION LOCKINTERNAL;
 	{
 		NETSOCKET sock = (NETSOCKET_INTERNAL *)malloc(sizeof(*sock));
 		*sock = invalid_socket;
-		NETADDR tmpbindaddr = bindaddr;
-		int broadcast = 1;
-		int socket = -1;
 
 		if (bindaddr.type & NETTYPE_IPV4)
 		{
 			struct sockaddr_in addr;
-
-			/* bind, we should check for error */
+			NETADDR tmpbindaddr = bindaddr;
 			tmpbindaddr.type = NETTYPE_IPV4;
 			netaddr_to_sockaddr_in(&tmpbindaddr, &addr);
-			socket = priv_net_create_socket(AF_INET, SOCK_DGRAM, (struct sockaddr *)&addr, sizeof(addr), 0);
+			int socket = priv_net_create_socket(AF_INET, SOCK_DGRAM, (struct sockaddr *)&addr, sizeof(addr), 0);
 			if (socket >= 0)
 			{
 				sock->type |= NETTYPE_IPV4;
 				sock->ipv4sock = socket;
 
 				/* set broadcast */
+				int broadcast = 1;
 				if (setsockopt(socket, SOL_SOCKET, SO_BROADCAST, (const char *)&broadcast, sizeof(broadcast)) != 0)
-					dbg_msg("socket", "Setting BROADCAST on ipv4 failed: %d", errno);
+				{
+					dbg_msg("socket", "Setting BROADCAST on ipv4 failed: %d", net_errno());
+				}
 
 				{
 					/* set DSCP/TOS */
 					int iptos = 0x10 /* IPTOS_LOWDELAY */;
-					// int iptos = 46; /* High Priority */
 					if (setsockopt(socket, IPPROTO_IP, IP_TOS, (char *)&iptos, sizeof(iptos)) != 0)
-						dbg_msg("socket", "Setting TOS on ipv4 failed: %d", errno);
+					{
+						dbg_msg("socket", "Setting TOS on ipv4 failed: %d", net_errno());
+					}
 				}
 			}
 		}
 
+#if defined(CONF_WEBSOCKETS)
+		if (bindaddr.type & NETTYPE_WEBSOCKET_IPV4)
+		{
+			char addr_str[NETADDR_MAXSTRSIZE];
+			NETADDR tmpbindaddr = bindaddr;
+			tmpbindaddr.type = NETTYPE_WEBSOCKET_IPV4;
+			net_addr_str(&tmpbindaddr, addr_str, sizeof(addr_str), 0);
+			int socket = websocket_create(addr_str, tmpbindaddr.port);
+			if (socket >= 0)
+			{
+				sock->type |= NETTYPE_WEBSOCKET_IPV4;
+				sock->web_ipv4sock = socket;
+			}
+		}
+#endif
+
 		if (bindaddr.type & NETTYPE_IPV6)
 		{
 			struct sockaddr_in6 addr;
-
-			/* bind, we should check for error */
+			NETADDR tmpbindaddr = bindaddr;
 			tmpbindaddr.type = NETTYPE_IPV6;
 			netaddr_to_sockaddr_in6(&tmpbindaddr, &addr);
-			socket = priv_net_create_socket(AF_INET6, SOCK_DGRAM, (struct sockaddr *)&addr, sizeof(addr), 0);
+			int socket = priv_net_create_socket(AF_INET6, SOCK_DGRAM, (struct sockaddr *)&addr, sizeof(addr), 0);
 			if (socket >= 0)
 			{
 				sock->type |= NETTYPE_IPV6;
 				sock->ipv6sock = socket;
 
 				/* set broadcast */
+				int broadcast = 1;
 				if (setsockopt(socket, SOL_SOCKET, SO_BROADCAST, (const char *)&broadcast, sizeof(broadcast)) != 0)
-					dbg_msg("socket", "Setting BROADCAST on ipv6 failed: %d", errno);
+				{
+					dbg_msg("socket", "Setting BROADCAST on ipv6 failed: %d", net_errno());
+				}
 
+				// TODO: setting IP_TOS on ipv6 with setsockopt is not supported on Windows, see https://github.com/ddnet/ddnet/issues/7605
+#if !defined(CONF_FAMILY_WINDOWS)
 				{
 					/* set DSCP/TOS */
 					int iptos = 0x10 /* IPTOS_LOWDELAY */;
-					// int iptos = 46; /* High Priority */
 					if (setsockopt(socket, IPPROTO_IP, IP_TOS, (char *)&iptos, sizeof(iptos)) != 0)
-						dbg_msg("socket", "Setting TOS on ipv6 failed: %d", errno);
+					{
+						dbg_msg("socket", "Setting TOS on ipv6 failed: %d", net_errno());
+					}
 				}
+#endif
 			}
 		}
 
-		if (socket < 0)
+		if (sock->type == NETTYPE_INVALID)
 		{
 			free(sock);
 			sock = nullptr;
 		}
 		else
 		{
-			/* set non-blocking */
 			net_set_non_blocking(sock);
-
 			net_buffer_init(&sock->buffer);
 		}
 
-		/* return */
 		return sock;
 	}
 
@@ -1255,41 +1299,41 @@ typedef CRITICAL_SECTION LOCKINTERNAL;
 	{
 		NETSOCKET sock = (NETSOCKET_INTERNAL *)malloc(sizeof(*sock));
 		*sock = invalid_socket;
-		NETADDR tmpbindaddr = bindaddr;
 
 		if (bindaddr.type & NETTYPE_IPV4)
 		{
 			struct sockaddr_in addr;
-			int socket = -1;
-
-			/* bind, we should check for error */
+			NETADDR tmpbindaddr = bindaddr;
 			tmpbindaddr.type = NETTYPE_IPV4;
 			netaddr_to_sockaddr_in(&tmpbindaddr, &addr);
-			socket = priv_net_create_socket(AF_INET, SOCK_STREAM, (struct sockaddr *)&addr, sizeof(addr), 0);
-			if (socket >= 0)
+			int socket4 = priv_net_create_socket(AF_INET, SOCK_STREAM, (struct sockaddr *)&addr, sizeof(addr), 0);
+			if (socket4 >= 0)
 			{
 				sock->type |= NETTYPE_IPV4;
-				sock->ipv4sock = socket;
+				sock->ipv4sock = socket4;
 			}
 		}
 
 		if (bindaddr.type & NETTYPE_IPV6)
 		{
 			struct sockaddr_in6 addr;
-			int socket = -1;
-
-			/* bind, we should check for error */
+			NETADDR tmpbindaddr = bindaddr;
 			tmpbindaddr.type = NETTYPE_IPV6;
 			netaddr_to_sockaddr_in6(&tmpbindaddr, &addr);
-			socket = priv_net_create_socket(AF_INET6, SOCK_STREAM, (struct sockaddr *)&addr, sizeof(addr), 0);
-			if (socket >= 0)
+			int socket6 = priv_net_create_socket(AF_INET6, SOCK_STREAM, (struct sockaddr *)&addr, sizeof(addr), 0);
+			if (socket6 >= 0)
 			{
 				sock->type |= NETTYPE_IPV6;
-				sock->ipv6sock = socket;
+				sock->ipv6sock = socket6;
 			}
 		}
 
-		/* return */
+		if (sock->type == NETTYPE_INVALID)
+		{
+			free(sock);
+			sock = nullptr;
+		}
+
 		return sock;
 	}
 
@@ -2047,16 +2091,32 @@ typedef CRITICAL_SECTION LOCKINTERNAL;
 		return 0;
 	}
 
-	void str_timestamp(char *buffer, int buffer_size)
+#ifdef __GNUC__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-nonliteral"
+#endif
+	void str_timestamp_ex(time_t time_data, char *buffer, int buffer_size, const char *format)
 	{
-		time_t time_data;
 		struct tm *time_info;
-
-		time(&time_data);
 		time_info = localtime(&time_data);
-		strftime(buffer, buffer_size, "%Y-%m-%d_%H-%M-%S", time_info);
+		strftime(buffer, buffer_size, format, time_info);
 		buffer[buffer_size - 1] = 0; /* assure null termination */
 	}
+
+	void str_timestamp_format(char *buffer, int buffer_size, const char *format)
+	{
+		time_t time_data;
+		time(&time_data);
+		str_timestamp_ex(time_data, buffer, buffer_size, format);
+	}
+
+	void str_timestamp(char *buffer, int buffer_size)
+	{
+		str_timestamp_format(buffer, buffer_size, FORMAT_NOSPACE);
+	}
+#ifdef __GNUC__
+#pragma GCC diagnostic pop
+#endif
 
 	int mem_comp(const void *a, const void *b, int size)
 	{
@@ -2172,7 +2232,7 @@ typedef CRITICAL_SECTION LOCKINTERNAL;
 		dst[dst_size - 1] = 0; /* assure null termination */
 	}
 
-	static int str_utf8_isstart(char c)
+	int str_utf8_isstart(char c)
 	{
 		if ((c & 0xC0) == 0x80) /* 10xxxxxx */
 			return 0;
@@ -2413,6 +2473,18 @@ typedef CRITICAL_SECTION LOCKINTERNAL;
 		buffer[len] = '\0';
 
 		return tok + len;
+	}
+
+	int str_count(const char *str, const char *count)
+	{
+		int num = 0;
+		str = str_find(str, count);
+		while (str++)
+		{
+			str = str_find(str, count);
+			num++;
+		}
+		return num;
 	}
 
 	int bytes_be_to_int(const unsigned char *bytes)
