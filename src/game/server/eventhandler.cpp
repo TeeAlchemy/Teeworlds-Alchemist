@@ -22,7 +22,7 @@ void CEventHandler::SetGameServer(CGameContext *pGameServer)
 	m_pGameServer = pGameServer;
 }
 
-void *CEventHandler::Create(int Type, int Size, CClientMask Mask, int MapID)
+void *CEventHandler::Create(int Type, int Size, CClientMask Mask)
 {
 	if(m_NumEvents == MAX_EVENTS)
 		return 0;
@@ -34,7 +34,6 @@ void *CEventHandler::Create(int Type, int Size, CClientMask Mask, int MapID)
 	m_aTypes[m_NumEvents] = Type;
 	m_aSizes[m_NumEvents] = Size;
 	m_aClientMasks[m_NumEvents] = Mask;
-	m_aMapID[m_NumEvents] = MapID;
 	m_CurrentOffset += Size;
 	m_NumEvents++;
 	return p;
@@ -53,8 +52,6 @@ void CEventHandler::Snap(int SnappingClient)
 		if(SnappingClient == -1 || m_aClientMasks[i].test(SnappingClient))
 		{
 			CNetEvent_Common *pEvent = (CNetEvent_Common *)&m_aData[m_aOffsets[i]];
-			if (m_aMapID[i] != -1 && m_aMapID[i] != GameServer()->Server()->ClientMapID(SnappingClient))
-				continue;
 			if (SnappingClient != -1 || distance(GameServer()->m_apPlayers[SnappingClient]->m_ViewPos, vec2(pEvent->m_X, pEvent->m_Y)) < 1500.0f)
 			{
 				int Type = m_aTypes[i];

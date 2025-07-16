@@ -133,9 +133,16 @@ MACRO_CONFIG_INT(SvNetlimitAlpha, sv_netlimit_alpha, 50, 1, 100, CFGFLAG_SERVER,
 MACRO_CONFIG_INT(SvMapWindow, sv_map_window, 15, 0, 100, CFGFLAG_SERVER, "Map downloading send-ahead window")
 MACRO_CONFIG_INT(SvFastDownload, sv_fast_download, 1, 0, 1, CFGFLAG_SERVER, "Enables fast download of maps")
 
+// ChatAI
 MACRO_CONFIG_INT(SvChatAI, sv_chat_ai, 0, 0, 1, CFGFLAG_SERVER, "Enable Chat AI")
 MACRO_CONFIG_STR(SvChatAIAPI, sv_chatai_api, 256, "", CFGFLAG_SERVER, "The API for Chat AI")
 MACRO_CONFIG_STR(SvChatAIUrl, sv_chatai_url, 256, "", CFGFLAG_SERVER, "The Url for Chat AI")
 MACRO_CONFIG_STR(SvChatAIModule, sv_chatai_module, 256, "", CFGFLAG_SERVER, "The Module for Chat AI")
+
+// AI
+MACRO_CONFIG_INT(SvBotReactTime, sv_bot_react_time, 6, 0, 20, CFGFLAG_SERVER, "Time bot takes to start shooting")
+
+// Heavy reset
+MACRO_CONFIG_INT(SvHardresetAfterDays, sv_hard_reset_after_days, 7, 1, 14, CFGFLAG_SAVE | CFGFLAG_SERVER, "Reset the server when it has been idle for a specified number of days without players")
 
 #endif

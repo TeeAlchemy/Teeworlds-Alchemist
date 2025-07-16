@@ -24,7 +24,7 @@ public:
 	// character's size
 	static const int ms_PhysSize = 28;
 
-	CCharacter(CGameWorld *pWorld, int MapID);
+	CCharacter(CGameWorld *pWorld);
 
 	void Reset() override;
 	void Destroy() override;
@@ -62,6 +62,23 @@ public:
 
 	bool IsAlive() const { return m_Alive; }
 	class CPlayer *GetPlayer() { return m_pPlayer; }
+
+	bool GotWeapon(int Weapon){ return m_aWeapons[Weapon].m_Got; }
+	bool HasAmmo(int Weapon){ return m_aWeapons[Weapon].m_Ammo || Weapon == WEAPON_HAMMER; }
+
+	void AutoWeaponChange();
+
+	bool m_IsBot;
+
+	bool Hooking();
+	int HookedPlayer();
+	
+	CCharacterCore GetCore(){ return m_Core; }
+	vec2 GetPosition(){ return m_Pos; }
+	
+	vec2 GetVel(){ return m_Core.m_Vel; }
+
+	int GetActiveWeapon() { return m_ActiveWeapon; }
 
 private:
 	// player controlling this character

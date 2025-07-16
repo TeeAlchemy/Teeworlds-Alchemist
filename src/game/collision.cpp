@@ -18,6 +18,12 @@ CCollision::CCollision()
 	m_Width = 0;
 	m_Height = 0;
 	m_pLayers = 0;
+
+	m_pPath = 0;
+	m_pCenterWaypoint = 0;
+	
+	for (int i = 0; i < MAX_WAYPOINTS; i++)
+		m_apWaypoint[i] = 0;
 }
 
 void CCollision::Init(class CLayers *pLayers)
@@ -49,6 +55,11 @@ void CCollision::Init(class CLayers *pLayers)
 			m_pTiles[i].m_Index = 0;
 		}
 	}
+	
+	m_pCenterWaypoint = 0;
+	
+	for (int i = 0; i < MAX_WAYPOINTS; i++)
+		m_apWaypoint[i] = 0;
 }
 
 int CCollision::GetTile(int x, int y)
@@ -62,35 +73,55 @@ int CCollision::GetTile(int x, int y)
 	return m_pTiles[Ny * m_Width + Nx].m_Index > 128 ? 0 : m_pTiles[Ny * m_Width + Nx].m_Index;
 }
 
-bool CCollision::IsTileSolid(int x, int y)
+bool CCollision::IsTileSolid(int x, int y, bool IncludeDeath)
 {
-	return GetTile(x, y) & COLFLAG_SOLID;
+	int Tile = GetTile(x, y);
+	if (IncludeDeath && Tile & COLFLAG_DEATH)
+		return true;
+	
+	return Tile & COLFLAG_SOLID;
+}
+
+int CCollision::FastIntersectLine(vec2 Pos0, vec2 Pos1)
+{
+	//float Distance = distance(Pos0, Pos1) / 4.0f;
+	float Distance = distance(Pos0, Pos1);
+	int End(Distance+1);
+
+	for(int i = 0; i < End; i++)
+	{
+		float a = i/Distance;
+		vec2 Pos = mix(Pos0, Pos1, a);
+		if(CheckPoint(Pos.x, Pos.y))
+			return GetCollisionAt(Pos.x, Pos.y);
+	}
+	return 0;
 }
 
 // TODO: rewrite this smarter!
-int CCollision::IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision)
+int CCollision::IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, bool IncludeDeath)
 {
 	float Distance = distance(Pos0, Pos1);
-	int End(Distance + 1);
+	int End(Distance+1);
 	vec2 Last = Pos0;
 
-	for (int i = 0; i < End; i++)
+	for(int i = 0; i < End; i++)
 	{
-		float a = i / Distance;
+		float a = i/Distance;
 		vec2 Pos = mix(Pos0, Pos1, a);
-		if (CheckPoint(Pos.x, Pos.y))
+		if(CheckPoint(Pos.x, Pos.y, IncludeDeath))
 		{
-			if (pOutCollision)
+			if(pOutCollision)
 				*pOutCollision = Pos;
-			if (pOutBeforeCollision)
+			if(pOutBeforeCollision)
 				*pOutBeforeCollision = Last;
 			return GetCollisionAt(Pos.x, Pos.y);
 		}
 		Last = Pos;
 	}
-	if (pOutCollision)
+	if(pOutCollision)
 		*pOutCollision = Pos1;
-	if (pOutBeforeCollision)
+	if(pOutBeforeCollision)
 		*pOutBeforeCollision = Pos1;
 	return 0;
 }
@@ -204,4 +235,324 @@ void CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elas
 
 	*pInoutPos = Pos;
 	*pInoutVel = Vel;
+}
+
+void CCollision::ClearWaypoints()
+{
+	m_WaypointCount = 0;
+	
+	for (int i = 0; i < MAX_WAYPOINTS; i++)
+	{
+		if (m_apWaypoint[i])
+			delete m_apWaypoint[i];
+		
+		m_apWaypoint[i] = NULL;
+	}
+	
+	m_pCenterWaypoint = NULL;
+}
+
+
+void CCollision::AddWaypoint(vec2 Position, bool InnerCorner)
+{
+	if (m_WaypointCount >= MAX_WAYPOINTS)
+		return;
+	
+	m_apWaypoint[m_WaypointCount] = new CWaypoint(Position, InnerCorner);
+	m_WaypointCount++;
+}
+
+
+
+
+
+void CCollision::GenerateWaypoints()
+{
+	ClearWaypoints();
+	for(int x = 2; x < m_Width-2; x++)
+	{
+		for(int y = 2; y < m_Height-2; y++)
+		{
+			if (m_pTiles[y*m_Width+x].m_Index && m_pTiles[y*m_Width+x].m_Index < 128)
+				continue;
+
+			
+			// find all outer corners
+			if ((IsTileSolid((x-1)*32, (y-1)*32) && !IsTileSolid((x-1)*32, (y-0)*32) && !IsTileSolid((x-0)*32, (y-1)*32)) ||
+				(IsTileSolid((x-1)*32, (y+1)*32) && !IsTileSolid((x-1)*32, (y-0)*32) && !IsTileSolid((x-0)*32, (y+1)*32)) ||
+				(IsTileSolid((x+1)*32, (y+1)*32) && !IsTileSolid((x+1)*32, (y-0)*32) && !IsTileSolid((x-0)*32, (y+1)*32)) ||
+				(IsTileSolid((x+1)*32, (y-1)*32) && !IsTileSolid((x+1)*32, (y-0)*32) && !IsTileSolid((x-0)*32, (y-1)*32)))
+			{
+				// outer corner found -> create a waypoint
+				AddWaypoint(vec2(x, y));
+			}
+			else
+			// find all inner corners
+			if ((IsTileSolid((x+1)*32, y*32) || IsTileSolid((x-1)*32, y*32)) && (IsTileSolid(x*32, (y+1)*32) || IsTileSolid(x*32, (y+1)*32)))
+			{
+				// inner corner found -> create a waypoint
+				//AddWaypoint(vec2(x, y), true);
+				AddWaypoint(vec2(x, y));
+			}
+		}
+	}
+		
+	bool KeepGoing = true;
+	int i = 0;
+	
+	while (KeepGoing && i++ < 10)
+	{
+		ConnectWaypoints();
+		KeepGoing = GenerateSomeMoreWaypoints();
+	}
+	ConnectWaypoints();
+}
+
+
+// create a new waypoints between connected, far apart ones
+bool CCollision::GenerateSomeMoreWaypoints()
+{
+	bool Result = false;
+	
+	for (int i = 0; i < m_WaypointCount; i++)
+	{
+		for (int j = 0; j < m_WaypointCount; j++)
+		{
+			if (m_apWaypoint[i] && m_apWaypoint[j] && m_apWaypoint[i]->Connected(m_apWaypoint[j]))
+			{
+				if (abs(m_apWaypoint[i]->m_X - m_apWaypoint[j]->m_X) > 20 && m_apWaypoint[i]->m_Y == m_apWaypoint[j]->m_Y)
+				{
+					int x = (m_apWaypoint[i]->m_X + m_apWaypoint[j]->m_X) / 2;
+					
+					if (IsTileSolid(x*32, (m_apWaypoint[i]->m_Y+1)*32) || IsTileSolid(x*32, (m_apWaypoint[i]->m_Y-1)*32))
+					{
+						AddWaypoint(vec2(x, m_apWaypoint[i]->m_Y));
+						Result = true;
+					}
+				}
+				
+				if (abs(m_apWaypoint[i]->m_Y - m_apWaypoint[j]->m_Y) > 30 && m_apWaypoint[i]->m_X == m_apWaypoint[j]->m_X)
+				{
+					int y = (m_apWaypoint[i]->m_Y + m_apWaypoint[j]->m_Y) / 2;
+					
+					if (IsTileSolid((m_apWaypoint[i]->m_X+1)*32, y*32) || IsTileSolid((m_apWaypoint[i]->m_X-1)*32, y*32))
+					{
+						AddWaypoint(vec2(m_apWaypoint[i]->m_X, y));
+						Result = true;
+					}
+				}
+				
+				
+				m_apWaypoint[i]->Unconnect(m_apWaypoint[j]);
+			}
+		}
+	}
+	
+	return Result;
+}
+
+
+
+CWaypoint *CCollision::GetWaypointAt(int x, int y)
+{
+	for (int i = 0; i < m_WaypointCount; i++)
+	{
+		if (m_apWaypoint[i])
+		{
+			if (m_apWaypoint[i]->m_X == x && m_apWaypoint[i]->m_Y == y)
+				return m_apWaypoint[i];
+		}
+	}
+	return NULL;
+}
+
+
+void CCollision::ConnectWaypoints()
+{
+	m_ConnectionCount = 0;
+	
+	// clear existing connections
+	for (int i = 0; i < m_WaypointCount; i++)
+	{
+		if (!m_apWaypoint[i])
+			continue;
+		
+		m_apWaypoint[i]->ClearConnections();
+	}
+		
+	
+		
+	for (int i = 0; i < m_WaypointCount; i++)
+	{
+		if (!m_apWaypoint[i])
+			continue;
+		
+		int x, y;
+		
+		x = m_apWaypoint[i]->m_X - 1;
+		y = m_apWaypoint[i]->m_Y;
+		
+		// find waypoints at left
+		while (!m_pTiles[y*m_Width+x].m_Index || m_pTiles[y*m_Width+x].m_Index >= 128)
+		{
+			CWaypoint *W = GetWaypointAt(x, y);
+			
+			if (W)
+			{
+				if (m_apWaypoint[i]->Connect(W))
+					m_ConnectionCount++;
+				break;
+			}
+			
+			//if (!IsTileSolid(x*32, (y-1)*32) && !IsTileSolid(x*32, (y+1)*32))
+			if (!IsTileSolid(x*32, (y+1)*32))
+				break;
+			
+			x--;
+		}
+		
+		x = m_apWaypoint[i]->m_X;
+		y = m_apWaypoint[i]->m_Y - 1;
+		
+		int n = 0;
+		
+		// find waypoints at up
+		//bool SolidFound = false;
+		while ((!m_pTiles[y*m_Width+x].m_Index || m_pTiles[y*m_Width+x].m_Index >= 128) && n++ < 10)
+		{
+			CWaypoint *W = GetWaypointAt(x, y);
+			
+			//if (IsTileSolid((x+1)*32, y*32) || IsTileSolid((x+1)*32, y*32))
+			//	SolidFound = true;
+			
+			//if (W && SolidFound)
+			if (W)
+			{
+				if (m_apWaypoint[i]->Connect(W))
+					m_ConnectionCount++;
+				break;
+			}
+			
+			y--;
+		}
+	}
+	
+	
+	// connect to near, visible waypoints
+	for (int i = 0; i < m_WaypointCount; i++)
+	{
+		if (m_apWaypoint[i] && m_apWaypoint[i]->m_InnerCorner)
+			continue;
+		
+		for (int j = 0; j < m_WaypointCount; j++)
+		{
+			if (m_apWaypoint[j] && m_apWaypoint[j]->m_InnerCorner)
+				continue;
+			
+			if (m_apWaypoint[i] && m_apWaypoint[j] && !m_apWaypoint[i]->Connected(m_apWaypoint[j]))
+			{
+				float Dist = distance(m_apWaypoint[i]->m_Pos, m_apWaypoint[j]->m_Pos);
+				
+				if (Dist < 600 && !IntersectLine(m_apWaypoint[i]->m_Pos, m_apWaypoint[j]->m_Pos, NULL, NULL, true))
+				{
+					if (m_apWaypoint[i]->Connect(m_apWaypoint[j]))
+						m_ConnectionCount++;
+				}
+			}
+		}
+	}
+}
+
+
+CWaypoint *CCollision::GetClosestWaypoint(vec2 Pos)
+{
+	CWaypoint *W = NULL;
+	float Dist = 9000;
+	
+	for (int i = 0; i < m_WaypointCount; i++)
+	{
+		if (m_apWaypoint[i])
+		{
+			int d = distance(m_apWaypoint[i]->m_Pos, Pos);
+			
+			if (d < Dist && d < 800)
+			{
+				if (!FastIntersectLine(m_apWaypoint[i]->m_Pos, Pos))
+				{
+					W = m_apWaypoint[i];
+					Dist = d;
+				}
+			}
+		}
+	}
+	
+	return W;
+}
+
+
+void CCollision::SetWaypointCenter(vec2 Position)
+{
+	m_pCenterWaypoint = GetClosestWaypoint(Position);
+	
+	// clear path weights
+	for (int i = 0; i < m_WaypointCount; i++)
+	{
+		if (m_apWaypoint[i])
+			m_apWaypoint[i]->m_PathDistance = 0;
+	}
+	
+	if (m_pCenterWaypoint)
+		m_pCenterWaypoint->SetCenter();
+	
+}
+
+
+void CCollision::AddWeight(vec2 Pos, int Weight)
+{
+	CWaypoint *Wp = GetClosestWaypoint(Pos);
+	
+	if (Wp)
+		Wp->AddWeight(Weight);
+}
+
+
+
+bool CCollision::FindWaypointPath(vec2 TargetPos)
+{
+
+	
+	CWaypoint *Target = GetClosestWaypoint(TargetPos);
+	
+	
+	if (Target && m_pCenterWaypoint)
+	{
+		if (m_pPath)
+			delete m_pPath;
+		
+		m_pPath = Target->FindPathToCenter();
+		
+		// for displaying the chosen waypoints
+		for (int w = 0; w < 99; w++)
+			m_aPath[w] = vec2(0, 0);
+		
+		if (m_pPath)
+		{
+			CWaypointPath *Wp = m_pPath;
+			
+			int p = 0;
+			for (int w = 0; w < 10; w++)
+			{
+				m_aPath[p++] = vec2(Wp->m_Pos.x, Wp->m_Pos.y);
+				
+				if (Wp->m_pNext)
+					Wp = Wp->m_pNext;
+				else
+					break;
+			}
+			
+			return true;
+		}
+	}
+	
+	return false;
 }

@@ -1,0 +1,18 @@
+{"worlds":[
+	{
+		"name": "DM1",
+		"path": "dm1.map"
+	},	
+	{
+		"name": "DM2",
+		"path": "dm2.map"
+	},	
+	{
+		"name": "DM6",
+		"path": "dm6.map"
+	},	
+	{
+		"name": "DM7",
+		"path": "dm7.map"
+	}
+]}

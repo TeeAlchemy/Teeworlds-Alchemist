@@ -470,6 +470,7 @@ set_glob(ENGINE_SHARED GLOB src/engine/shared
 set(ENGINE_GENERATED_SHARED src/game/generated/protocol.cpp src/game/generated/protocol.h)
 
 set_glob(GAME_SHARED GLOB src/game
+  astar.cpp
   collision.cpp
   collision.h
   gamecore.cpp
@@ -482,6 +483,8 @@ set_glob(GAME_SHARED GLOB src/game
   mapitems_ex.cpp
   mapitems_ex.h
   mapitems.h
+  pathfinding.cpp
+  pathfinding.h
   tuning.h
   variables.h
   version.h
@@ -518,6 +521,8 @@ set_glob(ENGINE_SERVER GLOB src/engine/server
   database/sql_connection.h
   database/sql_string_helpers.cpp
   database/sql_string_helpers.h
+  multi_worlds.cpp
+  multi_worlds.h
   register.cpp
   register.h
   server.cpp
@@ -529,6 +534,8 @@ set(SERVER_INCLUDES_DIRS
 )
 
 set_glob(GAME_SERVER GLOB_RECURSE src/game/server
+  ai/dm_ai.cpp
+  ai/dm_ai.h
   entities/character.cpp
   entities/character.h
   entities/flag.cpp
@@ -541,6 +548,9 @@ set_glob(GAME_SERVER GLOB_RECURSE src/game/server
   entities/projectile.h
   gamemodes/mod.cpp
   gamemodes/mod.h
+  ai_protocol.h
+  ai.cpp
+  ai.h
   alloc.h
   chatai.cpp
   chatai.h

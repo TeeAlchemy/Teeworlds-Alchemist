@@ -10,13 +10,19 @@ const int PickupPhysSize = 14;
 class CPickup : public CEntity
 {
 public:
-	CPickup(CGameWorld *pGameWorld, int Type, int SubType = 0, int MapID = 0);
+	CPickup(CGameWorld *pGameWorld, int Type, int SubType, vec2 Pos);
 
-	void Reset() override;
-	void Tick() override;
-	void TickPaused() override;
-	void Snap(int SnappingClient) override;
+	virtual void Reset();
+	virtual void Tick();
+	virtual void TickPaused();
+	virtual void Snap(int SnappingClient);
 
+	bool IsWeapon();
+
+	int GetType() { return m_Type; }
+	int GetSubType() { return m_Subtype; }
+	bool IsSpawned() { return m_SpawnTick == -1; }
+ 
 private:
 	int m_Type;
 	int m_Subtype;

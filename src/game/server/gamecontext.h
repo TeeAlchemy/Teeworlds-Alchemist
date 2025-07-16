@@ -44,10 +44,11 @@ class CChatAI;
 */
 class CGameContext : public IGameServer
 {
-	IServer *m_pServer;
 	class IConsole *m_pConsole;
-	std::vector<CLayers> m_vLayers;
-	std::vector<CCollision> m_vCollision;
+	class CLayers* m_pLayers;
+
+	IServer *m_pServer;
+	CCollision m_Collision;
 	CNetObjHandler m_NetObjHandler;
 	CTuningParams m_Tuning;
 
@@ -55,7 +56,6 @@ class CGameContext : public IGameServer
 	static bool ConTuneReset(IConsole::IResult *pResult, void *pUserData);
 	static bool ConTuneDump(IConsole::IResult *pResult, void *pUserData);
 	static bool ConPause(IConsole::IResult *pResult, void *pUserData);
-	static bool ConChangeMap(IConsole::IResult *pResult, void *pUserData);
 	static bool ConRestart(IConsole::IResult *pResult, void *pUserData);
 	static bool ConBroadcast(IConsole::IResult *pResult, void *pUserData);
 	static bool ConSay(IConsole::IResult *pResult, void *pUserData);
@@ -85,10 +85,13 @@ class CGameContext : public IGameServer
 	int m_ConsoleOutputHandle_ChatPrint;
 	int m_ConsoleOutput_Target;
 
+	int m_WorldID;
+	int m_RespawnWorldID;
+
 public:
 	IServer *Server() const { return m_pServer; }
 	class IConsole *Console() { return m_pConsole; }
-	CCollision *Collision(int MapID) { return &(m_vCollision[MapID]); }
+	CCollision *Collision() { return &m_Collision; }
 	CTuningParams *Tuning() { return &m_Tuning; }
 	CGameContext();
 	~CGameContext();
@@ -106,7 +109,6 @@ public:
 	// helper functions
 	class CCharacter *GetPlayerChar(int ClientID);
 	CPlayer *GetPlayer(int ClientID);
-	CPlayer *GetPlayerInMap(int ClientID, int MapID);
 
 	const char *GetClientLanguage(int ClientID);
 
@@ -139,15 +141,14 @@ public:
 	CVoteOptionServer *m_pVoteOptionLast;
 
 	// helper functions
-	void CreateDamageInd(vec2 Pos, float AngleMod, int Amount, int MapID, CClientMask Mask = CClientMask().set());
-	void CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, int MapID, CClientMask Mask = CClientMask().set());
-	void CreateHammerHit(vec2 Pos, int MapID, CClientMask Mask = CClientMask().set());
-	void CreatePlayerSpawn(vec2 Pos, int MapID, CClientMask Mask = CClientMask().set());
-	void CreateDeath(vec2 Pos, int Who, int MapID, CClientMask Mask = CClientMask().set());
-	void CreateSound(vec2 Pos, int Sound, int MapID, CClientMask Mask = CClientMask().set());
-	void CreateSoundGlobal(int Sound, int Target = -1);
-	void CreateExtraEffect(vec2 Pos, int Effect, int MapID, CClientMask Mask = CClientMask().set());
-	void CreateMapSound(vec2 Pos, int MapSoundID, int MapID, CClientMask Mask = CClientMask().set());
+	void CreateDamageInd(vec2 Pos, float AngleMod, int Amount, CClientMask Mask = CClientMask().set());
+	void CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamage, CClientMask Mask = CClientMask().set());
+	void CreateHammerHit(vec2 Pos, CClientMask Mask = CClientMask().set());
+	void CreatePlayerSpawn(vec2 Pos, CClientMask Mask = CClientMask().set());
+	void CreateDeath(vec2 Pos, int Who, CClientMask Mask = CClientMask().set());
+	void CreateSound(vec2 Pos, int Sound, CClientMask Mask = CClientMask().set());
+	void CreateExtraEffect(vec2 Pos, int Effect, CClientMask Mask = CClientMask().set());
+	void CreateMapSound(vec2 Pos, int MapSoundID, CClientMask Mask = CClientMask().set());
 	void CreateMapSoundGlobal(int MapSoundID, int Target = -1);
 
 	enum
@@ -171,8 +172,7 @@ public:
 	void SwapTeams();
 
 	// engine events
-	void OnInit() override;
-	void OnInitMap(int MapID) override;
+	void OnInit(int WorldID) override;
 	void OnConsoleInit() override;
 	void OnShutdown() override;
 
@@ -183,14 +183,12 @@ public:
 
 	void OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID) override;
 
-	void OnClientConnected(int ClientID, int MapChange) override;
+	void OnClientConnected(int ClientID, bool AI) override;
 	void OnClientEnter(int ClientID) override;
 	void KillCharacter(int ClientID) override;
 	void OnClientDrop(int ClientID, const char *pReason) override;
 	void OnClientDirectInput(int ClientID, void *pInput) override;
 	void OnClientPredictedInput(int ClientID, void *pInput) override;
-
-	void PrepareClientChangeMap(int ClientID) override;
 
 	bool IsClientReady(int ClientID) override;
 	bool IsClientPlayer(int ClientID) override;
@@ -203,20 +201,43 @@ public:
 
 	int GetClientVersion(int ClientId) const;
 
+	void AddBot();
+	void KickBots();
+	void KickBot(int ClientID);
+	
+	bool IsBot(int ClientID);
+
+	void UpdateAI();
+
+	bool AIInputUpdateNeeded(int ClientID) override;
+	void AIUpdateInput(int ClientID, int *Data) override;
+
+	bool IsPlayerEqualWorld(int ClientID, int WorldID = -1) const;
+	bool IsPlayersNearby(vec2 Pos, float Distance) const;
+	int GetRespawnWorld() const { return m_RespawnWorldID; }
+
+	bool PlayerExists(int ClientID) const override { return m_apPlayers[ClientID]; }
+	void OnClientPrepareChangeWorld(int ClientID) override;
+	void ClearClientData(int ClientID) override;
+
+	int GetWorldID() const { return m_WorldID; }
+	bool IsPlayerInWorld(int ClientID, int WorldID = -1) const;
+	bool ArePlayersNearby(vec2 Pos, float Distance) const;
+
 public:
 	template <class Tm, typename... Ts>
-	void SendNetworkMessage(Tm Msg, int MapID, int ClientID, const char *pText, Ts &&...args)
+	void SendNetworkMessage(Tm Msg, int WorldID, int ClientID, const char *pText, Ts &&...args)
 	{
 		const int Start = (ClientID < 0 ? 0 : ClientID);
 		const int End = (ClientID < 0 ? MAX_CLIENTS : ClientID + 1);
 
 		for (int i = Start; i < End; i++)
 		{
-			if (GetPlayerInMap(i, MapID))
+			if (IsPlayerInWorld(i, WorldID))
 			{
 				std::string endText = Server()->Localization()->Format(GetClientLanguage(i), pText, std::forward<Ts>(args)...);
 				Msg.m_pMessage = endText.c_str();
-				Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, i);
+				Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, i, WorldID);
 			}
 		}
 	}

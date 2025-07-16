@@ -18,7 +18,6 @@ class CEventHandler
 	int m_aTypes[MAX_EVENTS]; // TODO: remove some of these arrays
 	int m_aOffsets[MAX_EVENTS];
 	int m_aSizes[MAX_EVENTS];
-	int m_aMapID[MAX_EVENTS];
 	CClientMask m_aClientMasks[MAX_EVENTS];
 	char m_aData[MAX_DATASIZE];
 
@@ -32,12 +31,12 @@ public:
 	void SetGameServer(CGameContext *pGameServer);
 
 	CEventHandler();
-	void *Create(int Type, int Size, CClientMask Mask = CClientMask().set(), int MapID = -1);
+	void *Create(int Type, int Size, CClientMask Mask = CClientMask().set());
 
 	template<typename T>
-	T *Create(CClientMask Mask = CClientMask().set(), int MapID = -1)
+	T *Create(CClientMask Mask = CClientMask().set())
 	{
-		return static_cast<T *>(Create(T::ms_MsgId, sizeof(T), Mask, MapID));
+		return static_cast<T *>(Create(T::ms_MsgId, sizeof(T), Mask));
 	}
 
 	void Clear();
