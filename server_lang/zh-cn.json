@@ -1,8 +1,8 @@
 {
     "translation": [
         {
-            "key": "",
-            "value": ""
+            "key": "You selected {}! Hammer to build it!",
+            "value": "你选择了 {}! 锤击地面来建造！"
         },
         {
             "key": "# {} {}/{}",

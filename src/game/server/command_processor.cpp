@@ -89,6 +89,7 @@ bool CCommandProcessor::VotSelectBuilding(IConsole::IResult *pResult, void *pUse
 		return true;
 
 	pGS->GetPlayer(ClientID)->m_SelectBuilding = pResult->GetInteger(0);
+	pGS->Chat(ClientID, "You selected {}! Hammer to build it!", pGS->m_pBuildingsInfo->m_aBuildingsInfo[pResult->GetInteger(0)].m_aName);
 	// new CCar(&pGS->m_World, pGS->GetPlayer(ClientID)->GetCharacter()->GetPos());
 	return true;
 }
