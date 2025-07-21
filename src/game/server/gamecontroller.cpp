@@ -820,6 +820,12 @@ bool CGameControllerWorkbenches::BuildBuilding(vec2 Pos, int Type, int Team, int
 	if (Team == TEAM_SPECTATORS)
 		return false;
 
+	if (m_aTeamBuildings[GameServer()->GetPlayer(Owner)->GetTeam()][Type] <= 0)
+	{
+		GameServer()->Chat(Owner, "There is no {} in the team!", GameServer()->m_pBuildingsInfo->m_aBuildingsInfo[Type].m_aName);
+		return false;
+	}
+
 	int Space = 0;
 	vec2 TempPos = Pos;
 	while (!GameServer()->Collision()->CheckPoint(TempPos) && Space < 32)

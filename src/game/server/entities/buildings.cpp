@@ -228,21 +228,19 @@ void CBuilding::TickDefered()
             if (pChr[i]->GetPlayer()->GetTeam() != m_Team)
                 continue;
 
-            if (pChr[i]->GetWeaponAmmo(m_BuildingType) < 10)
+            int WeaponType = WEAPON_SHOTGUN;
+            if (m_BuildingType == BUILDING_GRENADE)
+                WeaponType = WEAPON_GRENADE;
+            else
+                WeaponType = WEAPON_RIFLE;
+
+            if (pChr[i]->GetWeaponAmmo(WeaponType) < 10)
             {
-                pChr[i]->GiveWeapon(m_BuildingType, 10);
+                pChr[i]->GiveWeapon(WeaponType, 10);
                 GameServer()->CreateSound(m_Pos, SOUND_PICKUP_SHOTGUN);
 
                 if (pChr[i]->GetPlayer())
-                {
-                    int WeaponType = WEAPON_SHOTGUN;
-                    if (m_BuildingType == BUILDING_GRENADE)
-                        WeaponType = WEAPON_GRENADE;
-                    else
-                        WeaponType = WEAPON_RIFLE;
-
                     GameServer()->SendWeaponPickup(pChr[i]->GetPlayer()->GetCID(), WeaponType);
-                }
             }
         }
     }

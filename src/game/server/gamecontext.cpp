@@ -2074,7 +2074,7 @@ void CGameContext::InitVotes(int ClientID)
 					continue;
 
 				int Num = m_pController->m_aTeamBuildings[pP->GetTeam()][i];
-				if (Num)
+				if (Num > 0)
 				{
 					char aCmd[32];
 					str_format(aCmd, sizeof(aCmd), "ccv_selectbuilding %d", i);
@@ -2082,7 +2082,7 @@ void CGameContext::InitVotes(int ClientID)
 				}
 			}
 		}
-		else if (NumNodes)
+		else if (NumNodes > 0)
 		{
 			// WARNING! 0 is BUILDING_NODE, if you EDIT the value, please don't forget here.
 			AddVote_Text("Starting from building a node.");

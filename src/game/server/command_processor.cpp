@@ -72,6 +72,7 @@ bool CCommandProcessor::VotMakeBuilding(IConsole::IResult *pResult, void *pUserD
 				pGS->m_pController->m_aTeamResources[pGS->GetPlayer(ClientID)->GetTeam()][i] -= pGS->m_pBuildingsInfo->m_aBuildingsInfo[pGS->GetPlayerVote(ClientID)->m_Select].m_Formula[i];
 			pGS->m_pController->m_aTeamBuildings[pGS->GetPlayer(ClientID)->GetTeam()][pGS->GetPlayerVote(ClientID)->m_Select]++;
 			pGS->ChatTeam(pGS->GetPlayer(ClientID)->GetTeam(), "'{}' made a {} for the team!", pGS->Server()->ClientName(ClientID), pGS->m_pBuildingsInfo->m_aBuildingsInfo[pGS->GetPlayerVote(ClientID)->m_Select].m_aName);
+			pGS->ClearVotesTeam(pGS->GetPlayer(ClientID)->GetTeam());
 		}
 	}
 	else

@@ -136,6 +136,7 @@ public:
 	CTuningParams *GetNextTuningParams() { return &m_NextTuningParams; };
 
 	bool m_WantSpawn;
+	bool m_VoteNeedUpdate;
 };
 
 #endif

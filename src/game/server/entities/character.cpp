@@ -357,6 +357,7 @@ void CCharacter::FireWeapon()
 				GetPlayer()->m_SelectBuilding = -1;
 				GameServer()->CreateHammerHit(m_Pos);
 				m_NumObjectsHit = 1;
+				GetPlayer()->m_VoteNeedUpdate = true;
 			}
 		}
 
@@ -676,6 +677,12 @@ void CCharacter::TickDefered()
 		}
 	}
 
+	if (GetPlayer()->m_VoteNeedUpdate)
+	{
+		GameServer()->ClearVotes(GetPlayer()->GetCID());
+		GetPlayer()->m_VoteNeedUpdate = false;
+	}
+
 	m_CanBuild = false;
 }
 
@@ -703,6 +710,9 @@ void CCharacter::HandleTile()
 		if ((GetPlayer()->GetTeam() != TEAM_RED && Index == TILE_SAFEZONE_RED) || (GetPlayer()->GetTeam() != TEAM_BLUE && Index == TILE_SAFEZONE_BLUE))
 			break;
 
+		if(GameServer()->GetPlayerVote(GetPlayer()->GetCID())->m_Page == PAGE_INVENTORY || GameServer()->GetPlayerVote(GetPlayer()->GetCID())->m_Page == PAGE_SHOP)
+			GameServer()->GetPlayerVote(GetPlayer()->GetCID())->m_Page = PAGE_MENU;
+
 		if (PerTick(25))
 		{
 			IncreaseHealth(1);
@@ -729,6 +739,9 @@ void CCharacter::HandleTile()
 		{
 			GetPlayer()->m_VotePage[PAGE_HOME] = false;
 			GetPlayer()->m_VotePage[PAGE_SHOP] = false;
+			if (GameServer()->GetPlayerVote(GetPlayer()->GetCID())->m_Page == PAGE_HOME || GameServer()->GetPlayerVote(GetPlayer()->GetCID())->m_Page == PAGE_SHOP || GameServer()->GetPlayerVote(GetPlayer()->GetCID())->m_Page == PAGE_MAKE)
+				GameServer()->GetPlayerVote(GetPlayer()->GetCID())->m_Page = PAGE_MENU;
+
 			GameServer()->ClearVotes(GetPlayer()->GetCID());
 		}
 		break;
