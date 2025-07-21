@@ -35,6 +35,7 @@ static CGameContext *GetCommandResultGameServer(int ClientID, void *pUser)
 // Debug
 bool CCommandProcessor::ConBuild(IConsole::IResult *pResult, void *pUserData)
 {
+	/*
 	const int ClientID = pResult->GetClientID();
 	CGameContext *pGS = GetCommandResultGameServer(ClientID, pUserData);
 	if (!pGS->GetPlayer(ClientID))
@@ -42,6 +43,7 @@ bool CCommandProcessor::ConBuild(IConsole::IResult *pResult, void *pUserData)
 
 	new CBuilding(&pGS->m_World, pResult->GetInteger(0), pGS->GetPlayer(ClientID)->GetCharacter()->GetPos(), pResult->GetInteger(1));
 	// new CCar(&pGS->m_World, pGS->GetPlayer(ClientID)->GetCharacter()->GetPos());
+	*/
 	return true;
 }
 
