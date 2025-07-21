@@ -72,7 +72,6 @@ if(TARGET_OS STREQUAL "windows")
   set(AUTO_DEPENDENCIES_DEFAULT ON)
 endif()
 
-option(MYSQL "Enable mysql support" OFF) # TODO
 option(PREFER_BUNDLED_LIBS "Prefer bundled libraries over system libraries" ${AUTO_DEPENDENCIES_DEFAULT})
 option(DEV "Don't generate stuff necessary for packaging" OFF)
 
@@ -229,12 +228,7 @@ find_package(ZLIB)
 find_package(Git)
 find_package(Python3)
 find_package(Curl)
-
-if(MYSQL)
-  find_package(MySQL)
-else()
-  set(MYSQL_LIBRARIES)
-endif()
+find_package(MySQL)
 
 if(TARGET_OS AND TARGET_OS STREQUAL "mac")
   find_program(DMG dmg)
@@ -279,14 +273,12 @@ endif()
 
 show_dependency_status("Python3" PYTHON3)
 show_dependency_status("Zlib" ZLIB)
-if(MYSQL)
-  show_dependency_status("MySQL" MYSQL)
-endif()
+show_dependency_status("MySQL" MYSQL)
 
 if(NOT(PYTHON3_FOUND))
   message(SEND_ERROR "You must install Python3 to compile ${PROJECT_NAME}")
 endif()
-if(NOT(MYSQL_FOUND) AND MYSQL)
+if(NOT(MYSQL_FOUND))
   message(SEND_ERROR "You must install MySQL to compile the ${PROJECT_NAME}")
 endif()
 
@@ -379,6 +371,7 @@ set_glob(BASE GLOB_RECURSE src/base
   hash.cpp
   hash.h
   lock_scope.h
+  math.cpp
   math.h
   system.cpp
   system.h
@@ -515,7 +508,12 @@ list(APPEND TARGETS_OWN engine-shared game-shared)
 
 # Sources
 set_glob(ENGINE_SERVER GLOB src/engine/server
+  database/connection_pool.cpp
   database/connection_pool.h
+  database/sql_connection.cpp
+  database/sql_connection.h
+  database/sql_string_helpers.cpp
+  database/sql_string_helpers.h
   multi_worlds.cpp
   multi_worlds.h
   register.cpp
@@ -531,24 +529,37 @@ set(SERVER_INCLUDES_DIRS
 set_glob(GAME_SERVER GLOB_RECURSE src/game/server
   ai/dm_ai.cpp
   ai/dm_ai.h
+  entities/vehicle/car.cpp
+  entities/vehicle/car.h
+  entities/area-flag.cpp
+  entities/area-flag.h
+  entities/buildings.cpp
+  entities/buildings.h
   entities/character.cpp
   entities/character.h
+  entities/fakelaser.cpp
+  entities/fakelaser.h
   entities/flag.cpp
   entities/flag.h
+  entities/flying-pickup.cpp
+  entities/flying-pickup.h
   entities/laser.cpp
   entities/laser.h
   entities/pickup.cpp
   entities/pickup.h
   entities/projectile.cpp
   entities/projectile.h
-  gamemodes/mod.cpp
-  gamemodes/mod.h
+  entities/workbench.cpp
+  entities/workbench.h
   ai_protocol.h
   ai.cpp
   ai.h
   alloc.h
   chatai.cpp
   chatai.h
+  command_processor.cpp
+  command_processor.h
+  commands.h
   entity.cpp
   entity.h
   eventhandler.cpp
@@ -561,6 +572,9 @@ set_glob(GAME_SERVER GLOB_RECURSE src/game/server
   gameworld.h
   player.cpp
   player.h
+  resources.cpp
+  resources.h
+  votepage.h
 )
 set(GAME_GENERATED_SERVER
   "src/game/generated/server_data.cpp"
@@ -917,10 +931,8 @@ foreach(target ${TARGETS_OWN})
   target_include_directories(${target} PRIVATE ${ZLIB_INCLUDE_DIRS})
   target_include_directories(${target} PRIVATE ${CURL_INCLUDE_DIRS})
 
-  if(MYSQL)
-    target_compile_definitions(${target} PRIVATE CONF_SQL)
-    target_include_directories(${target} SYSTEM PRIVATE ${MYSQL_INCLUDE_DIRS})
-  endif()
+  target_compile_definitions(${target} PRIVATE CONF_SQL)
+  target_include_directories(${target} SYSTEM PRIVATE ${MYSQL_INCLUDE_DIRS})
 
   set_target_properties(${target} PROPERTIES CXX_STANDARD_REQUIRED ON)
   target_compile_features(${target} PUBLIC cxx_std_14)

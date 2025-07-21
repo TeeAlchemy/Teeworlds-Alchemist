@@ -5,6 +5,7 @@
 #include <engine/shared/config.h>
 #include <engine/map.h>
 #include <engine/console.h>
+#include <engine/storage.h>
 #include "gamecontext.h"
 #include <game/version.h>
 #include <game/collision.h>
@@ -14,13 +15,16 @@
 #include <teeother/components/localization.h>
 
 #include "chatai.h"
-
-#include "gamemodes/mod.h"
+#include "command_processor.h"
 
 #include <game/server/ai_protocol.h>
 #include <game/server/ai.h>
+#include "resources.h"
 
 #include <game/mapitems.h>
+
+#include "entities/buildings.h"
+#include "entities/vehicle/car.h"
 
 enum
 {
@@ -44,6 +48,8 @@ void CGameContext::Construct(int Resetting)
 	m_LockTeams = 0;
 	m_ConsoleOutputHandle_ChatPrint = -1;
 	m_ConsoleOutput_Target = -1;
+	m_pCommandProcessor = nullptr;
+	m_pBuildingsInfo = nullptr;
 
 	if (Resetting == NO_RESET)
 		m_pVoteOptionHeap = new CHeap();
@@ -65,6 +71,9 @@ CGameContext::~CGameContext()
 		delete m_apPlayers[i];
 	if (!m_Resetting)
 		delete m_pVoteOptionHeap;
+
+	delete m_pCommandProcessor;
+	delete m_pBuildingsInfo;
 }
 
 void CGameContext::OnSetAuthed(int ClientID, int Level)
@@ -140,8 +149,6 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 		pEvent->m_Y = (int)Pos.y;
 	}
 
-	CreateExtraEffect(Pos, 0, Mask);
-
 	if (!NoDamage)
 	{
 		// deal damage
@@ -160,6 +167,22 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 			float Dmg = 6 * l;
 			if ((int)Dmg)
 				apEnts[i]->TakeDamage(ForceDir * Dmg * 2, (int)Dmg, Owner, Weapon);
+		}
+
+		// deal building damage
+		CBuilding *apBuildings[64];
+		Num = m_World.FindEntities(Pos, Radius, (CEntity **)apBuildings, 64, CGameWorld::ENTTYPE_BUILDINGS);
+		for (int i = 0; i < Num; i++)
+		{
+			vec2 Diff = apBuildings[i]->GetPos() - Pos;
+			vec2 ForceDir(0, 1);
+			float l = length(Diff);
+			if (l)
+				ForceDir = normalize(Diff);
+			l = 1 - clamp((l - InnerRadius) / (Radius - InnerRadius), 0.0f, 1.0f);
+			float Dmg = 6 * l;
+			if ((int)Dmg)
+				apBuildings[i]->TakeDamage((int)Dmg, Owner, Weapon);
 		}
 	}
 }
@@ -410,11 +433,17 @@ void CGameContext::OnTick()
 
 	for (int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if(!m_apPlayers[i] || m_apPlayers[i]->GetPlayerWorldID() != m_WorldID)
+		if (!m_apPlayers[i] || m_apPlayers[i]->GetPlayerWorldID() != m_WorldID)
 			continue;
-		
+
 		m_apPlayers[i]->Tick();
 		m_apPlayers[i]->PostTick();
+	}
+
+	if(Server()->Tick() % (Server()->TickSpeed()*120) == 0)
+	{
+		Chat(-1, "这是2025年举办的第二届TMJ大赛的参赛作品之一");
+		Chat(-1, "加入QQ群1007351135为本模式投票吧！");
 	}
 
 	// update voting
@@ -524,8 +553,8 @@ void CGameContext::OnClientPredictedInput(int ClientID, void *pInput)
 
 void CGameContext::OnClientEnter(int ClientID)
 {
-	CPlayer* pPlayer = m_apPlayers[ClientID];
-	if(!pPlayer || pPlayer->m_IsBot)
+	CPlayer *pPlayer = m_apPlayers[ClientID];
+	if (!pPlayer || pPlayer->m_IsBot)
 		return;
 
 	m_pController->OnPlayerConnect(pPlayer);
@@ -534,6 +563,8 @@ void CGameContext::OnClientEnter(int ClientID)
 	Chat(-1, "'{}' entered and joined the game", Server()->ClientName(ClientID));
 
 	m_VoteUpdate = true;
+
+	SetClientLanguage(ClientID, "zh-cn");
 }
 
 void CGameContext::KillCharacter(int ClientID)
@@ -549,12 +580,12 @@ void CGameContext::KillCharacter(int ClientID)
 void CGameContext::OnClientConnected(int ClientID, bool AI)
 {
 	// Check which team the player should be on
-	const int StartTeam = g_Config.m_SvTournamentMode ? TEAM_SPECTATORS : m_pController->GetAutoTeam(ClientID);
+	const int StartTeam = m_pController->GetAutoTeam(ClientID);
 
-	if(!m_apPlayers[ClientID])
+	if (!m_apPlayers[ClientID])
 	{
 		const int AllocMemoryCell = ClientID + m_WorldID * MAX_CLIENTS;
-		m_apPlayers[ClientID] = new(AllocMemoryCell) CPlayer(this, ClientID, StartTeam);
+		m_apPlayers[ClientID] = new (AllocMemoryCell) CPlayer(this, ClientID, StartTeam);
 	}
 
 	m_apPlayers[ClientID]->m_IsBot = AI;
@@ -571,7 +602,7 @@ void CGameContext::OnClientConnected(int ClientID, bool AI)
 
 void CGameContext::OnClientDrop(int ClientID, const char *pReason)
 {
-	if(!m_apPlayers[ClientID] || m_apPlayers[ClientID]->m_IsBot)
+	if (!m_apPlayers[ClientID] || m_apPlayers[ClientID]->m_IsBot)
 		return;
 
 	AbortVoteKickOnDisconnect(ClientID);
@@ -579,7 +610,7 @@ void CGameContext::OnClientDrop(int ClientID, const char *pReason)
 	// update clients on drop
 	m_pController->OnPlayerDisconnect(m_apPlayers[ClientID]);
 
-	if((Server()->ClientIngame(ClientID) || Server()->IsClientChangingWorld(ClientID)) && IsPlayerInWorld(ClientID))
+	if ((Server()->ClientIngame(ClientID) || Server()->IsClientChangingWorld(ClientID)) && IsPlayerInWorld(ClientID))
 	{
 		Chat(-1, "{} has left the game", Server()->ClientName(ClientID));
 		dbg_msg("game", "leave player='%d:%s'", ClientID, Server()->ClientName(ClientID));
@@ -633,77 +664,54 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			if (g_Config.m_SvSpamprotection && pPlayer->m_LastChat && pPlayer->m_LastChat + Server()->TickSpeed() > Server()->Tick())
 				return;
 
-			CNetMsg_Cl_Say *pMsg = (CNetMsg_Cl_Say *)pRawMsg;
-			int Team = pMsg->m_Team ? pPlayer->GetTeam() : CGameContext::CHAT_ALL;
-
-			// trim right and set maximum length to 128 utf8-characters
-			int Length = 0;
-			const char *p = pMsg->m_pMessage;
-			const char *pEnd = 0;
-			while (*p)
-			{
-				const char *pStrOld = p;
-				int Code = str_utf8_decode(&p);
-
-				// check if unicode is not empty
-				if (Code > 0x20 && Code != 0xA0 && Code != 0x034F && (Code < 0x2000 || Code > 0x200F) && (Code < 0x2028 || Code > 0x202F) &&
-					(Code < 0x205F || Code > 0x2064) && (Code < 0x206A || Code > 0x206F) && (Code < 0xFE00 || Code > 0xFE0F) &&
-					Code != 0xFEFF && (Code < 0xFFF9 || Code > 0xFFFC))
-				{
-					pEnd = 0;
-				}
-				else if (pEnd == 0)
-					pEnd = pStrOld;
-
-				if (++Length >= 127)
-				{
-					*(const_cast<char *>(p)) = 0;
-					break;
-				}
-			}
-			if (pEnd != 0)
-				*(const_cast<char *>(pEnd)) = 0;
-
-			// drop empty and autocreated spam messages (more than 16 characters per second)
-			if (Length == 0 || (pMsg->m_pMessage[0] != '/' && g_Config.m_SvSpamprotection && pPlayer->m_LastChat && pPlayer->m_LastChat + Server()->TickSpeed() * ((15 + Length) / 16) > Server()->Tick()))
+			// initialize variables
+			const auto pMsg = (CNetMsg_Cl_Say *)pRawMsg;
+			if (!str_utf8_check(pMsg->m_pMessage))
 				return;
+
+			int Team = pMsg->m_Team ? pPlayer->GetTeam() : CGameContext::CHAT_ALL;
 
 			pPlayer->m_LastChat = Server()->Tick();
 
-			if (pMsg->m_pMessage[0] == '/' || pMsg->m_pMessage[0] == '\\')
-			{
-				switch (m_apPlayers[ClientID]->m_Authed)
-				{
-				case IServer::AUTHED_ADMIN:
-					Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_ADMIN);
-					break;
-				case IServer::AUTHED_MOD:
-					Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_MOD);
-					break;
-				default:
-					Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_USER);
-				}
-
-				m_ConsoleOutput_Target = ClientID;
-
-				Console()->ExecuteLineFlag(pMsg->m_pMessage + 1, ClientID, CFGFLAG_CHAT, m_apPlayers[ClientID]->GetLanguage());
-
-				m_ConsoleOutput_Target = -1;
-
-				Console()->SetAccessLevel(IConsole::ACCESS_LEVEL_ADMIN);
-				CreateExtraEffect(m_apPlayers[ClientID]->GetCharacter()->GetPos(), 0, m_apPlayers[ClientID]->GetPlayerWorldID());
-			}
+			// check message
+			const auto firstChar = pMsg->m_pMessage[0];
+			if (firstChar == '/')
+				CommandProcessor()->Process(pMsg->m_pMessage, pPlayer, CFGFLAG_CHAT);
 			else
-			{
 				SendChat(ClientID, Team, pMsg->m_pMessage);
-				CreateExtraEffect(m_apPlayers[ClientID]->GetCharacter()->GetPos(), 1, m_apPlayers[ClientID]->GetPlayerWorldID());
-				if (g_Config.m_SvChatAI)
-					m_pChatAI->Send(this, Server()->ClientName(ClientID), pMsg->m_pMessage);
-				AddBot();
-			}
+			return;
 		}
 		else if (MsgID == NETMSGTYPE_CL_CALLVOTE)
 		{
+			char aChatmsg[512] = {0};
+			char aDesc[VOTE_DESC_LENGTH] = {0};
+			char aCmd[VOTE_CMD_LENGTH] = {0};
+			CNetMsg_Cl_CallVote *pMsg = (CNetMsg_Cl_CallVote *)pRawMsg;
+			const char *pReason = pMsg->m_pReason[0] ? pMsg->m_pReason : "No reason given";
+
+			if (str_comp_nocase(pMsg->m_pType, "option") == 0)
+			{
+				for (int i = 0; i < GetPlayerVote(ClientID)->m_aVoteOptions.size(); ++i)
+				{
+					if (str_comp_nocase(pMsg->m_pValue, GetPlayerVote(ClientID)->m_aVoteOptions[i].m_aDescription) == 0)
+					{
+						str_format(aDesc, sizeof(aDesc), "%s", GetPlayerVote(ClientID)->m_aVoteOptions[i].m_aDescription);
+						str_format(aCmd, sizeof(aCmd), "%s", GetPlayerVote(ClientID)->m_aVoteOptions[i].m_aCommand);
+					}
+				}
+			}
+
+			std::string Command(aCmd);
+			if (str_comp(aCmd, "ccv_null") == 0)
+			{
+				return;
+			}
+			else if (Command.find("ccv_") == 0)
+			{
+				CommandProcessor()->Process(aCmd + 3, pPlayer, CFGFLAG_VOTE);
+				return;
+			}
+
 			if (g_Config.m_SvSpamprotection && pPlayer->m_LastVoteTry && pPlayer->m_LastVoteTry + Server()->TickSpeed() * 3 > Server()->Tick())
 				return;
 
@@ -729,36 +737,7 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 				return;
 			}
 
-			char aChatmsg[512] = {0};
-			char aDesc[VOTE_DESC_LENGTH] = {0};
-			char aCmd[VOTE_CMD_LENGTH] = {0};
-			CNetMsg_Cl_CallVote *pMsg = (CNetMsg_Cl_CallVote *)pRawMsg;
-			const char *pReason = pMsg->m_pReason[0] ? pMsg->m_pReason : "No reason given";
-
-			if (str_comp_nocase(pMsg->m_pType, "option") == 0)
-			{
-				CVoteOptionServer *pOption = m_pVoteOptionFirst;
-				while (pOption)
-				{
-					if (str_comp_nocase(pMsg->m_pValue, pOption->m_aDescription) == 0)
-					{
-						str_format(aChatmsg, sizeof(aChatmsg), "'%s' called vote to change server option '%s' (%s)", Server()->ClientName(ClientID),
-								   pOption->m_aDescription, pReason);
-						str_format(aDesc, sizeof(aDesc), "%s", pOption->m_aDescription);
-						str_format(aCmd, sizeof(aCmd), "%s", pOption->m_aCommand);
-						break;
-					}
-
-					pOption = pOption->m_pNext;
-				}
-
-				if (!pOption)
-				{
-					Chat(ClientID, "'{}' isn't an option on this server", pMsg->m_pValue);
-					return;
-				}
-			}
-			else if (str_comp_nocase(pMsg->m_pType, "kick") == 0)
+			if (str_comp_nocase(pMsg->m_pType, "kick") == 0)
 			{
 				if (!g_Config.m_SvVoteKick)
 				{
@@ -1642,6 +1621,7 @@ void CGameContext::OnConsoleInit()
 {
 	m_pServer = Kernel()->RequestInterface<IServer>();
 	m_pConsole = Kernel()->RequestInterface<IConsole>();
+	m_pStorage = Kernel()->RequestInterface<IStorage>();
 
 	m_ConsoleOutputHandle_ChatPrint = Console()->RegisterPrintCallback(0, ChatConsolePrintCallback, this);
 
@@ -1690,25 +1670,30 @@ void CGameContext::OnInit(int WorldID)
 	m_pLayers->Init(Kernel(), WorldID);
 	m_Collision.Init(m_pLayers);
 
+	m_pBuildingsInfo = new CBuildingInfo(this);
+
 	// select gametype
-	m_pController = new CGameControllerMOD(this);
+	m_pController = new CGameControllerWorkbenches(this);
 
 	// create all entities from the game layer
 	// initialize cores
 	CMapItemLayerTilemap *pTileMap = m_pLayers->GameLayer();
 	CTile *pTiles = (CTile *)Kernel()->RequestInterface<IMap>(WorldID)->GetData(pTileMap->m_Data);
-	for(int y = 0; y < pTileMap->m_Height; y++)
+	for (int y = 0; y < pTileMap->m_Height; y++)
 	{
-		for(int x = 0; x < pTileMap->m_Width; x++)
+		for (int x = 0; x < pTileMap->m_Width; x++)
 		{
-			const int Index = pTiles[y*pTileMap->m_Width+x].m_Index;
-			if(Index >= ENTITY_OFFSET)
+			const int Index = pTiles[y * pTileMap->m_Width + x].m_Index;
+			if (Index >= ENTITY_OFFSET)
 			{
-				const vec2 Pos(x*32.0f+16.0f, y*32.0f+16.0f);
-				m_pController->OnEntity(Index-ENTITY_OFFSET, Pos);
+				const vec2 Pos(x * 32.0f + 16.0f, y * 32.0f + 16.0f);
+				m_pController->OnEntity(Index - ENTITY_OFFSET, Pos);
 			}
 		}
 	}
+
+	// initialize
+	m_pCommandProcessor = new CCommandProcessor(this);
 }
 
 void CGameContext::OnShutdown()
@@ -1721,8 +1706,8 @@ void CGameContext::OnShutdown()
 void CGameContext::OnSnap(int ClientID)
 {
 	// check valid player
-	CPlayer* pPlayer = m_apPlayers[ClientID];
-	if(pPlayer && pPlayer->GetPlayerWorldID() != GetWorldID())
+	CPlayer *pPlayer = m_apPlayers[ClientID];
+	if (pPlayer && pPlayer->GetPlayerWorldID() != GetWorldID())
 		return;
 
 	// add tuning to demo
@@ -1737,9 +1722,9 @@ void CGameContext::OnSnap(int ClientID)
 	}
 
 	m_pController->Snap(ClientID);
-	for(const auto& pIterPlayer : m_apPlayers)
+	for (const auto &pIterPlayer : m_apPlayers)
 	{
-		if(pIterPlayer)
+		if (pIterPlayer)
 			pIterPlayer->Snap(ClientID);
 	}
 	m_World.Snap(ClientID);
@@ -1768,7 +1753,7 @@ int CGameContext::GetClientVersion(int ClientId) const
 
 CPlayer *CGameContext::GetPlayer(int ClientID)
 {
-    if(m_apPlayers[ClientID])
+	if (m_apPlayers[ClientID])
 		return m_apPlayers[ClientID];
 	return nullptr;
 }
@@ -1808,7 +1793,7 @@ void CGameContext::OnClientPrepareChangeWorld(int ClientID)
 		m_apPlayers[ClientID] = nullptr;
 	}
 	const int AllocMemoryCell = ClientID + m_WorldID * MAX_CLIENTS;
-	m_apPlayers[ClientID] = new (AllocMemoryCell) CPlayer(this, ClientID, TEAM_RED);
+	m_apPlayers[ClientID] = new (AllocMemoryCell) CPlayer(this, ClientID, m_pController->GetAutoTeam(ClientID));
 }
 
 // clearing all data at the exit of the client necessarily call once enough
@@ -1826,17 +1811,16 @@ void CGameContext::KickBots()
 {
 	Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "engine", "Kicking bots...");
 
-	for(int i = 0; i < MAX_CLIENTS; i++)
+	for (int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if(IsBot(i))
+		if (IsBot(i))
 			Server()->Kick(i, "");
 	}
 }
 
-
 void CGameContext::KickBot(int ClientID)
 {
-	if(IsBot(ClientID))
+	if (IsBot(ClientID))
 		Server()->Kick(ClientID, "");
 }
 
@@ -1849,39 +1833,38 @@ void CGameContext::AddBot()
 
 bool CGameContext::AIInputUpdateNeeded(int ClientID)
 {
-	if(m_apPlayers[ClientID])
+	if (m_apPlayers[ClientID])
 		return m_apPlayers[ClientID]->AIInputChanged();
-		
+
 	return false;
 }
 
-
 void CGameContext::UpdateAI()
 {
-	for(int i = 0; i < MAX_CLIENTS; i++)
+	for (int i = 0; i < MAX_CLIENTS; i++)
 	{
-		if(m_apPlayers[i] && IsBot(i))
+		if (m_apPlayers[i] && IsBot(i))
 			m_apPlayers[i]->AITick();
 	}
 }
 
 void CGameContext::AIUpdateInput(int ClientID, int *Data)
 {
-	if(m_apPlayers[ClientID] && m_apPlayers[ClientID]->m_pAI)
+	if (m_apPlayers[ClientID] && m_apPlayers[ClientID]->m_pAI)
 		m_apPlayers[ClientID]->m_pAI->UpdateInput(Data);
 }
 
 bool CGameContext::IsBot(int ClientID)
 {
-	if(m_apPlayers[ClientID] && m_apPlayers[ClientID]->m_pAI)
+	if (m_apPlayers[ClientID] && m_apPlayers[ClientID]->m_pAI)
 		return true;
-	
+
 	return false;
 }
 
 bool CGameContext::IsPlayerInWorld(int ClientID, int WorldID) const
 {
-	if(ClientID < 0 || ClientID >= MAX_CLIENTS || !m_apPlayers[ClientID])
+	if (ClientID < 0 || ClientID >= MAX_CLIENTS || !m_apPlayers[ClientID])
 		return false;
 
 	int PlayerWorldID = m_apPlayers[ClientID]->GetPlayerWorldID();
@@ -1890,10 +1873,10 @@ bool CGameContext::IsPlayerInWorld(int ClientID, int WorldID) const
 
 bool CGameContext::ArePlayersNearby(vec2 Pos, float Distance) const
 {
-	for(int i = 0; i < MAX_PLAYERS; i++)
+	for (int i = 0; i < MAX_PLAYERS; i++)
 	{
-		CPlayer* pPlayer = m_apPlayers[i];
-		if(pPlayer && IsPlayerInWorld(i) && distance(Pos, pPlayer->m_ViewPos) <= Distance)
+		CPlayer *pPlayer = m_apPlayers[i];
+		if (pPlayer && IsPlayerInWorld(i) && distance(Pos, pPlayer->m_ViewPos) <= Distance)
 			return true;
 	}
 
@@ -1905,3 +1888,242 @@ const char *CGameContext::Version() { return GAME_VERSION; }
 const char *CGameContext::NetVersion() { return GAME_NETVERSION; }
 
 IGameServer *CreateGameServer() { return new CGameContext; }
+
+void CGameContext::AddVote(const char *Desc, const char *Cmd, int ClientID)
+{
+	while (*Desc && *Desc == ' ')
+		Desc++;
+
+	if (ClientID == -2)
+		return;
+
+	SPlayerVote::SVoteOptions Vote;
+	str_copy(Vote.m_aDescription, Desc, sizeof(Vote.m_aDescription));
+	str_copy(Vote.m_aCommand, Cmd, sizeof(Vote.m_aCommand));
+	GetPlayerVote(ClientID)->m_aVoteOptions.add(Vote);
+
+	// inform clients about added option
+	CNetMsg_Sv_VoteOptionAdd OptionMsg;
+	OptionMsg.m_pDescription = Vote.m_aDescription;
+	Server()->SendPackMsg(&OptionMsg, MSGFLAG_VITAL, ClientID, -1);
+}
+
+void CGameContext::AddVote_Back()
+{
+	if (!PlayerExists(m_VoteClientID))
+		return;
+
+	AddVote_Goto(GetPlayerVote(m_VoteClientID)->m_LastPage, "⏎ Back");
+}
+
+void CGameContext::AddVote_Space(int Num)
+{
+	if (!PlayerExists(m_VoteClientID))
+		return;
+
+	for (int i = 0; i < Num; i++)
+		AddVote_VL("ccv_null", " ");
+}
+
+void CGameContext::ClearVotes(int ClientID)
+{
+	GetPlayerVote(ClientID)->m_aVoteOptions.clear();
+
+	// send vote options
+	CNetMsg_Sv_VoteClearOptions ClearMsg;
+	Server()->SendPackMsg(&ClearMsg, MSGFLAG_VITAL, ClientID, -1);
+
+	InitVotes(ClientID);
+}
+
+void CGameContext::InitVotes(int ClientID)
+{
+	CPlayer *pP = GetPlayer(ClientID);
+	if (!pP)
+		return;
+
+	CCharacter *pChr = pP->GetCharacter();
+
+	if (!pChr)
+		return;
+
+	SetVoteClientID(ClientID);
+
+	float HpP = (float(m_pController->GetWorkbenchHealth(pP->GetTeam())) / float(g_Config.m_SvWorkbenchesHealth)) * 100.f;
+	AddVote_Text("Workbench Health: {}%", HpP);
+
+	switch (GetPlayerVote(ClientID)->m_Page)
+	{
+	case PAGE_MENU:
+	{
+		AddVote_Text("☪ Menu");
+		AddVote_Space();
+		AddVote_Goto(PAGE_INVENTORY, "☞ Inventory ✪");
+		AddVote_Goto(PAGE_HOME, "☞ Base ☺");
+		AddVote_Goto(PAGE_SHOP, "☞ Free Market ㊮");
+		AddVote_Goto(PAGE_BUILD, "☞ Build ☭");
+	}
+	break;
+
+	case PAGE_INVENTORY:
+	{
+		SetVoteLastPage(PAGE_MENU);
+		AddVote_Text("☪ Inventory");
+		AddVote_Text("#WARNING: Lose all after death/quit)");
+		AddVote_Text(" ");
+		for (int i = 0; i < NUM_RESOURCE; i++)
+			AddVote_Text("➳ {} x{}", GetResourceName(i), pChr->m_Resource[i]);
+		AddVote_Space();
+		AddVote_Back();
+	}
+	break;
+
+	case PAGE_HOME:
+	{
+		SetVoteLastPage(PAGE_MENU);
+		AddVote_Text("☪ Base");
+		if (pP->m_VotePage[PAGE_HOME])
+		{
+			AddVote_Text("- You can use the workbench now");
+
+			AddVote_Text(" ");
+
+			AddVote_Text("▾ Base warehouse ▾");
+			for (int i = 0; i < NUM_RESOURCE; i++)
+				AddVote_Text("➳ {} x{}", GetResourceName(i), m_pController->m_aTeamResources[pP->GetTeam()][i]);
+
+			AddVote_Text(" ");
+
+			AddVote_Text("▾ Workbench ▾");
+			for (int i = 0; i < NUM_BUILDING; i++)
+			{
+				// None of your bisinisi(?
+				if (i == BUILDING_WORKBENCH)
+					continue;
+
+				int Num = m_pController->m_aTeamBuildings[pP->GetTeam()][i];
+				char aCmd[32];
+				str_format(aCmd, sizeof(aCmd), "ccv_makebuilding %d", i);
+				AddVote_VL(aCmd, "☞ Make {}({})", m_pBuildingsInfo->m_aBuildingsInfo[i].m_aName, Num);
+			}
+		}
+		else
+			AddVote_Text("You need to return to the base to use this!");
+
+		AddVote_Space();
+		AddVote_Back();
+	}
+	break;
+
+	case PAGE_MAKE:
+	{
+		SetVoteLastPage(PAGE_HOME);
+		AddVote_Text("☪ Make");
+		AddVote_Space();
+		AddVote_Text("Building: {}", m_pBuildingsInfo->m_aBuildingsInfo[GetPlayerVote(ClientID)->m_Select].m_aName);
+		AddVote_Text("Description: {}", m_pBuildingsInfo->m_aBuildingsInfo[GetPlayerVote(ClientID)->m_Select].m_aDesc);
+		AddVote_Text("Your team have: {}", m_pController->m_aTeamBuildings[pP->GetTeam()][GetPlayerVote(ClientID)->m_Select]);
+		AddVote_Text("㊮ Formula:");
+		AddVote_Text("---");
+		for (int i = 0; i < NUM_RESOURCE; i++)
+		{
+			if (m_pBuildingsInfo->m_aBuildingsInfo[GetPlayerVote(ClientID)->m_Select].m_Formula[i])
+				AddVote_Text("# {} {}/{}", GetResourceName(i), m_pController->m_aTeamResources[pP->GetTeam()][i], m_pBuildingsInfo->m_aBuildingsInfo[GetPlayerVote(ClientID)->m_Select].m_Formula[i]);
+		}
+		AddVote_Text("===");
+		char aCmd[32];
+		str_format(aCmd, sizeof(aCmd), "ccv_makebuilding %d", GetPlayerVote(ClientID)->m_Select);
+		AddVote_VL(aCmd, "- Make!");
+		AddVote_Space(2);
+		AddVote_Back();
+	}
+	break;
+
+	case PAGE_SHOP:
+	{
+		SetVoteLastPage(PAGE_MENU);
+		AddVote_Text("☪ Free Market");
+		if (pP->m_VotePage[PAGE_SHOP])
+		{
+			AddVote_Text("Free market, capitalism, without big hands");
+			AddVote_Text("...");
+			AddVote_Text("This place has been liberated by the Communist Party");
+			AddVote_Text("The free market has been abolished.");
+			
+		}
+		else
+			AddVote_Text("You need to be in the market area to use this!");
+
+		AddVote_Space();
+		AddVote_Back();
+	}
+	break;
+
+	case PAGE_BUILD:
+	{
+		SetVoteLastPage(PAGE_MENU);
+		AddVote_Text("☪ Node");
+		int NumNodes = m_pController->m_aTeamBuildings[pP->GetTeam()][BUILDING_NODE];
+		if (pChr->m_CanBuild)
+		{
+			AddVote_Text("Choose the building you want to build and hammer the ground");
+			for (int i = 0; i < NUM_BUILDING; i++)
+			{
+				// None of your bisinisi(?
+				if (i == BUILDING_WORKBENCH)
+					continue;
+
+				int Num = m_pController->m_aTeamBuildings[pP->GetTeam()][i];
+				if (Num)
+				{
+					char aCmd[32];
+					str_format(aCmd, sizeof(aCmd), "ccv_selectbuilding %d", i);
+					AddVote_VL(aCmd, "☞ Build {}({})", m_pBuildingsInfo->m_aBuildingsInfo[i].m_aName, Num);
+				}
+			}
+		}
+		else if (NumNodes)
+		{
+			// WARNING! 0 is BUILDING_NODE, if you EDIT the value, please don't forget here.
+			AddVote_Text("Starting from building a node.");
+			AddVote_Text("Choose 'Build Node' and hammer the ground");
+			AddVote_VL("ccv_selectbuilding 0", "☞ Build {}({})", m_pBuildingsInfo->m_aBuildingsInfo[BUILDING_NODE].m_aName, NumNodes);
+		}
+		else
+		{
+			AddVote_Text("You have to make a Node first!");
+			AddVote_Text("Tip: Back to the menu and choose 'Base'");
+		}
+
+		AddVote_Space();
+		AddVote_Back();
+	}
+	break;
+
+	default:
+		break;
+	}
+
+	SetVoteClientID(-1);
+}
+
+void CGameContext::ClearVotesTeam(int Team)
+{
+	for (int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if (!GetPlayer(i))
+			continue;
+
+		if (GetPlayer(i)->GetTeam() == Team)
+			ClearVotes(i);
+	}
+}
+
+void CGameContext::ChangeVotePage(int ClientID, int Page)
+{
+	if (GetPlayerVote(ClientID)->m_Page != Page)
+	{
+		GetPlayerVote(ClientID)->m_Page = Page;
+		ClearVotes(ClientID);
+	}
+}

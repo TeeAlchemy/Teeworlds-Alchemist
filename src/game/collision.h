@@ -69,6 +69,24 @@ public:
 	void MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, int *pBounces);
 	void MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elasticity);
 	bool TestBox(vec2 Pos, vec2 Size);
+
+	int GetTileIndex(int x, int y);
+	int GetTileIndex(vec2 Pos) { return GetTileIndex(round_to_int(Pos.x), round_to_int(Pos.y)); }
+	int CalcTileRaw(int x, int y) 
+	{
+		int Nx = clamp(x / 32, 0, m_Width - 1);
+		int Ny = clamp(y / 32, 0, m_Height - 1);
+
+		return Ny * m_Width + Nx;
+	};
+
+	int CalcTile(int x, int y) 
+	{
+		int Nx = clamp(x, 0, m_Width - 1);
+		int Ny = clamp(y, 0, m_Height - 1);
+
+		return Ny * m_Width + Nx;
+	};
 };
 
 #endif

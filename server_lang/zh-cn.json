@@ -1,6 +1,38 @@
 {
     "translation": [
         {
+            "key": "",
+            "value": ""
+        },
+        {
+            "key": "# {} {}/{}",
+            "value": "# {} {}/{}"
+        },
+        {
+            "key": "---",
+            "value": "---"
+        },
+        {
+            "key": "...",
+            "value": "..."
+        },
+        {
+            "key": "===",
+            "value": "==="
+        },
+        {
+            "key": "You have collected the resources within the resource point\nBring them back to the base!",
+            "value": "你带走了该资源点内的资源\n快把它们带回基地！"
+        },
+        {
+            "key": "➳ {} x{}",
+            "value": "➳ {} x{}"
+        },
+        {
+            "key": "#WARNING: Lose all after death/quit)",
+            "value": "#警告: 死亡/退出后会全部丢失)"
+        },
+        {
             "key": "'{}' called for vote to kick you",
             "value": "'{}' 发起投票要踢出你"
         },
@@ -9,24 +41,24 @@
             "value": "'{}' 将名称更改为 '{}'"
         },
         {
-            "key": "'{}' entered the game",
-            "value": "'{}' 进入了游戏"
-        },
-        {
-            "key": "'{}' has left the game",
-            "value": "'{}' 退出了游戏"
-        },
-        {
-            "key": "'{}' has left the game ({})",
-            "value": "'{}' 退出了游戏 ({})"
-        },
-        {
-            "key": "'{}' isn't an option on this server",
-            "value": "'{}' 不是服务器的一个选项"
+            "key": "'{}' entered and joined the game",
+            "value": "'{}' 加入了游戏"
         },
         {
             "key": "'{}' joined the {}",
             "value": "'{}' 加入了 {}"
+        },
+        {
+            "key": "'{}' made a {} for the team!",
+            "value": "'{}' 为队伍制作了一个{}!"
+        },
+        {
+            "key": "- Make!",
+            "value": "- 制作!"
+        },
+        {
+            "key": "- You can use the workbench now",
+            "value": "- 你现在可以使用工作台了"
         },
         {
             "key": "Access for command /{} denied.",
@@ -41,16 +73,104 @@
             "value": "所有玩家已被移动到 {}"
         },
         {
+            "key": "ArmorBox",
+            "value": "护盾盒"
+        },
+        {
+            "key": "Auto shoot the nearest enemy with a pistol.",
+            "value": "用手枪自瞄最近的敌人"
+        },
+        {
+            "key": "Auto shoot the nearest enemy with a shotgun.",
+            "value": "用散弹枪自瞄最近的敌人"
+        },
+        {
             "key": "Available languages: {}",
             "value": "可用语言: {}"
         },
         {
-            "key": "ChatGLM has received your message and is currently processing it.",
-            "value": "ChatGLM已接收到了您的消息，正在处理中"
+            "key": "Build it at a resource point can auto collect.",
+            "value": "把它建造在资源点内部可以自动收集资源"
+        },
+        {
+            "key": "Building: {}",
+            "value": "建筑: {}"
+        },
+        {
+            "key": "Can provide electricity and transport buildings.",
+            "value": "可以提供电力，传输基地的建筑物"
+        },
+        {
+            "key": "Capturing the Resource Point! {}%",
+            "value": "正在占领资源点! {}%"
+        },
+        {
+            "key": "Chat AI(module: {}) has received your message and is currently processing it.",
+            "value": "聊天AI（模型: {}) 已经接收到了你的消息并处理中"
+        },
+        {
+            "key": "Choose 'Build Node' and hammer the ground",
+            "value": "选择 '建造 节点' 然后用锤子击打地面"
+        },
+        {
+            "key": "Choose the building you want to build and hammer the ground",
+            "value": "选择你想建造的建筑并锤击地面"
+        },
+        {
+            "key": "Coal",
+            "value": "煤炭"
+        },
+        {
+            "key": "Command {} not found!",
+            "value": "未找到指令 {} !"
+        },
+        {
+            "key": "Copper",
+            "value": "铜矿"
         },
         {
             "key": "Credits: {}",
             "value": "开发者: {}"
+        },
+        {
+            "key": "Description: {}",
+            "value": "描述: {}"
+        },
+        {
+            "key": "Diamond",
+            "value": "钻石"
+        },
+        {
+            "key": "Enegry",
+            "value": "能量"
+        },
+        {
+            "key": "Free market, capitalism, without big hands",
+            "value": "自由市场, 资本主义, 没有大手"
+        },
+        {
+            "key": "Gatherer",
+            "value": "收集者"
+        },
+        {
+            "key": "Gold",
+            "value": "金矿"
+        },
+        {
+            "key": "GrenadeBox",
+            "value": "榴弹盒"
+        },
+        {
+            "key": "HealthBox",
+            "value": "健康盒"
+        },
+        {
+            "key": "How lovely, shoot heart for you.",
+            "value": "多可爱, 向你发射回血的爱心"
+        },
+        {
+            "key": "How strong, shoot armor for you.",
+            "value": "快速健身，向你发送护盾"
         },
         {
             "key": "Invalid arguments.",
@@ -69,12 +189,20 @@
             "value": "无效的观众ID"
         },
         {
+            "key": "Iron",
+            "value": "铁矿"
+        },
+        {
             "key": "Kick voting requires {} players on the server",
             "value": "投票踢人需要服务器上有 {} 名玩家"
         },
         {
             "key": "Language successfully switched to English",
             "value": "语言成功切换为中文"
+        },
+        {
+            "key": "LaserBox",
+            "value": "激光盒"
         },
         {
             "key": "No such command: /{}.",
@@ -85,8 +213,28 @@
             "value": "找不到指令: {}."
         },
         {
+            "key": "Node",
+            "value": "节点"
+        },
+        {
             "key": "Only {} active players are allowed",
             "value": "服务器限制最多 {} 名玩家可以活动"
+        },
+        {
+            "key": "Protect you and your buildings from bullets.",
+            "value": "保护你的建筑物不被子弹击中"
+        },
+        {
+            "key": "Provide grenade for you.",
+            "value": "为你提供榴弹炮"
+        },
+        {
+            "key": "Provide laser for you.",
+            "value": "为你提供激光枪"
+        },
+        {
+            "key": "Provide shotgun for you.",
+            "value": "为你提供散弹枪"
         },
         {
             "key": "Server does not allow voting to kick players",
@@ -95,6 +243,14 @@
         {
             "key": "Server does not allow voting to move players to spectators",
             "value": "服务器不允许投票将玩家移动到旁观"
+        },
+        {
+            "key": "Shield",
+            "value": "能量光盾"
+        },
+        {
+            "key": "ShotgunBox",
+            "value": "散弹箱"
         },
         {
             "key": "Sorry, I can't answer your question.",
@@ -107,6 +263,10 @@
         {
             "key": "Spectators aren't allowed to start a vote.",
             "value": "旁观者不允许发起投票"
+        },
+        {
+            "key": "Starting from building a node.",
+            "value": "让我们从建造一个节点开始"
         },
         {
             "key": "Teams are locked",
@@ -141,8 +301,52 @@
             "value": "感谢: {}"
         },
         {
+            "key": "The Blue Team has Captured a Resource Point!",
+            "value": "蓝队占领了一个资源点！"
+        },
+        {
+            "key": "The Red Team has Captured a Resource Point!",
+            "value": "红队占领了一个资源点！"
+        },
+        {
+            "key": "The free market has been abolished.",
+            "value": "自由市场已被取消"
+        },
+        {
+            "key": "There's not enough space to build here",
+            "value": "这里没有足够的空间用来建造"
+        },
+        {
+            "key": "This place has been liberated by the Communist Party",
+            "value": "此地已被共产党解放"
+        },
+        {
+            "key": "This server has disabled chat AI.",
+            "value": "该服务器关闭了聊天AI"
+        },
+        {
+            "key": "This spot is blocked",
+            "value": "此点位被挡住了"
+        },
+        {
+            "key": "This spot is too close to the enemy!",
+            "value": "此点位太靠近敌人了"
+        },
+        {
             "key": "Time to wait before changing team: {}:{}",
             "value": "更换队伍前的等待时间: {}:{}"
+        },
+        {
+            "key": "Tip: Back to the menu and choose 'Base'",
+            "value": "提示：回到上一页面并选择“基地”"
+        },
+        {
+            "key": "TurretGun",
+            "value": "手枪炮塔"
+        },
+        {
+            "key": "TurretShotgun",
+            "value": "散弹枪炮塔"
         },
         {
             "key": "Unknown language",
@@ -173,6 +377,18 @@
             "value": "在发起新的投票前请等待当前的投票结束"
         },
         {
+            "key": "Wood",
+            "value": "木头"
+        },
+        {
+            "key": "Workbench",
+            "value": "工作台"
+        },
+        {
+            "key": "Workbench Health: {}%",
+            "value": "工作台血量: {}%"
+        },
+        {
             "key": "You can't kick admins",
             "value": "你不能踢出管理员"
         },
@@ -185,12 +401,36 @@
             "value": "你不能移动你自己"
         },
         {
+            "key": "You have to make a Node first!",
+            "value": "你需要先制造一个节点！"
+        },
+        {
             "key": "You must wait {} seconds before making another vote",
             "value": "你必须等待 {} 秒才能发起另一个投票"
         },
         {
+            "key": "You need to be in the market area to use this!",
+            "value": "你需要在自由市场区域才能使用该选项！"
+        },
+        {
+            "key": "You need to return to the base to use this!",
+            "value": "你需要回到基地才能查看该选项！"
+        },
+        {
+            "key": "You submitted {} x{}",
+            "value": "你提交了 {} x{}"
+        },
+        {
             "key": "You were moved to {} due to team balancing",
             "value": "你因为队伍平衡被移动到 {}"
+        },
+        {
+            "key": "Your team doesn't have enough resources!",
+            "value": "你的队伍没有足够的资源！"
+        },
+        {
+            "key": "Your team have: {}",
+            "value": "你的队伍已有: {}"
         },
         {
             "key": "admin forced server option '{}' ({})",
@@ -205,8 +445,76 @@
             "value": "管理员将玩家 '{}' 移动到旁观 ({})"
         },
         {
+            "key": "{} has left the game",
+            "value": "{} 退出了游戏"
+        },
+        {
             "key": "{} {} by {}",
             "value": "{} {} by.{}"
+        },
+        {
+            "key": "⏎ Back",
+            "value": "⏎ 上一页"
+        },
+        {
+            "key": "▾ Base warehouse ▾",
+            "value": "▾ 基地仓库 ▾"
+        },
+        {
+            "key": "▾ Workbench ▾",
+            "value": "▾ 工作台 ▾"
+        },
+        {
+            "key": "☞ Base ☺",
+            "value": "☞ 基地 ☺"
+        },
+        {
+            "key": "☞ Build {}({})",
+            "value": "☞ 建造 {}({})"
+        },
+        {
+            "key": "☞ Build ☭",
+            "value": "☞ 建造 ☭"
+        },
+        {
+            "key": "☞ Free Market ㊮",
+            "value": "☞ 自由市场 ㊮"
+        },
+        {
+            "key": "☞ Inventory ✪",
+            "value": "☞ 物品栏 ✪"
+        },
+        {
+            "key": "☞ Make {}({})",
+            "value": "☞ 制作 {}({})"
+        },
+        {
+            "key": "☪ Base",
+            "value": "☪ 基地"
+        },
+        {
+            "key": "☪ Free Market",
+            "value": "☪ 自由市场"
+        },
+        {
+            "key": "☪ Inventory",
+            "value": "☪ 物品栏"
+        },
+        {
+            "key": "☪ Make",
+            "value": "☪ 制作"
+        },
+        {
+            "key": "☪ Menu",
+            "value": "☪ 主页"
+        },
+        {
+            "key": "☪ Node",
+            "value": "☪ 节点"
+        },
+        {
+            "key": "㊮ Formula:",
+            "value": "㊮ 配方:"
         }
     ]
 }

@@ -306,7 +306,7 @@ void CAI::HookMove()
 	
 	
 	vec2 Vel = Player()->GetCharacter()->GetVel();
-	vec2 HookPos = Player()->GetCharacter()->GetCore().m_HookPos;
+	vec2 HookPos = Player()->GetCharacter()->GetCore()->m_HookPos;
 
 	// lock move direction
 	//if (m_Hook != 0 && Player()->GetCharacter()->Hooking()) // && m_HookMoveLock)

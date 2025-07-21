@@ -1,72 +1,42 @@
-#if defined(CONF_SQL)
-// I don't think this is smart
-// So please rewrite it
-// I will not rewrite it because I don't know how to do it(im poor u know)
-// Someone else please help me.
-
+/* Copyright(C) 2025 - 2025 Comet */
 #ifndef ENGINE_SERVER_DATABASE_CONNECTION_POOL_H
 #define ENGINE_SERVER_DATABASE_CONNECTION_POOL_H
-
-#include <mysql_connection.h>
-#include <cppconn/driver.h>
-#include <cppconn/exception.h>
-#include <cppconn/resultset.h>
-#include <cppconn/statement.h>
-#include <cppconn/prepared_statement.h>
-#include <iostream>
-#include <queue>
+#include "sql_connection.h"
 #include <mutex>
-#include <condition_variable>
-#include <memory>
+#include <deque>
 
-class CMySQLConnectionPool
+class CConnectionPool
 {
 public:
-    CMySQLConnectionPool(const std::string &Server,
-                         const std::string &Username,
-                         const std::string &Password,
-                         const std::string &Database,
-                         int maxConn = 10)
-    {
-        for (int i = 0; i < maxConn; ++i)
-            m_Connections.push(CreateConnection(Server, Username, Password, Database));
-    }
+    static CConnectionPool *GetConnPool();
+    CConnectionPool(const CConnectionPool &obj) = delete;
+    CConnectionPool &operator=(const CConnectionPool &obj) = delete;
+    ~CConnectionPool();
 
-    std::shared_ptr<sql::Connection> GetConnection()
-    {
-        std::unique_lock<std::mutex> lock(m_SqlMutex);
-        while (m_Connections.empty())
-        {
-            m_SqlCondition.wait(lock);
-        }
-        std::shared_ptr<sql::Connection> pConnect = m_Connections.front();
-        m_Connections.pop();
-        return pConnect;
-    }
+    bool Create(std::string User, std::string Password, std::string DbName, std::string Hostname, unsigned short port, int PoolSize, int Timeout);
+    CSqlConnection *GetOneConn();
+    void ReleaseOneConn(CSqlConnection *pConn);
 
-    void ReleaseConnection(std::shared_ptr<sql::Connection> pConnection)
-    {
-        std::lock_guard<std::mutex> lock(m_SqlMutex);
-        m_Connections.push(pConnection);
-        m_SqlCondition.notify_one();
-    }
-
+    void Destroy();
 private:
-    std::queue<std::shared_ptr<sql::Connection>> m_Connections;
-    std::mutex m_SqlMutex;
-    std::condition_variable m_SqlCondition;
+    CConnectionPool();
+    void AddIdelQueue();
 
-    std::shared_ptr<sql::Connection> CreateConnection(const std::string &Server,
-                                                      const std::string &Username,
-                                                      const std::string &Password,
-                                                      const std::string &Database)
-    {
-        sql::Driver *pDriver = get_driver_instance();
-        std::shared_ptr<sql::Connection> pConnect(pDriver->connect(Server, Username, Password));
-        pConnect->setSchema(Database);
-        return pConnect;
-    }
+    sql::Driver *m_pDriver;
+
+    std::string m_User;
+    std::string m_Password;
+    std::string m_DbName;
+    std::string m_Hostname;
+
+    unsigned short m_Port;
+    int m_nPoolSize = 0;
+    int m_nTimeOut = 0;
+
+    std::mutex m_mtx;
+
+    std::deque<CSqlConnection *> m_qIdle;
+    std::deque<CSqlConnection *> m_qBusy;
 };
 
-#endif // !
 #endif

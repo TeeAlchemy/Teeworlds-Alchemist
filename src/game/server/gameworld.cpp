@@ -1,6 +1,7 @@
 /* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 
+#include "entities/buildings.h"
 #include "gameworld.h"
 #include "entity.h"
 #include "gamecontext.h"
@@ -218,7 +219,7 @@ CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, v
 	return pClosest;
 }
 
-CCharacter *CGameWorld::ClosestCharacter(vec2 Pos, float Radius, CEntity *pNotThis)
+CCharacter *CGameWorld::ClosestCharacter(vec2 Pos, float Radius, CEntity *pNotThis, bool IncludeOnVehicle)
 {
 	// Find other players
 	float ClosestRange = Radius * 2;
@@ -230,6 +231,9 @@ CCharacter *CGameWorld::ClosestCharacter(vec2 Pos, float Radius, CEntity *pNotTh
 		if(p == pNotThis)
 			continue;
 
+		if(IncludeOnVehicle && p->m_OnVehicle)
+			continue;
+
 		float Len = distance(Pos, p->m_Pos);
 		if (Len < p->m_ProximityRadius + Radius)
 		{
@@ -237,6 +241,77 @@ CCharacter *CGameWorld::ClosestCharacter(vec2 Pos, float Radius, CEntity *pNotTh
 			{
 				ClosestRange = Len;
 				pClosest = p;
+			}
+		}
+	}
+
+	return pClosest;
+}
+
+bool Intersect(vec2 p1, vec2 p2, vec2 p3, vec2 p4, vec2* out)
+{
+	float d = (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y);
+	if (d == 0)
+		return false;
+
+	float u = ((p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x)) / d;
+	float v = ((p2.x - p1.x) * (p1.y - p3.y) - (p2.y - p1.y) * (p1.x - p3.x)) / d;
+	if (u >= 0 && u <= 1 && v >= 0 && v <= 1)
+	{
+		*out = p1 + (p2 - p1) * u;
+		return true;
+	}
+
+	return false;
+}
+
+CBuilding* CGameWorld::IntersectBuilding(vec2 Pos0, vec2 Pos1, float Radius, vec2& NewPos, CEntity* pNotThis)
+{
+	// Find other players
+	float ClosestLen = distance(Pos0, Pos1) * 100.0f;
+	CBuilding* pClosest = 0;
+
+	CBuilding* pBuilding = (CBuilding*)FindFirst(ENTTYPE_BUILDINGS);
+	for (; pBuilding; pBuilding = (CBuilding*)pBuilding->TypeNext())
+	{
+		if (pBuilding == pNotThis)
+			continue;
+
+		vec2 Pos[4] = {
+				vec2(pBuilding->m_Pos.x - pBuilding->Width() / 2, pBuilding->m_Pos.y + 16),
+				vec2(pBuilding->m_Pos.x - pBuilding->Width() / 2, pBuilding->m_Pos.y - pBuilding->Height() + 16),
+				vec2(pBuilding->m_Pos.x + pBuilding->Width() / 2, pBuilding->m_Pos.y - pBuilding->Height() + 16),
+				vec2(pBuilding->m_Pos.x + pBuilding->Width() / 2, pBuilding->m_Pos.y + 16)
+		};
+
+		vec2 Col[4] = { vec2(100000.0f, 100000.0f), vec2(100000.0f, 100000.0f), vec2(100000.0f, 100000.0f), vec2(100000.0f, 100000.0f) };
+
+		bool Hit = false;
+		for (int i = 0; i < 4; i++)
+		{
+			if (Intersect(Pos0, Pos1, Pos[i], Pos[(i + 1) % 4], &Col[i]))
+				Hit = true;
+		}
+
+		if (Hit)
+		{
+			vec2 CCol = Col[0];
+
+			float Len = distance(CCol, Pos0);
+			for (int i = 1; i < 4; i++)
+			{
+				if (distance(Col[i], Pos0) < Len)
+				{
+					CCol = Col[i];
+					Len = distance(CCol, Pos0);
+				}
+			}
+
+			if (Len < ClosestLen)
+			{
+				NewPos = CCol;
+				ClosestLen = Len;
+				pClosest = pBuilding;
 			}
 		}
 	}

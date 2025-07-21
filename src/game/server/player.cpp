@@ -31,6 +31,7 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, int Team)
 	m_pAI = NULL;
 
 	m_WantSpawn = true;
+	mem_zero(m_VotePage, NUM_VOTEPAGE);
 }
 
 CPlayer::~CPlayer()
@@ -94,7 +95,7 @@ void CPlayer::Tick()
 				m_pCharacter = 0;
 			}
 		}
-		else if (m_WantSpawn && m_Spawning && m_RespawnTick <= Server()->Tick())
+		else if (/*m_WantSpawn && */m_Spawning && m_RespawnTick <= Server()->Tick())
 			TryRespawn();
 	}
 	else

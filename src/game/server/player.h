@@ -6,7 +6,7 @@
 // this include should perhaps be removed
 #include "entities/character.h"
 #include "gamecontext.h"
-
+#include "votepage.h"
 #include "ai.h"
 
 // player object
@@ -108,6 +108,9 @@ public:
 	
 	void AITick();
 	bool AIInputChanged();
+
+	int m_SelectBuilding;
+	bool m_VotePage[NUM_VOTEPAGE];
 
 private:
 	CCharacter *m_pCharacter;

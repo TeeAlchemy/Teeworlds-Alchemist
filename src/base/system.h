@@ -24,6 +24,12 @@
 #define MAYBE_UNUSED
 #endif
 
+#ifdef __GNUC__
+#define GNUC_ATTRIBUTE(x) __attribute__(x)
+#else
+#define GNUC_ATTRIBUTE(x)
+#endif
+
 #include <chrono>
 
 #include "types.h"
@@ -866,6 +872,8 @@ typedef long long int64;
 	// TeeUniverses
 	void str_append_num(char *dst, const char *src, int dst_size, int num);
 
+	int str_utf8_isstart(char c);
+
 	/*
 		Function: str_copy
 			Copies a string to another.
@@ -1153,6 +1161,13 @@ typedef long long int64;
 			- Guarantees that buffer string will contain zero-termination.
 	*/
 	void str_timestamp(char *buffer, int buffer_size);
+	void str_timestamp_format(char *buffer, int buffer_size, const char *format);
+	void str_timestamp_ex(time_t time, char *buffer, int buffer_size, const char *format)
+	GNUC_ATTRIBUTE((format(strftime, 4, 0)));
+
+#define FORMAT_TIME "%H:%M:%S"
+#define FORMAT_SPACE "%Y-%m-%d %H:%M:%S"
+#define FORMAT_NOSPACE "%Y-%m-%d_%H-%M-%S"
 
 	/* Group: Filesystem */
 
@@ -1344,7 +1359,7 @@ typedef long long int64;
 	void swap_endian(void *data, unsigned elem_size, unsigned num);
 
 	typedef void (*DBG_LOGGER)(const char *line);
-	void dbg_logger(DBG_LOGGER logger);
+	void dbg_logger(DBG_LOGGER logger, bool file = false);
 
 	void dbg_logger_stdout();
 	void dbg_logger_debugger();
@@ -1498,8 +1513,9 @@ typedef long long int64;
 		Remarks:
 			- The token is always null-terminated.
 	*/
-
 	const char *str_next_token(const char *str, const char *delim, char *buffer, int buffer_size);
+
+	int str_count(const char *str, const char *count);
 
 	/*
 		Function: str_in_list

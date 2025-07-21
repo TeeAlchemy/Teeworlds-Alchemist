@@ -35,7 +35,7 @@ CInputCount CountInput(int Prev, int Cur)
 	return c;
 }
 
-MACRO_ALLOC_POOL_ID_IMPL(CCharacter, MAX_CLIENTS * ENGINE_MAX_WORLDS + MAX_CLIENTS)
+MACRO_ALLOC_POOL_ID_IMPL(CCharacter, MAX_CLIENTS *ENGINE_MAX_WORLDS + MAX_CLIENTS)
 
 // Character, "physical" player's part
 CCharacter::CCharacter(CGameWorld *pWorld)
@@ -84,6 +84,10 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 		m_IsBot = true;
 	}
 
+	mem_zero(m_Resource, NUM_RESOURCE);
+	m_CanBuild = false;
+
+	GameServer()->ClearVotes(GetPlayer()->GetCID());
 	return true;
 }
 
@@ -255,7 +259,7 @@ void CCharacter::FireWeapon()
 	vec2 Direction = normalize(vec2(m_LatestInput.m_TargetX, m_LatestInput.m_TargetY));
 
 	bool FullAuto = false;
-	
+
 	if (m_IsBot)
 		FullAuto = true;
 
@@ -296,37 +300,68 @@ void CCharacter::FireWeapon()
 		m_NumObjectsHit = 0;
 		GameServer()->CreateSound(m_Pos, SOUND_HAMMER_FIRE);
 
+		CBuilding *apBuildings[1];
 		CCharacter *apEnts[MAX_CLIENTS];
-		int Hits = 0;
-		int Num = GameServer()->m_World.FindEntities(ProjStartPos, GetProximityRadius() * 0.5f, (CEntity **)apEnts,
-													 MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
+		int Num = GameServer()->m_World.FindEntities(m_Pos, GetProximityRadius(), (CEntity **)apBuildings, 1, CGameWorld::ENTTYPE_BUILDINGS);
+		int Num2 = GameServer()->m_World.FindEntities(ProjStartPos, GetProximityRadius() * 0.5f, (CEntity **)apEnts, MAX_CLIENTS, CGameWorld::ENTTYPE_CHARACTER);
 
-		for (int i = 0; i < Num; ++i)
+		if (Num2 > 1)
 		{
-			CCharacter *pTarget = apEnts[i];
+			for (int i = 0; i < Num2; ++i)
+			{
+				CCharacter *pTarget = apEnts[i];
 
-			if ((pTarget == this) || GameServer()->Collision()->IntersectLine(ProjStartPos, pTarget->m_Pos, NULL, NULL))
-				continue;
+				if ((pTarget == this) || GameServer()->Collision()->IntersectLine(ProjStartPos, pTarget->m_Pos, NULL, NULL))
+					continue;
 
-			// set his velocity to fast upward (for now)
-			if (length(pTarget->m_Pos - ProjStartPos) > 0.0f)
-				GameServer()->CreateHammerHit(pTarget->m_Pos - normalize(pTarget->m_Pos - ProjStartPos) * GetProximityRadius() * 0.5f);
+				// set his velocity to fast upward (for now)
+				if (length(pTarget->m_Pos - ProjStartPos) > 0.0f)
+					GameServer()->CreateHammerHit(pTarget->m_Pos - normalize(pTarget->m_Pos - ProjStartPos) * GetProximityRadius() * 0.5f);
+				else
+					GameServer()->CreateHammerHit(ProjStartPos);
+
+				vec2 Dir;
+				if (length(pTarget->m_Pos - m_Pos) > 0.0f)
+					Dir = normalize(pTarget->m_Pos - m_Pos);
+				else
+					Dir = vec2(0.f, -1.f);
+
+				pTarget->TakeDamage(vec2(0.f, -1.f) + normalize(Dir + vec2(0.f, -1.1f)) * 10.0f, g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage,
+									m_pPlayer->GetCID(), m_ActiveWeapon);
+
+				m_NumObjectsHit = 2;
+			}
+		}
+		else if (Num > 0 && IsGrounded())
+		{
+			if (apBuildings[0]->GetTeam() == m_pPlayer->GetTeam())
+			{
+				if (apBuildings[0]->GetHealth() < GameServer()->m_pBuildingsInfo->m_aBuildingsInfo[apBuildings[0]->GetType()].m_Health)
+				{
+					apBuildings[0]->IncreaseHealth(2);
+					GameServer()->CreateHammerHit(m_Pos);
+					m_NumObjectsHit = 1;
+				}
+			}
 			else
-				GameServer()->CreateHammerHit(ProjStartPos);
-
-			vec2 Dir;
-			if (length(pTarget->m_Pos - m_Pos) > 0.0f)
-				Dir = normalize(pTarget->m_Pos - m_Pos);
-			else
-				Dir = vec2(0.f, -1.f);
-
-			pTarget->TakeDamage(vec2(0.f, -1.f) + normalize(Dir + vec2(0.f, -1.1f)) * 10.0f, g_pData->m_Weapons.m_Hammer.m_pBase->m_Damage,
-								m_pPlayer->GetCID(), m_ActiveWeapon);
-			Hits++;
+			{
+				apBuildings[0]->TakeDamage(1, m_pPlayer->GetCID(), m_ActiveWeapon);
+				GameServer()->CreateHammerHit(m_Pos);
+				m_NumObjectsHit = 1;
+			}
+		}
+		else if (IsGrounded() && GetPlayer()->m_SelectBuilding >= 0)
+		{
+			if (GameServer()->m_pController->BuildBuilding(m_Pos, GetPlayer()->m_SelectBuilding, m_pPlayer->GetTeam(), m_pPlayer->GetCID()))
+			{
+				GetPlayer()->m_SelectBuilding = -1;
+				GameServer()->CreateHammerHit(m_Pos);
+				m_NumObjectsHit = 1;
+			}
 		}
 
 		// if we Hit anything, we have to wait for the reload
-		if (Hits)
+		if (m_NumObjectsHit)
 			m_ReloadTimer = Server()->TickSpeed() / 3;
 	}
 	break;
@@ -338,7 +373,7 @@ void CCharacter::FireWeapon()
 						ProjStartPos,
 						Direction,
 						(int)(Server()->TickSpeed() * GameServer()->Tuning()->m_GunLifetime),
-						1, 0, 0, -1, WEAPON_GUN);
+						1, 0, 0, -1, WEAPON_GUN, GetPlayer()->GetTeam());
 
 		GameServer()->CreateSound(m_Pos, SOUND_GUN_FIRE);
 	}
@@ -360,7 +395,7 @@ void CCharacter::FireWeapon()
 							ProjStartPos,
 							vec2(cosf(a), sinf(a)) * Speed,
 							(int)(Server()->TickSpeed() * GameServer()->Tuning()->m_ShotgunLifetime),
-							1, 0, 0, -1, WEAPON_SHOTGUN);
+							1, 0, 0, -1, WEAPON_SHOTGUN, GetPlayer()->GetTeam());
 		}
 
 		GameServer()->CreateSound(m_Pos, SOUND_SHOTGUN_FIRE);
@@ -374,7 +409,7 @@ void CCharacter::FireWeapon()
 						ProjStartPos,
 						Direction,
 						(int)(Server()->TickSpeed() * GameServer()->Tuning()->m_GrenadeLifetime),
-						1, true, 0, SOUND_GRENADE_EXPLODE, WEAPON_GRENADE);
+						1, true, 0, SOUND_GRENADE_EXPLODE, WEAPON_GRENADE, GetPlayer()->GetTeam());
 
 		GameServer()->CreateSound(m_Pos, SOUND_GRENADE_FIRE);
 	}
@@ -546,6 +581,8 @@ void CCharacter::Tick()
 		Die(m_pPlayer->GetCID(), WEAPON_WORLD);
 	}
 
+	HandleTile();
+
 	// handle Weapons
 	HandleWeapons();
 
@@ -561,7 +598,7 @@ void CCharacter::TickDefered()
 		CWorldCore TempWorld;
 		m_ReckoningCore.Init(&TempWorld, GameServer()->Collision());
 		m_ReckoningCore.Tick(false, &TempWorld.m_Tuning);
-		//m_ReckoningCore.Move(&TempWorld.m_Tuning);
+		// m_ReckoningCore.Move(&TempWorld.m_Tuning);
 		m_ReckoningCore.Quantize();
 	}
 
@@ -638,6 +675,8 @@ void CCharacter::TickDefered()
 			m_ReckoningCore = m_Core;
 		}
 	}
+
+	m_CanBuild = false;
 }
 
 void CCharacter::TickPaused()
@@ -652,6 +691,48 @@ void CCharacter::TickPaused()
 		++m_aWeapons[m_ActiveWeapon].m_AmmoRegenStart;
 	if (m_EmoteStop > -1)
 		++m_EmoteStop;
+}
+
+void CCharacter::HandleTile()
+{
+	int Index = GameServer()->Collision()->GetTileIndex(vec2(GetPos().x / 32.f, GetPos().y / 32.f - 1.f));
+	switch (Index)
+	{
+	case TILE_SAFEZONE_RED:
+	case TILE_SAFEZONE_BLUE:
+		if ((GetPlayer()->GetTeam() != TEAM_RED && Index == TILE_SAFEZONE_RED) || (GetPlayer()->GetTeam() != TEAM_BLUE && Index == TILE_SAFEZONE_BLUE))
+			break;
+
+		if (PerTick(25))
+		{
+			IncreaseHealth(1);
+			for (int i = 0; i < NUM_RESOURCE; i++)
+			{
+				if (m_Resource[i] > 0)
+				{
+					GameServer()->m_pController->m_aTeamResources[GetPlayer()->GetTeam()][i] += m_Resource[i];
+					GameServer()->Chat(GetPlayer()->GetCID(), "You submitted {} x{}", GetResourceName(i), m_Resource[i]);
+					m_Resource[i] = 0;
+				}
+			}
+			GameServer()->ClearVotes(GetPlayer()->GetCID());
+		}
+		GetPlayer()->m_VotePage[PAGE_HOME] = true;
+		break;
+
+	case TILE_SHOP:
+		GetPlayer()->m_VotePage[PAGE_SHOP] = true;
+		break;
+
+	default:
+		if (GetPlayer()->m_VotePage[PAGE_HOME] == true || GetPlayer()->m_VotePage[PAGE_SHOP] == true)
+		{
+			GetPlayer()->m_VotePage[PAGE_HOME] = false;
+			GetPlayer()->m_VotePage[PAGE_SHOP] = false;
+			GameServer()->ClearVotes(GetPlayer()->GetCID());
+		}
+		break;
+	}
 }
 
 bool CCharacter::IncreaseHealth(int Amount)
@@ -674,7 +755,11 @@ void CCharacter::Die(int Killer, int Weapon)
 {
 	// we got to wait 0.5 secs before respawning
 	m_pPlayer->m_RespawnTick = Server()->Tick() + Server()->TickSpeed() / 2;
-	int ModeSpecial = GameServer()->m_pController->OnCharacterDeath(this, GameServer()->m_apPlayers[Killer], Weapon);
+	int ModeSpecial = 0;
+	if (Killer < 0 || Killer >= MAX_CLIENTS)
+		GameServer()->m_pController->OnCharacterDeath(this, 0, Weapon);
+	else
+		GameServer()->m_pController->OnCharacterDeath(this, GameServer()->m_apPlayers[Killer], Weapon);
 
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "kill killer='%d:%s' victim='%d:%s' weapon=%d special=%d",
@@ -862,11 +947,11 @@ void CCharacter::Snap(int SnappingClient)
 
 void CCharacter::AutoWeaponChange()
 {
-	if (HasAmmo(GetActiveWeapon()) && frandom()*100 > 10 && GetActiveWeapon() != WEAPON_HAMMER)
+	if (HasAmmo(GetActiveWeapon()) && frandom() * 100 > 10 && GetActiveWeapon() != WEAPON_HAMMER)
 		return;
-	
-	int w = rand()%(int)NUM_WEAPONS;
-	
+
+	int w = rand() % (int)NUM_WEAPONS;
+
 	if (m_aWeapons[w].m_Got)
 	{
 		if (HasAmmo(w))
@@ -878,7 +963,7 @@ bool CCharacter::Hooking()
 {
 	if (m_Core.m_HookState == HOOK_GRABBED || m_Core.m_HookState == HOOK_FLYING)
 		return true;
-		
+
 	return false;
 }
 
@@ -886,6 +971,8 @@ int CCharacter::HookedPlayer()
 {
 	if (m_Core.m_HookState == HOOK_GRABBED && m_Core.m_HookedPlayer >= 0)
 		return m_Core.m_HookedPlayer;
-		
+
 	return -1;
 }
+
+bool CCharacter::PerTick(int Tick) { return (Server()->Tick() % Tick == 0); }

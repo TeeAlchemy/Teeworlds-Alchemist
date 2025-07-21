@@ -145,4 +145,16 @@ MACRO_CONFIG_INT(SvBotReactTime, sv_bot_react_time, 6, 0, 20, CFGFLAG_SERVER, "T
 // Heavy reset
 MACRO_CONFIG_INT(SvHardresetAfterDays, sv_hard_reset_after_days, 7, 1, 14, CFGFLAG_SAVE | CFGFLAG_SERVER, "Reset the server when it has been idle for a specified number of days without players")
 
+/* SQL */
+MACRO_CONFIG_STR(SvSqlUser, sv_sql_user, 256, "nameless", CFGFLAG_SERVER, "SQL User")
+MACRO_CONFIG_STR(SvSqlPw, sv_sql_pw, 256, "tee", CFGFLAG_SERVER, "SQL Password")
+MACRO_CONFIG_STR(SvSqlIp, sv_sql_ip, 256, "127.0.0.1", CFGFLAG_SERVER, "SQL Database IP")
+MACRO_CONFIG_INT(SvSqlPort, sv_sql_port, 3306, 0, 65535, CFGFLAG_SERVER, "SQL Database port")
+MACRO_CONFIG_STR(SvSqlDatabase, sv_sql_database, 256, "tdf", CFGFLAG_SERVER, "SQL Database name")
+MACRO_CONFIG_STR(SvSqlPrefix, sv_sql_prefix, 16, "tw", CFGFLAG_SERVER, "SQL Database table prefix")
+MACRO_CONFIG_INT(SvSqlPoolSize, sv_sql_pool_size, 1, 1, 20, CFGFLAG_SERVER, "SQL Pool Size")
+MACRO_CONFIG_INT(SvSqlTimeout, sv_sql_timeout, 1, 1, 20, CFGFLAG_SERVER, "SQL Timeout")
+
+MACRO_CONFIG_INT(SvWorkbenchesHealth, sv_workbenches_health, 500, 1, 10000, CFGFLAG_SERVER, "Set the health for Workbenches(Need restart!)")
+
 #endif

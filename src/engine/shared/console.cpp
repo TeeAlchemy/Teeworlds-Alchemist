@@ -212,6 +212,84 @@ void CConsole::Print(int Level, const char *pFrom, const char *pStr)
 	}
 }
 
+char CConsole::NextParam(const char*& pFormat)
+{
+	if(*pFormat)
+	{
+		pFormat++;
+
+		if(*pFormat == '[')
+		{
+			// skip bracket contents
+			for(; *pFormat != ']'; pFormat++)
+			{
+				if(!*pFormat)
+					return *pFormat;
+			}
+
+			// skip ']'
+			pFormat++;
+
+			// skip space if there is one
+			if(*pFormat == ' ')
+				pFormat++;
+		}
+	}
+	return *pFormat;
+}
+
+int CConsole::ParseCommandArgs(const char* pArgs, const char* pFormat, FCommandCallback pfnCallback, void* pContext)
+{
+	CResult Result;
+	str_copy(Result.m_aStringStorage, pArgs, sizeof(Result.m_aStringStorage));
+	Result.m_pArgsStart = Result.m_aStringStorage;
+
+	int Error = ParseArgs(&Result, pFormat);
+	if(Error)
+		return Error;
+
+	if(pfnCallback)
+		pfnCallback(&Result, pContext);
+
+	return 0;
+}
+
+bool CConsole::ArgStringIsValid(const char* pFormat)
+{
+	char Command = *pFormat;
+	bool Valid = true;
+	bool Last = false;
+
+	while(true)
+	{
+		if(!Command)
+			break;
+
+		if(Last && *pFormat)
+			return false;
+
+		if(Command == '?')
+		{
+			if(!pFormat[1])
+				return false;
+		}
+		else
+		{
+			if(Command == 'i' || Command == 'f' || Command == 's')
+				;
+			else if(Command == 'r')
+				Last = true;
+			else
+				return false;
+		}
+
+		Command = NextParam(pFormat);
+		Valid = Command != '\0';
+	}
+
+	return Valid;
+}
+
 bool CConsole::LineIsValid(const char *pStr)
 {
 	if (!pStr || *pStr == 0)
@@ -797,7 +875,7 @@ void CConsole::Register(const char *pName, const char *pParams,
 	if (DoAdd)
 		AddCommandSorted(pCommand);
 
-	if (Flags & CFGFLAG_CHAT)
+	if (Flags & CFGFLAG_CHAT || Flags & CFGFLAG_VOTE)
 		pCommand->SetAccessLevel(IConsole::ACCESS_LEVEL_USER);
 }
 

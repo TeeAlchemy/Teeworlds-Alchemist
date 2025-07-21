@@ -23,6 +23,7 @@ enum
 	CFGFLAG_MASTER = 16,
 	CFGFLAG_ECON = 32,
 	CFGFLAG_CHAT = 64,
+	CFGFLAG_VOTE = 128,
 };
 
 #endif

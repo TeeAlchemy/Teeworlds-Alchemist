@@ -33,6 +33,8 @@ def help_localize(directory, tpattern):
 
 help_localize("src/game/server/", 'Chat\([^,]*, "(.+?)"')
 help_localize("src/engine/shared/", 'Chat\([^,]*, "(.+?)"')
+help_localize("src/game/server/", 'ChatTeam\([^,]*, "(.+?)"')
+help_localize("src/engine/shared/", 'ChatTeam\([^,]*, "(.+?)"')
 help_localize("src/game/server/", 'Broadcast\([^,]*, "(.+?)"')
 help_localize("src/engine/shared/", 'Broadcast\([^,]*, "(.+?)"')
 help_localize("src/game/server/", 'Motd\([^,]*, "(.+?)"')
@@ -41,7 +43,10 @@ help_localize("src/game/server/", 'Format\([^,]*, "(.+?)"')
 help_localize("src/engine/shared/", 'Format\([^,]*, "(.+?)"')
 help_localize("src/game/server/", 'Localize\([^,]*, "(.+?)"')
 help_localize("src/engine/shared/", 'Localize\([^,]*, "(.+?)"')
-
+help_localize("src/game/server/", 'AddVote_VL\([^,]*, "(.+?)"')
+help_localize("src/game/server/", 'AddVote_Text\("(.+?)"')
+help_localize("src/game/server/", 'AddVote_Goto\([^,]*, "(.+?)"')
+help_localize("src/game/server/", 'placeholder\("(.+?)"')
 
 with open(labelfile, "r") as file:
         lines = file.readlines()

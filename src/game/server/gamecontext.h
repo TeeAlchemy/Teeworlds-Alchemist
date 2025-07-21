@@ -21,6 +21,8 @@
 
 class CChatAI;
 
+#include "votepage.h"
+
 /*
 	Tick
 		Game Context (CGameContext::OnTick)
@@ -29,7 +31,7 @@ class CChatAI;
 				All entities in the world (CEntity::Tick)
 				All entities in the world (CEntity::TickDeferd)
 				Remove entities marked for deletion (CGameWorld::RemoveEntity)
-			Game Controller (IGameController::Tick)
+			Game Controller (CGameControllerWorkbenches::Tick)
 			All players (CPlayer::Tick)
 
 
@@ -37,7 +39,7 @@ class CChatAI;
 		Game Context (CGameContext::OnSnap)
 			Game World (CGameWorld::Snap)
 				All entities in the world (CEntity::Snap)
-			Game Controller (IGameController::Snap)
+			Game Controller (CGameControllerWorkbenches::Snap)
 			Events handler (CEventHandler::Snap)
 			All players (CPlayer::Snap)
 
@@ -45,7 +47,9 @@ class CChatAI;
 class CGameContext : public IGameServer
 {
 	class IConsole *m_pConsole;
+	class IStorage *m_pStorage;
 	class CLayers* m_pLayers;
+	class CCommandProcessor* m_pCommandProcessor;
 
 	IServer *m_pServer;
 	CCollision m_Collision;
@@ -91,6 +95,8 @@ class CGameContext : public IGameServer
 public:
 	IServer *Server() const { return m_pServer; }
 	class IConsole *Console() { return m_pConsole; }
+	class IStorage *Storage() { return m_pStorage; }
+	CCommandProcessor* CommandProcessor() const { return m_pCommandProcessor; }
 	CCollision *Collision() { return &m_Collision; }
 	CTuningParams *Tuning() { return &m_Tuning; }
 	CGameContext();
@@ -101,7 +107,7 @@ public:
 	CEventHandler m_Events;
 	CPlayer *m_apPlayers[MAX_CLIENTS];
 
-	IGameController *m_pController;
+	CGameControllerWorkbenches *m_pController;
 	CGameWorld m_World;
 
 	CChatAI *m_pChatAI;
@@ -252,6 +258,19 @@ public:
 	}
 
 	template <typename... Ts>
+	void ChatTeam(int Team, const char *pText, Ts &&...args)
+	{
+		CNetMsg_Sv_Chat Msg;
+		Msg.m_ClientID = -1;
+		Msg.m_Team = -1;
+		for (int i = 0; i < MAX_CLIENTS; i++)
+		{
+			if(GetPlayer(i) && GetPlayer(i)->GetTeam() == Team)
+				SendNetworkMessage<CNetMsg_Sv_Chat>(Msg, -1, i, pText, std::forward<Ts>(args)...);
+		}
+	}
+
+	template <typename... Ts>
 	void Motd(int ClientID, const char *pText, Ts &&...args)
 	{
 		CNetMsg_Sv_Motd Msg;
@@ -264,6 +283,71 @@ public:
 		CNetMsg_Sv_Broadcast Msg;
 		SendNetworkMessage<CNetMsg_Sv_Broadcast>(Msg, -1, ClientID, pText, std::forward<Ts>(args)...);
 	}
+
+// Vote
+public:
+	struct SPlayerVote
+	{
+		struct SVoteOptions
+		{
+			char m_aDescription[VOTE_DESC_LENGTH] = {0};
+			char m_aCommand[VOTE_CMD_LENGTH] = {0};
+		};
+		array<SVoteOptions> m_aVoteOptions;
+
+		int m_LastPage;
+		int m_Page;
+
+		int m_Select;
+	};
+
+	SPlayerVote m_aPlayerVotes[MAX_CLIENTS];
+
+	SPlayerVote *GetPlayerVote(int ClientID) { return &m_aPlayerVotes[ClientID]; }
+
+	template <typename... Ts>
+	void AddVote_VL(const char *pCmd, const char *pText, Ts &&...args)
+	{
+		int ClientID = m_VoteClientID;
+		const int Start = (ClientID < 0 ? 0 : ClientID);
+		const int End = (ClientID < 0 ? MAX_CLIENTS : ClientID + 1);
+
+		for (int i = Start; i < End; i++)
+		{
+			std::string endText = Server()->Localization()->Format(GetClientLanguage(i), pText, std::forward<Ts>(args)...);
+			AddVote(endText.c_str(), pCmd, i);
+		}
+	}
+
+	template <typename... Ts>
+	void AddVote_Goto(int Page, const char *pDesc, Ts &&...args)
+	{
+		if (!PlayerExists(m_VoteClientID))
+			return;
+
+		char aPageFormat[64];
+		str_format(aPageFormat, sizeof(aPageFormat), "ccv_goto %d", Page);
+		AddVote_VL(aPageFormat, pDesc, std::forward<Ts>(args)...);
+	}
+	void AddVote(const char *pDesc, const char *pCmd, int ClientID = -1);
+	void AddVote_Back();
+	void AddVote_Space(int Num = 1);
+	template <typename... Ts>
+	void AddVote_Text(const char *pText, Ts &&...args) { AddVote_VL("ccv_null", pText, std::forward<Ts>(args)...); }
+	void SetVoteLastPage(int Page) { GetPlayerVote(m_VoteClientID)->m_LastPage = Page; }
+	void SetVoteClientID(int CID) { m_VoteClientID = CID; }
+
+	void InitVotes(int ClientID);
+	void ClearVotes(int ClientID);
+	void ClearVotesTeam(int Team);
+	void ChangeVotePage(int ClientID, int Page);
+
+	int m_VoteClientID;
+
+public:
+	CBuildingInfo *m_pBuildingsInfo;
+	CBuilding *m_pBuildings;
+	
 };
 
 inline int CmaskAll() { return -1; }

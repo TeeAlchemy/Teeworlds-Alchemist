@@ -107,7 +107,7 @@ private:
 	}
 
 	// end unpacking args function
-	inline static std::string FormatImpl(const char*, const char* pText, std::deque<std::string>& vStrPack)
+	inline std::string FormatImpl(const char* pLanguageCode, const char* pText, std::deque<std::string>& vStrPack)
 	{
 		std::string Result{};
 		bool ArgStarted = false;
@@ -134,7 +134,7 @@ private:
 					ArgStarted = false;
 					if(!vStrPack.empty())
 					{
-						Result += vStrPack.front();
+						Result += Localize(pLanguageCode, vStrPack.front().c_str());
 						vStrPack.pop_front();
 					}
 				}
@@ -185,6 +185,7 @@ public:
 
 	// Localize
 	const char* Localize(const char* pLanguageCode, const char* pText);
+	const char *LanguageCodeByCountryCode(int CountryCode);
 };
 
 #endif

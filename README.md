@@ -1,8 +1,7 @@
 TODOs:
 =====
 
-- **[] MySQL Connection.**
-- **[] Add More TODOs.**
+- **[] CANNOT USE MAP BIGGER THAN 1024*1024**
 
 Teeworlds-Alchemist
 =================

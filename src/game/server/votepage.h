@@ -1,0 +1,15 @@
+#ifndef GAME_SERVER_VOTEPAGE_H
+#define GAME_SERVER_VOTEPAGE_H
+
+enum EVotePages
+{
+	PAGE_MENU = 0,
+    PAGE_INVENTORY,
+	PAGE_HOME,
+    PAGE_MAKE,
+	PAGE_SHOP,
+    PAGE_BUILD,
+	NUM_VOTEPAGE,
+};
+
+#endif

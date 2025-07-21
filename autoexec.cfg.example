@@ -1,0 +1,8 @@
+sv_name My Workbench Server
+sv_motd My motd
+sv_map CraftWar
+
+#password 123
+sv_rcon_password rcon_password
+
+sv_workbenches_health 5

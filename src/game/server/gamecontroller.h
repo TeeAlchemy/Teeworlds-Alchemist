@@ -3,15 +3,19 @@
 #ifndef GAME_SERVER_GAMECONTROLLER_H
 #define GAME_SERVER_GAMECONTROLLER_H
 
+#include <base/tl/array.h>
 #include <base/vmath.h>
 #include <vector>
+
+#include "entities/workbench.h"
+#include "resources.h"
 
 /*
 	Class: Game Controller
 		Controls the main game logic. Keeping track of team and player score,
 		winning conditions and specific game logic.
 */
-class IGameController
+class CGameControllerWorkbenches
 {
 	vec2 m_aaSpawnPoints[3][64];
 	int m_aNumSpawnPoints[3];
@@ -50,8 +54,6 @@ protected:
 	int m_GameOverTick;
 	int m_SuddenDeath;
 
-	int m_aTeamscore[2];
-
 	int m_Warmup;
 	int m_UnpauseTimer;
 	int m_RoundCount;
@@ -66,8 +68,8 @@ public:
 	bool IsTeamplay() const;
 	bool IsGameOver() const { return m_GameOverTick != -1; }
 
-	IGameController(class CGameContext *pGameServer);
-	virtual ~IGameController();
+	CGameControllerWorkbenches(class CGameContext *pGameServer);
+	virtual ~CGameControllerWorkbenches();
 
 	virtual void DoWincheck();
 
@@ -146,6 +148,32 @@ public:
 	void OnPlayerDisconnect(class CPlayer *pPlayer);
 	void OnPlayerInfoChange(class CPlayer *pPlayer, int WorldID);
 	void OnReset();
+
+public:
+	struct CAreaFlagInfo
+    {
+        vec2 m_LowerPos;
+        vec2 m_UpperPos;
+        int m_MaxProgress;
+		int m_Level;
+    };
+
+    std::vector<CAreaFlagInfo> m_AreaFlagInfo;
+	
+	CWorkbench *m_apWorkbenches[2];
+    void LoadMapConfig();
+
+    int m_NumFlag;
+
+	int m_aTeamResources[2][NUM_RESOURCE];
+	int m_aTeamBuildings[2][NUM_BUILDING];
+	int m_aTeamMoney[2];
+	//int m_aTeamBuildingTick[2];
+	//array<int> m_aTeamBuildingQueue[2];
+	//void HandleTeamBuilding();
+	int GetWorkbenchHealth(int Team);
+	void MakeBuilding(int Building, int Team);
+	bool BuildBuilding(vec2 Pos, int Type, int Team, int Owner);
 };
 
 #endif

@@ -3,6 +3,7 @@
 #ifndef GAME_SERVER_ENTITIES_CHARACTER_H
 #define GAME_SERVER_ENTITIES_CHARACTER_H
 
+#include <game/server/resources.h>
 #include <game/server/entity.h>
 #include <game/generated/server_data.h>
 #include <game/generated/protocol.h>
@@ -32,6 +33,8 @@ public:
 	void TickDefered() override;
 	void TickPaused() override;
 	void Snap(int SnappingClient) override;
+
+	void HandleTile();
 
 	bool IsGrounded();
 
@@ -63,8 +66,10 @@ public:
 	bool IsAlive() const { return m_Alive; }
 	class CPlayer *GetPlayer() { return m_pPlayer; }
 
-	bool GotWeapon(int Weapon){ return m_aWeapons[Weapon].m_Got; }
-	bool HasAmmo(int Weapon){ return m_aWeapons[Weapon].m_Ammo || Weapon == WEAPON_HAMMER; }
+	bool m_OnVehicle;
+
+	bool GotWeapon(int Weapon) { return m_aWeapons[Weapon].m_Got; }
+	bool HasAmmo(int Weapon) { return m_aWeapons[Weapon].m_Ammo || Weapon == WEAPON_HAMMER; }
 
 	void AutoWeaponChange();
 
@@ -72,13 +77,19 @@ public:
 
 	bool Hooking();
 	int HookedPlayer();
-	
-	CCharacterCore GetCore(){ return m_Core; }
-	vec2 GetPosition(){ return m_Pos; }
-	
-	vec2 GetVel(){ return m_Core.m_Vel; }
+
+	CCharacterCore *GetCore() { return &m_Core; }
+	vec2 GetPosition() { return m_Pos; }
+
+	vec2 GetVel() { return m_Core.m_Vel; }
 
 	int GetActiveWeapon() { return m_ActiveWeapon; }
+	int GetWeaponAmmo(int Weapon) { return m_aWeapons[Weapon].m_Ammo; }
+
+	bool PerTick(int Tick);
+
+	int m_Resource[NUM_RESOURCE];
+	bool m_CanBuild;
 
 private:
 	// player controlling this character

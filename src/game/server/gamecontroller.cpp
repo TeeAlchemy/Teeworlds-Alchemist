@@ -6,14 +6,19 @@
 #include <game/generated/protocol.h>
 
 #include "entities/pickup.h"
+#include "entities/area-flag.h"
+#include "entities/workbench.h"
 #include "gamecontroller.h"
 #include "gamecontext.h"
 
-IGameController::IGameController(class CGameContext *pGameServer)
+#include <engine/storage.h>
+#include <engine/shared/linereader.h>
+
+CGameControllerWorkbenches::CGameControllerWorkbenches(class CGameContext *pGameServer)
 {
 	m_pGameServer = pGameServer;
 	m_pServer = m_pGameServer->Server();
-	m_pGameType = "Alchemy"; // Set the gametype to Alchemy by default
+	m_pGameType = "Workbenches"; // Set the gametype to Alchemy by default
 
 	//
 	DoWarmup(g_Config.m_SvWarmup);
@@ -22,9 +27,7 @@ IGameController::IGameController(class CGameContext *pGameServer)
 	m_SuddenDeath = 0;
 	m_RoundStartTick = Server()->Tick();
 	m_RoundCount = 0;
-	m_GameFlags = 0;
-	m_aTeamscore[TEAM_RED] = 0;
-	m_aTeamscore[TEAM_BLUE] = 0;
+	m_GameFlags = GAMEFLAG_TEAMS;
 	m_aMapWish[0] = 0;
 
 	m_UnbalancedTick = -1;
@@ -34,15 +37,29 @@ IGameController::IGameController(class CGameContext *pGameServer)
 	m_aNumSpawnPoints[1] = 0;
 	m_aNumSpawnPoints[2] = 0;
 
-	GameServer()->Collision()->GenerateWaypoints();
-	
-	char aBuf[128]; str_format(aBuf, sizeof(aBuf), "%d waypoints generated, %d connections created", GameServer()->Collision()->WaypointCount(), GameServer()->Collision()->ConnectionCount());
-	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cstt", aBuf);
+	for (int Team = 0; Team < 2; Team++)
+	{
+		for (int i = 0; i < NUM_RESOURCE; i++)
+			m_aTeamResources[Team][i] = 0;
+
+		for (int i = 0; i < NUM_BUILDING; i++)
+			m_aTeamBuildings[Team][i] = 0;
+
+		m_aTeamMoney[Team] = 0;
+	}
+
+	/*GameServer()->Collision()->GenerateWaypoints();
+
+	char aBuf[128];
+	str_format(aBuf, sizeof(aBuf), "%d waypoints generated, %d connections created", GameServer()->Collision()->WaypointCount(), GameServer()->Collision()->ConnectionCount());
+	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "cstt", aBuf);*/
+
+	LoadMapConfig();
 }
 
-IGameController::~IGameController() {}
+CGameControllerWorkbenches::~CGameControllerWorkbenches() {}
 
-float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos)
+float CGameControllerWorkbenches::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos)
 {
 	float Score = 0.0f;
 	CCharacter *pC = static_cast<CCharacter *>(GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_CHARACTER));
@@ -60,7 +77,7 @@ float IGameController::EvaluateSpawnPos(CSpawnEval *pEval, vec2 Pos)
 	return Score;
 }
 
-void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type)
+void CGameControllerWorkbenches::EvaluateSpawnType(CSpawnEval *pEval, int Type)
 {
 	// get spawn point
 	for (int i = 0; i < m_aNumSpawnPoints[Type]; i++)
@@ -95,7 +112,7 @@ void IGameController::EvaluateSpawnType(CSpawnEval *pEval, int Type)
 	}
 }
 
-bool IGameController::CanSpawn(int Team, vec2 *pOutPos)
+bool CGameControllerWorkbenches::CanSpawn(int Team, vec2 *pOutPos)
 {
 	CSpawnEval Eval;
 
@@ -127,7 +144,7 @@ bool IGameController::CanSpawn(int Team, vec2 *pOutPos)
 	return Eval.m_Got;
 }
 
-bool IGameController::OnEntity(int Index, vec2 Pos)
+bool CGameControllerWorkbenches::OnEntity(int Index, vec2 Pos)
 {
 	int Type = -1;
 	int SubType = 0;
@@ -137,28 +154,10 @@ bool IGameController::OnEntity(int Index, vec2 Pos)
 		m_aaSpawnPoints[TEAM_RED][m_aNumSpawnPoints[TEAM_RED]++] = Pos;
 		break;
 	case ENTITY_SPAWN_RED:
-		m_aaSpawnPoints[TEAM_RED][m_aNumSpawnPoints[TEAM_RED]++] = Pos;
+		m_aaSpawnPoints[TEAM_RED + 1][m_aNumSpawnPoints[TEAM_RED + 1]++] = Pos;
 		break;
 	case ENTITY_SPAWN_BLUE:
-		m_aaSpawnPoints[TEAM_BLUE][m_aNumSpawnPoints[TEAM_BLUE]++] = Pos;
-		break;
-	case ENTITY_ARMOR_1:
-		Type = POWERUP_ARMOR;
-		break;
-	case ENTITY_HEALTH_1:
-		Type = POWERUP_HEALTH;
-		break;
-	case ENTITY_WEAPON_SHOTGUN:
-		Type = POWERUP_WEAPON;
-		SubType = WEAPON_SHOTGUN;
-		break;
-	case ENTITY_WEAPON_GRENADE:
-		Type = POWERUP_WEAPON;
-		SubType = WEAPON_GRENADE;
-		break;
-	case ENTITY_WEAPON_RIFLE:
-		Type = POWERUP_WEAPON;
-		SubType = WEAPON_RIFLE;
+		m_aaSpawnPoints[TEAM_BLUE + 1][m_aNumSpawnPoints[TEAM_BLUE + 1]++] = Pos;
 		break;
 	default:
 		break;
@@ -173,7 +172,7 @@ bool IGameController::OnEntity(int Index, vec2 Pos)
 	return false;
 }
 
-void IGameController::EndRound()
+void CGameControllerWorkbenches::EndRound()
 {
 	if (m_Warmup) // game can't end when we are running warmup
 		return;
@@ -183,12 +182,12 @@ void IGameController::EndRound()
 	m_SuddenDeath = 0;
 }
 
-void IGameController::ResetGame()
+void CGameControllerWorkbenches::ResetGame()
 {
 	GameServer()->m_World.m_ResetRequested = true;
 }
 
-const char *IGameController::GetTeamName(int Team)
+const char *CGameControllerWorkbenches::GetTeamName(int Team)
 {
 	if (IsTeamplay())
 	{
@@ -208,7 +207,7 @@ const char *IGameController::GetTeamName(int Team)
 
 static bool IsSeparator(char c) { return c == ';' || c == ' ' || c == ',' || c == '\t'; }
 
-void IGameController::StartRound()
+void CGameControllerWorkbenches::StartRound()
 {
 	ResetGame();
 
@@ -216,16 +215,27 @@ void IGameController::StartRound()
 	m_SuddenDeath = 0;
 	m_GameOverTick = -1;
 	GameServer()->m_World.m_Paused = false;
-	m_aTeamscore[TEAM_RED] = 0;
-	m_aTeamscore[TEAM_BLUE] = 0;
 	m_ForceBalanced = false;
+
+	for (int Team = 0; Team < 2; Team++)
+	{
+		for (int i = 0; i < NUM_RESOURCE; i++)
+			m_aTeamResources[Team][i] = 0;
+
+		for (int i = 0; i < NUM_BUILDING; i++)
+			m_aTeamBuildings[Team][i] = 0;
+
+		m_aTeamMoney[Team] = 0;
+		m_apWorkbenches[Team]->Init();
+	}
+
 	Server()->DemoRecorder_HandleAutoStart();
 	char aBuf[256];
 	str_format(aBuf, sizeof(aBuf), "start round type='%s' teamplay='%d'", m_pGameType, m_GameFlags & GAMEFLAG_TEAMS);
 	GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_DEBUG, "game", aBuf);
 }
 
-void IGameController::CycleMap()
+void CGameControllerWorkbenches::CycleMap()
 {
 	if (m_aMapWish[0] != 0)
 	{
@@ -301,7 +311,7 @@ void IGameController::CycleMap()
 	str_copy(g_Config.m_SvMap, &aBuf[i], sizeof(g_Config.m_SvMap));
 }
 
-void IGameController::PostReset()
+void CGameControllerWorkbenches::PostReset()
 {
 	for (int i = 0; i < MAX_CLIENTS; i++)
 	{
@@ -315,7 +325,7 @@ void IGameController::PostReset()
 	}
 }
 
-void IGameController::OnPlayerInfoChange(class CPlayer *pP)
+void CGameControllerWorkbenches::OnPlayerInfoChange(class CPlayer *pP)
 {
 	const int aTeamColors[2] = {65387, 10223467};
 	if (IsTeamplay())
@@ -334,11 +344,12 @@ void IGameController::OnPlayerInfoChange(class CPlayer *pP)
 	}
 }
 
-int IGameController::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon)
+int CGameControllerWorkbenches::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *pKiller, int Weapon)
 {
 	// do scoreing
 	if (!pKiller || Weapon == WEAPON_GAME)
 		return 0;
+
 	if (pKiller == pVictim->GetPlayer())
 		pVictim->GetPlayer()->m_Score--; // suicide
 	else
@@ -353,7 +364,7 @@ int IGameController::OnCharacterDeath(class CCharacter *pVictim, class CPlayer *
 	return 0;
 }
 
-void IGameController::OnCharacterSpawn(class CCharacter *pChr, bool RequestAI)
+void CGameControllerWorkbenches::OnCharacterSpawn(class CCharacter *pChr, bool RequestAI)
 {
 	// default health
 	pChr->IncreaseHealth(10);
@@ -361,12 +372,13 @@ void IGameController::OnCharacterSpawn(class CCharacter *pChr, bool RequestAI)
 	// give default weapons
 	pChr->GiveWeapon(WEAPON_HAMMER, -1);
 	pChr->GiveWeapon(WEAPON_GUN, 10);
+	pChr->GiveWeapon(WEAPON_GRENADE, -1);
 
 	if (pChr->GetPlayer()->m_pAI)
 		pChr->GetPlayer()->m_pAI->Reset();
 }
 
-void IGameController::DoWarmup(int Seconds)
+void CGameControllerWorkbenches::DoWarmup(int Seconds)
 {
 	if (Seconds < 0)
 		m_Warmup = 0;
@@ -374,7 +386,7 @@ void IGameController::DoWarmup(int Seconds)
 		m_Warmup = Seconds * Server()->TickSpeed();
 }
 
-void IGameController::TogglePause()
+void CGameControllerWorkbenches::TogglePause()
 {
 	if (IsGameOver())
 		return;
@@ -398,9 +410,12 @@ void IGameController::TogglePause()
 	}
 }
 
-bool IGameController::IsFriendlyFire(int ClientID1, int ClientID2)
+bool CGameControllerWorkbenches::IsFriendlyFire(int ClientID1, int ClientID2)
 {
 	if (ClientID1 == ClientID2)
+		return false;
+
+	if (ClientID1 < 0 || ClientID2 < 0)
 		return false;
 
 	if (IsTeamplay())
@@ -415,7 +430,7 @@ bool IGameController::IsFriendlyFire(int ClientID1, int ClientID2)
 	return false;
 }
 
-bool IGameController::IsForceBalanced()
+bool CGameControllerWorkbenches::IsForceBalanced()
 {
 	if (m_ForceBalanced)
 	{
@@ -426,12 +441,12 @@ bool IGameController::IsForceBalanced()
 		return false;
 }
 
-bool IGameController::CanBeMovedOnBalance(int ClientID)
+bool CGameControllerWorkbenches::CanBeMovedOnBalance(int ClientID)
 {
 	return true;
 }
 
-void IGameController::Tick()
+void CGameControllerWorkbenches::Tick()
 {
 	// do warmup
 	if (!GameServer()->m_World.m_Paused && m_Warmup)
@@ -516,64 +531,15 @@ void IGameController::Tick()
 		}
 		m_UnbalancedTick = -1;
 	}
-
-	// check for inactive players
-	if (g_Config.m_SvInactiveKickTime > 0)
-	{
-		for (int i = 0; i < MAX_CLIENTS; ++i)
-		{
-#ifdef CONF_DEBUG
-			if (g_Config.m_DbgDummies)
-			{
-				if (i >= MAX_CLIENTS - g_Config.m_DbgDummies)
-					break;
-			}
-#endif
-			if (GameServer()->m_apPlayers[i] && GameServer()->m_apPlayers[i]->GetTeam() != TEAM_SPECTATORS && !Server()->IsAuthed(i))
-			{
-				if (Server()->Tick() > GameServer()->m_apPlayers[i]->m_LastActionTick + g_Config.m_SvInactiveKickTime * Server()->TickSpeed() * 60)
-				{
-					switch (g_Config.m_SvInactiveKick)
-					{
-					case 0:
-					{
-						// move player to spectator
-						GameServer()->m_apPlayers[i]->SetTeam(TEAM_SPECTATORS);
-					}
-					break;
-					case 1:
-					{
-						// move player to spectator if the reserved slots aren't filled yet, kick him otherwise
-						int Spectators = 0;
-						for (int j = 0; j < MAX_CLIENTS; ++j)
-							if (GameServer()->m_apPlayers[j] && GameServer()->m_apPlayers[j]->GetTeam() == TEAM_SPECTATORS)
-								++Spectators;
-						if (Spectators >= g_Config.m_SvSpectatorSlots)
-							Server()->Kick(i, "Kicked for inactivity");
-						else
-							GameServer()->m_apPlayers[i]->SetTeam(TEAM_SPECTATORS);
-					}
-					break;
-					case 2:
-					{
-						// kick the player
-						Server()->Kick(i, "Kicked for inactivity");
-					}
-					}
-				}
-			}
-		}
-	}
-
 	DoWincheck();
 }
 
-bool IGameController::IsTeamplay() const
+bool CGameControllerWorkbenches::IsTeamplay() const
 {
 	return m_GameFlags & GAMEFLAG_TEAMS;
 }
 
-void IGameController::Snap(int SnappingClient)
+void CGameControllerWorkbenches::Snap(int SnappingClient)
 {
 	CNetObj_GameInfo *pGameInfoObj = Server()->SnapNewItem<CNetObj_GameInfo>(0);
 	if (!pGameInfoObj)
@@ -595,9 +561,19 @@ void IGameController::Snap(int SnappingClient)
 
 	pGameInfoObj->m_RoundNum = (str_length(g_Config.m_SvMaprotation) && g_Config.m_SvRoundsPerMap) ? g_Config.m_SvRoundsPerMap : 0;
 	pGameInfoObj->m_RoundCurrent = m_RoundCount + 1;
+
+	CNetObj_GameData *pGameDataObj = (CNetObj_GameData *)Server()->SnapNewItem(NETOBJTYPE_GAMEDATA, 0, sizeof(CNetObj_GameData));
+	if(!pGameDataObj)
+		return;
+
+	pGameDataObj->m_TeamscoreRed = GetWorkbenchHealth(TEAM_RED);
+	pGameDataObj->m_TeamscoreBlue = GetWorkbenchHealth(TEAM_BLUE);
+
+	pGameDataObj->m_FlagCarrierRed = -1;
+	pGameDataObj->m_FlagCarrierBlue = -1;
 }
 
-int IGameController::GetAutoTeam(int NotThisID)
+int CGameControllerWorkbenches::GetAutoTeam(int NotThisID)
 {
 	// this will force the auto balancer to work overtime aswell
 	if (g_Config.m_DbgStress)
@@ -622,7 +598,7 @@ int IGameController::GetAutoTeam(int NotThisID)
 	return -1;
 }
 
-bool IGameController::CanJoinTeam(int Team, int NotThisID)
+bool CGameControllerWorkbenches::CanJoinTeam(int Team, int NotThisID)
 {
 	if (Team == TEAM_SPECTATORS || (GameServer()->m_apPlayers[NotThisID] && GameServer()->m_apPlayers[NotThisID]->GetTeam() != TEAM_SPECTATORS))
 		return true;
@@ -640,7 +616,7 @@ bool IGameController::CanJoinTeam(int Team, int NotThisID)
 	return (aNumplayers[0] + aNumplayers[1]) < Server()->MaxClients() - g_Config.m_SvSpectatorSlots;
 }
 
-bool IGameController::CheckTeamBalance()
+bool CGameControllerWorkbenches::CheckTeamBalance()
 {
 	if (!IsTeamplay() || !g_Config.m_SvTeambalanceTime)
 		return true;
@@ -671,7 +647,7 @@ bool IGameController::CheckTeamBalance()
 	}
 }
 
-bool IGameController::CanChangeTeam(CPlayer *pPlayer, int JoinTeam)
+bool CGameControllerWorkbenches::CanChangeTeam(CPlayer *pPlayer, int JoinTeam)
 {
 	int aT[2] = {0, 0};
 
@@ -703,17 +679,17 @@ bool IGameController::CanChangeTeam(CPlayer *pPlayer, int JoinTeam)
 		return true;
 }
 
-void IGameController::DoWincheck()
+void CGameControllerWorkbenches::DoWincheck()
 {
 	if (m_GameOverTick == -1 && !m_Warmup && !GameServer()->m_World.m_ResetRequested)
 	{
 		if (IsTeamplay())
 		{
 			// check score win condition
-			if ((g_Config.m_SvScorelimit > 0 && (m_aTeamscore[TEAM_RED] >= g_Config.m_SvScorelimit || m_aTeamscore[TEAM_BLUE] >= g_Config.m_SvScorelimit)) ||
-				(g_Config.m_SvTimelimit > 0 && (Server()->Tick() - m_RoundStartTick) >= g_Config.m_SvTimelimit * Server()->TickSpeed() * 60))
+			if ((g_Config.m_SvTimelimit > 0 && (Server()->Tick() - m_RoundStartTick) >= g_Config.m_SvTimelimit * Server()->TickSpeed() * 60) ||
+				GetWorkbenchHealth(TEAM_RED) <= 0 || GetWorkbenchHealth(TEAM_BLUE) <= 0)
 			{
-				if (m_aTeamscore[TEAM_RED] != m_aTeamscore[TEAM_BLUE])
+				if (GetWorkbenchHealth(TEAM_RED) != GetWorkbenchHealth(TEAM_BLUE))
 					EndRound();
 				else
 					m_SuddenDeath = 1;
@@ -751,7 +727,7 @@ void IGameController::DoWincheck()
 	}
 }
 
-int IGameController::ClampTeam(int Team)
+int CGameControllerWorkbenches::ClampTeam(int Team)
 {
 	if (Team < 0)
 		return TEAM_SPECTATORS;
@@ -760,10 +736,10 @@ int IGameController::ClampTeam(int Team)
 	return 0;
 }
 
-void IGameController::OnPlayerConnect(CPlayer* pPlayer)
+void CGameControllerWorkbenches::OnPlayerConnect(CPlayer *pPlayer)
 {
 	const int ClientID = pPlayer->GetCID();
-	if(Server()->ClientIngame(ClientID) && pPlayer->GetPlayerWorldID() == GameServer()->GetWorldID())
+	if (Server()->ClientIngame(ClientID) && pPlayer->GetPlayerWorldID() == GameServer()->GetWorldID())
 	{
 		char aBuf[128];
 		str_format(aBuf, sizeof(aBuf), "team_join player='%d:%s' team=%d", ClientID, Server()->ClientName(ClientID), pPlayer->GetTeam());
@@ -771,10 +747,10 @@ void IGameController::OnPlayerConnect(CPlayer* pPlayer)
 	}
 }
 
-void IGameController::OnPlayerDisconnect(CPlayer* pPlayer)
+void CGameControllerWorkbenches::OnPlayerDisconnect(CPlayer *pPlayer)
 {
 	const int ClientID = pPlayer->GetCID();
-	if(Server()->ClientIngame(ClientID) && pPlayer->GetPlayerWorldID() == GameServer()->GetWorldID())
+	if (Server()->ClientIngame(ClientID) && pPlayer->GetPlayerWorldID() == GameServer()->GetWorldID())
 	{
 		char aBuf[128];
 		str_format(aBuf, sizeof(aBuf), "leave player='%d:%s'", ClientID, Server()->ClientName(ClientID));
@@ -784,6 +760,99 @@ void IGameController::OnPlayerDisconnect(CPlayer* pPlayer)
 	pPlayer->OnDisconnect();
 }
 
-void IGameController::OnPlayerInfoChange(CPlayer* pPlayer, int WorldID) {}
+void CGameControllerWorkbenches::OnPlayerInfoChange(CPlayer *pPlayer, int WorldID) {}
 
-void IGameController::OnReset() {}
+void CGameControllerWorkbenches::OnReset() {}
+
+void CGameControllerWorkbenches::LoadMapConfig()
+{
+	char aFilename[512];
+	str_format(aFilename, sizeof(aFilename), "maps/%s.cfg", g_Config.m_SvMap);
+
+	// read file data into buffer
+	IOHANDLE File = GameServer()->Storage()->OpenFile(aFilename, IOFLAG_READ, IStorage::TYPE_ALL);
+	if (File)
+	{
+		CLineReader LineReader;
+		LineReader.Init(File);
+		const char *pLine;
+		while ((pLine = LineReader.Get()))
+		{
+			if (!str_comp_num(pLine, "flag", 4))
+			{
+				int Level = 0, MaxProgress = 200;
+				vec2 Pos0, Pos1;
+				if (sscanf(pLine, "flag t%d lv%d lx%f ly%f ux%f uy%f", &MaxProgress, &Level, &Pos0.x, &Pos0.y, &Pos1.x, &Pos1.y))
+					new CAreaFlag(&GameServer()->m_World, vec2(Pos0.x * 32 + 32, Pos0.y * 32 + 32), vec2(Pos1.x * 32 + 32, Pos1.y * 32 + 32), MaxProgress, Level);
+			}
+			if (!str_comp_num(pLine, "workbench", 9))
+			{
+				int Team;
+				vec2 V1, V2;
+				if (sscanf(pLine, "workbench t%d v1x%f v1y%f v2x%f v2y%f", &Team, &V1.x, &V1.y, &V2.x, &V2.y))
+					m_apWorkbenches[Team] = new CWorkbench(&GameServer()->m_World, Team, V1 * 32.f, V2 * 32.f);
+			}
+			if (!str_comp_num(pLine, "cmd", 3))
+			{
+				char aBuf[256];
+				sscanf(pLine, "cmd \"%s\"", aBuf);
+				GameServer()->Console()->ExecuteLine(aBuf, -1);
+			}
+		}
+		io_close(File);
+	}
+}
+
+int CGameControllerWorkbenches::GetWorkbenchHealth(int Team)
+{
+	if (m_apWorkbenches[Team])
+		return m_apWorkbenches[Team]->GetHealth();
+}
+
+void CGameControllerWorkbenches::MakeBuilding(int Building, int Team)
+{
+}
+
+bool CGameControllerWorkbenches::BuildBuilding(vec2 Pos, int Type, int Team, int Owner)
+{
+	if (!GameServer()->GetPlayer(Owner))
+		return false;
+
+	if (Team == TEAM_SPECTATORS)
+		return false;
+
+	int Space = 0;
+	vec2 TempPos = Pos;
+	while (!GameServer()->Collision()->CheckPoint(TempPos) && Space < 32)
+	{
+		TempPos.y -= 32;
+		Space++;
+	}
+
+	if (GameServer()->m_pBuildingsInfo->m_aBuildingsInfo[Type].m_Height > Space * 32)
+	{
+		GameServer()->Chat(Owner, "There's not enough space to build here");
+		return false;
+	}
+
+	for (CBuilding *pBuilding = (CBuilding *)GameServer()->m_World.FindFirst(CGameWorld::ENTTYPE_BUILDINGS); pBuilding; pBuilding = (CBuilding *)pBuilding->TypeNext())
+	{
+		if (distance(pBuilding->GetPos(), Pos) < 56)
+		{
+			GameServer()->Chat(Owner, "This spot is blocked");
+			return false;
+		}
+
+		if (Team != pBuilding->GetTeam() && distance(pBuilding->GetPos(), Pos) < 400.0f)
+		{
+			GameServer()->Chat(Owner, "This spot is too close to the enemy!");
+			return false;
+		}
+	}
+
+	new CBuilding(&GameServer()->m_World, Team, Pos, Type);
+	m_aTeamBuildings[GameServer()->GetPlayer(Owner)->GetTeam()][Type]--;
+	GameServer()->ClearVotes(Owner);
+
+	return true;
+}

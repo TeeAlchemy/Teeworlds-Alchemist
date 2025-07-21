@@ -84,6 +84,9 @@ public:
 	virtual void Chain(const char *pName, FChainCommandCallback pfnChainFunc, void *pUser) = 0;
 	virtual void StoreCommands(bool Store) = 0;
 
+	virtual bool ArgStringIsValid(const char* pFormat) = 0;
+	virtual int ParseCommandArgs(const char* pArgs, const char* pFormat, FCommandCallback pfnCallback, void* pContext) = 0;
+
 	virtual bool LineIsValid(const char *pStr) = 0;
 	virtual void ExecuteLine(const char *Sptr, int ClientID, const char *pLanguage = "en") = 0;
 	virtual void ExecuteLineFlag(const char *Sptr, int ClientID, int FlasgMask, const char *pLanguage = "en") = 0;

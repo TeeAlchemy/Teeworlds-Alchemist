@@ -1,0 +1,18 @@
+#ifndef GAME_SERVER_RESOURCES_H
+#define GAME_SERVER_RESOURCES_H
+
+enum
+{
+    RESOURCE_WOOD = 0,
+    RESOURCE_COAL,
+    RESOURCE_COPPER,
+    RESOURCE_IRON,
+    RESOURCE_GOLD,
+    RESOURCE_DIAMOND,
+    RESOURCE_ENEGRY,
+    NUM_RESOURCE,
+};
+
+const char *GetResourceName(int ID);
+
+#endif

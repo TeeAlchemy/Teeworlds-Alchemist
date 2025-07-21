@@ -36,6 +36,7 @@ void CCollision::Init(class CLayers *pLayers)
 	for (int i = 0; i < m_Width * m_Height; i++)
 	{
 		int Index = m_pTiles[i].m_Index;
+		m_pTiles[i].m_Reserved = Index;
 
 		if (Index > 128)
 			continue;
@@ -555,4 +556,12 @@ bool CCollision::FindWaypointPath(vec2 TargetPos)
 	}
 	
 	return false;
+}
+
+int CCollision::GetTileIndex(int x, int y)
+{
+	if (m_pTiles == 0)
+		return 0;
+
+	return m_pTiles[CalcTile(x, y)].m_Reserved;
 }

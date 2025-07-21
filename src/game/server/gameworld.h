@@ -24,7 +24,9 @@ public:
 		ENTTYPE_FLAG,
 		ENTTYPE_CHARACTER,
 		ENTTYPE_GROWINGEXPLOSION,
-		ENTTYPE_SLIME,
+		ENTTYPE_AREA_FLAG,
+		ENTTYPE_CAR,
+		ENTTYPE_BUILDINGS,
 		NUM_ENTTYPES
 	};
 
@@ -98,7 +100,7 @@ public:
 		Returns:
 			Returns a pointer to the closest CCharacter or NULL if no CCharacter is close enough.
 	*/
-	class CCharacter *ClosestCharacter(vec2 Pos, float Radius, CEntity *ppNotThis);
+	class CCharacter *ClosestCharacter(vec2 Pos, float Radius, CEntity *ppNotThis, bool IncludeOnVehicle = true);
 
 	/*
 		Function: insert_entity
@@ -145,6 +147,8 @@ public:
 
 	*/
 	void Tick();
+
+	class CBuilding* IntersectBuilding(vec2 Pos0, vec2 Pos1, float Radius, vec2& NewPos, CEntity* pNotThis);
 };
 
 #endif
