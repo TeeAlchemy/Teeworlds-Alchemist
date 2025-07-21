@@ -440,7 +440,7 @@ void CGameContext::OnTick()
 		m_apPlayers[i]->PostTick();
 	}
 
-	if(Server()->Tick() % (Server()->TickSpeed()*120) == 0)
+	if (Server()->Tick() % (Server()->TickSpeed() * 120) == 0)
 	{
 		Chat(-1, "这是2025年举办的第二届TMJ大赛的参赛作品之一");
 		Chat(-1, "加入QQ群1007351135为本模式投票吧！");
@@ -2049,7 +2049,6 @@ void CGameContext::InitVotes(int ClientID)
 			AddVote_Text("...");
 			AddVote_Text("This place has been liberated by the Communist Party");
 			AddVote_Text("The free market has been abolished.");
-			
 		}
 		else
 			AddVote_Text("You need to be in the market area to use this!");

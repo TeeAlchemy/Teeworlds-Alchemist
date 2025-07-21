@@ -2,6 +2,7 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <game/generated/protocol.h>
 #include <game/server/gamecontext.h>
+#include "buildings.h"
 #include "laser.h"
 
 CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEnergy, int Owner)
@@ -23,13 +24,24 @@ bool CLaser::HitCharacter(vec2 From, vec2 To)
 	vec2 At;
 	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
 	CCharacter *pHit = GameServer()->m_World.IntersectCharacter(m_Pos, To, 0.f, At, pOwnerChar);
-	if(!pHit)
+	CBuilding* pHitBuilding = GameServer()->m_World.IntersectBuilding(m_Pos, To, 0.f, At, pOwnerChar);
+	if (!pHit && !pHitBuilding)
 		return false;
 
 	m_From = From;
 	m_Pos = At;
 	m_Energy = -1;
-	pHit->TakeDamage(vec2(0.f, 0.f), GameServer()->Tuning()->m_LaserDamage, m_Owner, WEAPON_RIFLE);
+	if (pHit && !pHitBuilding)
+		pHit->TakeDamage(vec2(0.f, 0.f), GameServer()->Tuning()->m_LaserDamage, m_Owner, WEAPON_RIFLE);
+	else if (!pHit && pHitBuilding)
+		pHitBuilding->TakeDamage(GameServer()->Tuning()->m_LaserDamage / 2, m_Owner, WEAPON_RIFLE);
+	else
+	{
+		if (distance(m_Pos, pHit->GetPos()) < distance(m_Pos, pHitBuilding->GetPos()))
+			pHit->TakeDamage(vec2(0.f, 0.f), GameServer()->Tuning()->m_LaserDamage, m_Owner, WEAPON_RIFLE);
+		else
+			pHitBuilding->TakeDamage(GameServer()->Tuning()->m_LaserDamage / 2, m_Owner, WEAPON_RIFLE);
+	}
 	return true;
 }
 

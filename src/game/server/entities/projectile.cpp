@@ -82,7 +82,7 @@ void CProjectile::Tick()
 		if (m_Explosive)
 			GameServer()->CreateExplosion(CurPos, m_Owner, m_Weapon, false);
 
-		else if ((TargetChr && TargetChr->GetPlayer()->GetTeam() != m_Team)
+		if ((TargetChr && TargetChr->GetPlayer()->GetTeam() != m_Team)
 				|| (TargetBuilding && TargetBuilding->GetTeam() != m_Team))
 		{
 			if (TargetChr && !TargetBuilding)
@@ -93,7 +93,7 @@ void CProjectile::Tick()
 			{
 				if (distance(m_Pos, TargetChr->GetPos()) < distance(m_Pos, TargetBuilding->GetPos()))
 					TargetChr->TakeDamage(m_Direction * max(0.001f, m_Force), m_Damage, m_Owner, m_Weapon);
-				else
+				else if (TargetBuilding)
 					TargetBuilding->TakeDamage(m_Damage, m_Owner, m_Weapon);
 			}
 		}

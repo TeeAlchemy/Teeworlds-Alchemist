@@ -372,6 +372,8 @@ void CGameControllerWorkbenches::OnCharacterSpawn(class CCharacter *pChr, bool R
 	// give default weapons
 	pChr->GiveWeapon(WEAPON_HAMMER, -1);
 	pChr->GiveWeapon(WEAPON_GUN, 10);
+	pChr->GiveWeapon(WEAPON_GRENADE, 10);
+	pChr->GiveWeapon(WEAPON_RIFLE, 10);
 
 	if (pChr->GetPlayer()->m_pAI)
 		pChr->GetPlayer()->m_pAI->Reset();
