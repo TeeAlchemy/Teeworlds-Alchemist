@@ -95,7 +95,7 @@ void CPlayer::Tick()
 				m_pCharacter = 0;
 			}
 		}
-		else if (/*m_WantSpawn && */m_Spawning && m_RespawnTick <= Server()->Tick())
+		else if (/*m_WantSpawn && */ m_Spawning && m_RespawnTick <= Server()->Tick())
 			TryRespawn();
 	}
 	else
@@ -343,4 +343,13 @@ void CPlayer::HandleTuningParams()
 	}
 
 	m_NextTuningParams = *GameServer()->Tuning();
+}
+
+bool CPlayer::PressVote(bool F3)
+{
+	if (F3 && m_Vote == 1)
+		return true;
+	else if (!F3 && m_Vote == -1)
+		return true;
+	return false;
 }

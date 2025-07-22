@@ -806,6 +806,7 @@ int CGameControllerWorkbenches::GetWorkbenchHealth(int Team)
 {
 	if (m_apWorkbenches[Team])
 		return m_apWorkbenches[Team]->GetHealth();
+	return 0;
 }
 
 void CGameControllerWorkbenches::MakeBuilding(int Building, int Team)

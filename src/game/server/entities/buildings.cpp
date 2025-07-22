@@ -107,7 +107,6 @@ CBuilding::CBuilding(CGameWorld *pGameWorld, int Team, vec2 Pos, int Type)
     for (int i = 0; i < m_NumIDs; i++)
         m_IDs[i] = Server()->SnapNewID();
 
-    m_TeamID = Server()->SnapNewID();
     m_LowPowerID = Server()->SnapNewID();
 
     GameWorld()->InsertEntity(this);
@@ -231,7 +230,7 @@ void CBuilding::TickDefered()
             int WeaponType = WEAPON_SHOTGUN;
             if (m_BuildingType == BUILDING_GRENADE)
                 WeaponType = WEAPON_GRENADE;
-            else
+            else if (m_BuildingType == BUILDING_LASER)
                 WeaponType = WEAPON_RIFLE;
 
             if (pChr[i]->GetWeaponAmmo(WeaponType) < 10)
@@ -384,7 +383,11 @@ void CBuilding::TickDefered()
             if (distance(NodePos, pChr->GetPos()) > m_Radius)
                 continue;
 
-            pChr->m_CanBuild = true;
+            if (pChr->m_CanBuild == false)
+            {
+                pChr->GetPlayer()->m_VoteNeedUpdate = true;
+                pChr->m_CanBuild = true;
+            }
         }
     }
     break;
@@ -401,7 +404,6 @@ CBuilding::~CBuilding()
     for (int i = 0; i < m_NumIDs; i++)
         Server()->SnapFreeID(m_IDs[i]);
 
-    Server()->SnapFreeID(m_TeamID);
     Server()->SnapFreeID(m_LowPowerID);
 }
 

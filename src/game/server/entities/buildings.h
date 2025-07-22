@@ -119,7 +119,6 @@ private:
     int m_StartTick;
     int m_NumIDs;
     int m_IDs[12];
-    int m_TeamID;
     int m_LowPowerID;
     int m_DamageTaken;
     int m_DamageTakenTick;

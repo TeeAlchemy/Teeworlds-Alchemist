@@ -137,6 +137,8 @@ public:
 
 	bool m_WantSpawn;
 	bool m_VoteNeedUpdate;
+
+	bool PressVote(bool F3);
 };
 
 #endif

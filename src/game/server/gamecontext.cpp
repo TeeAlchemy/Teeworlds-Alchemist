@@ -826,7 +826,14 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 		else if (MsgID == NETMSGTYPE_CL_VOTE)
 		{
 			if (!m_VoteCloseTime)
+			{
+				CNetMsg_Cl_Vote *pMsg = (CNetMsg_Cl_Vote *)pRawMsg;
+				if (pMsg->m_Vote)
+					pPlayer->m_Vote = pMsg->m_Vote;
+				else
+					pPlayer->m_Vote = 0;
 				return;
+			}
 
 			if (pPlayer->m_Vote == 0)
 			{

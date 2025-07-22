@@ -174,6 +174,8 @@ public:
 	int GetWorkbenchHealth(int Team);
 	void MakeBuilding(int Building, int Team);
 	bool BuildBuilding(vec2 Pos, int Type, int Team, int Owner);
+
+	int RoundStartTick() { return m_RoundStartTick; }
 };
 
 #endif
