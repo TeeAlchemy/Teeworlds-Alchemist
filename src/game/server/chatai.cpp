@@ -36,7 +36,7 @@ CChatAI::~CChatAI()
 
 void CChatAI::Send(CGameContext *pGameServer, const char *pName, const char *pContent)
 {
-    if (g_Config.m_SvChatAI)
+    if (!g_Config.m_SvChatAI)
         return;
 
     CJsonStringWriter JsonWriter;

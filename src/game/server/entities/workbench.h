@@ -7,6 +7,8 @@
 class CWorkbench : public CBuilding
 {
 public:
+    static const float ms_FlagHitRadius;
+
     CWorkbench(CGameWorld *pGameWorld, int Team, vec2 V1, vec2 V2);
     ~CWorkbench() {};
 
@@ -15,6 +17,10 @@ public:
     virtual void Snap(int SnappingClient);
 
     void Init();
+
+    vec2 GetFlagPos() const;
+    bool IsDamageableAt(vec2 HitPos, float HitRadius = 0.f) const override;
+    vec2 GetDamageCenter() const override;
 
 private:
     float m_Step;

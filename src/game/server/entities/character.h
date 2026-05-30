@@ -35,6 +35,7 @@ public:
 	void Snap(int SnappingClient) override;
 
 	void HandleTile();
+	void HandleWaterTile();
 
 	bool IsGrounded();
 
@@ -67,6 +68,8 @@ public:
 	class CPlayer *GetPlayer() { return m_pPlayer; }
 
 	bool m_OnVehicle;
+	int m_VehicleSeat;
+	int m_VehicleDismountTick;
 
 	bool GotWeapon(int Weapon) { return m_aWeapons[Weapon].m_Got; }
 	bool HasAmmo(int Weapon) { return m_aWeapons[Weapon].m_Ammo || Weapon == WEAPON_HAMMER; }
@@ -90,6 +93,23 @@ public:
 
 	int m_Resource[NUM_RESOURCE];
 	bool m_CanBuild;
+
+	vec2 m_OldPos;
+	vec2 m_PrevPos;
+	vec2 m_PushDirection;
+	bool m_HittingDoor;
+	bool m_InWater;
+
+	int m_BattleInvisibleUntil;
+
+	void BattleClearWeapons();
+	void BattleRemoveWeapon(int Weapon);
+	void BattleSetReload(int Ticks);
+	void BattleActivateShortNinja(vec2 Dir);
+	const CNetObj_PlayerInput &BattleLatestInput() const { return m_LatestInput; }
+	const CNetObj_PlayerInput &BattleLatestPrevInput() const { return m_LatestPrevInput; }
+	const CNetObj_PlayerInput &BattleInput() const { return m_Input; }
+	const CNetObj_PlayerInput &BattlePrevInput() const { return m_PrevInput; }
 
 private:
 	// player controlling this character

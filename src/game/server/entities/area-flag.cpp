@@ -2,6 +2,7 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <game/mapitems.h>
 
+#include <game/server/battle.h>
 #include <game/server/gamecontext.h>
 #include <game/server/gamecontroller.h>
 #include <game/server/player.h>
@@ -10,8 +11,50 @@
 
 #include "character.h"
 #include "area-flag.h"
+#include <game/server/resources.h>
 
-#include <string>
+int CAreaFlag::AreaTileIndex(int x, int y)
+{
+	if (m_AreaDisabled)
+		return -1;
+
+	int Tile = GameServer()->Collision()->CalcTile(x, y);
+	if (Tile < 0 || Tile >= MAX_AREA_TILES)
+		return -1;
+
+	return Tile;
+}
+
+int CAreaFlag::AreaTileIndexRaw(vec2 Pos)
+{
+	if (m_AreaDisabled)
+		return -1;
+
+	int Tile = GameServer()->Collision()->CalcTileRaw(Pos.x, Pos.y);
+	if (Tile < 0 || Tile >= MAX_AREA_TILES)
+		return -1;
+
+	return Tile;
+}
+
+bool CAreaFlag::MarkAreaTile(int x, int y)
+{
+	int Tile = AreaTileIndex(x, y);
+	if (Tile < 0)
+		return false;
+
+	m_pArea[Tile] = true;
+	return true;
+}
+
+bool CAreaFlag::IsAreaTile(int x, int y)
+{
+	int Tile = AreaTileIndex(x, y);
+	if (Tile < 0)
+		return false;
+
+	return m_pArea[Tile];
+}
 
 /*
 CAreaFlag from [Commander&Killer Remake].
@@ -20,7 +63,7 @@ annnd Oil mod
 both unfinished (
 */
 
-CAreaFlag::CAreaFlag(CGameWorld *pWorld, vec2 Pos0, vec2 Pos1, int MaxProgress, int Level)
+CAreaFlag::CAreaFlag(CGameWorld *pWorld, vec2 Pos0, vec2 Pos1, int MaxProgress, int Level, int PointIndex)
     : CEntity(pWorld, CGameWorld::ENTTYPE_AREA_FLAG, Pos0)
 {
     m_LowerPos = Pos0;
@@ -29,9 +72,22 @@ CAreaFlag::CAreaFlag(CGameWorld *pWorld, vec2 Pos0, vec2 Pos1, int MaxProgress, 
     m_LaserSnap[1] = Server()->SnapNewID();
     m_MaxProgress = MaxProgress;
     m_Level = Level;
+    m_PointIndex = PointIndex;
+    m_BattleScoredTeam = -1;
+    m_LastAlertTick = 0;
     m_ProduceTeam = -1;
     m_ProduceTick = 50;
-    mem_zero(m_pArea, 1024 * 1024 + 1024);
+    m_AreaDisabled = false;
+    mem_zero(m_pArea, sizeof(m_pArea));
+
+    const int MapWidth = GameServer()->Collision()->GetWidth();
+    const int MapHeight = GameServer()->Collision()->GetHeight();
+    if (MapWidth > MAX_AREA_MAP_SIZE || MapHeight > MAX_AREA_MAP_SIZE || MapWidth * MapHeight >= MAX_AREA_TILES)
+    {
+        dbg_msg("area-flag", "map size %dx%d exceeds %dx%d limit, area detection disabled", MapWidth, MapHeight, MAX_AREA_MAP_SIZE, MAX_AREA_MAP_SIZE);
+        m_AreaDisabled = true;
+    }
+
     Reset();
     GameWorld()->InsertEntity(this);
 
@@ -98,6 +154,8 @@ void CAreaFlag::Tick()
 void CAreaFlag::TickDefered()
 {
     int Progress = 0;
+    int RedCount = 0;
+    int BlueCount = 0;
     int ClosestID = -1;
     float SmallestDistance = 999999999.f;
     for (CCharacter *p = (CCharacter *)GameWorld()->FindFirst(CGameWorld::ENTTYPE_CHARACTER); p; p = (CCharacter *)p->TypeNext())
@@ -106,9 +164,15 @@ void CAreaFlag::TickDefered()
             continue;
 
         if (p->GetPlayer()->GetTeam() == TEAM_RED)
+        {
             Progress--;
-        else if (p->GetPlayer()->GetTeam() == TEAM_BLUE) // I'm not sure if team = spec...(it was happened before)
+            RedCount++;
+        }
+        else if (p->GetPlayer()->GetTeam() == TEAM_BLUE)
+        {
             Progress++;
+            BlueCount++;
+        }
 
         if (distance(p->GetPos(), GetPos()) < SmallestDistance && p->GetPlayer()->GetTeam() == GetTeam())
         {
@@ -116,7 +180,14 @@ void CAreaFlag::TickDefered()
             ClosestID = p->GetPlayer()->GetCID();
         }
 
-        if (GetTeam() == -1)
+        if (BattleIsEnabled() && GetTeam() == -1 && RedCount != BlueCount && Server()->Tick() - m_LastAlertTick > Server()->TickSpeed() * 3)
+        {
+            const int DefendingTeam = Progress > 0 ? TEAM_BLUE : TEAM_RED;
+            GameServer()->Broadcast(DefendingTeam, "Capture point {} is under attack!", m_PointIndex);
+            m_LastAlertTick = Server()->Tick();
+        }
+
+        if (GetTeam() == -1 && !BattleIsEnabled())
         {
             if (Server()->Tick() % 5 == 0)
             {
@@ -128,27 +199,27 @@ void CAreaFlag::TickDefered()
         }
     }
 
-    if (GameServer()->GetPlayerChar(ClosestID))
+    if (BattleIsEnabled() && RedCount > 0 && RedCount == BlueCount)
+        Progress = 0;
+
+    if (!BattleIsEnabled() && GameServer()->GetPlayerChar(ClosestID))
     {
-        bool Send = false;
+        int aGained[NUM_RESOURCE];
         for (int i = 0; i < NUM_RESOURCE; i++)
         {
-            if (m_Product[i] > 0)
-                Send = true;
+            aGained[i] = m_Product[i];
             GameServer()->GetPlayerChar(ClosestID)->m_Resource[i] += m_Product[i];
             m_Product[i] = 0;
         }
-        if (Send)
-        {
-            GameServer()->Broadcast(ClosestID, "You have collected the resources within the resource point\nBring them back to the base!");
-            GameServer()->CreateSound(GetPos(), SOUND_CTF_RETURN);
-            GameServer()->ClearVotes(ClosestID);
-        }
+
+        NotifyResourceGain(GameServer(), ClosestID, GetPos(), aGained, RESOURCE_NOTIFY_PERSONAL,
+            "You have collected the resources within the resource point\nBring them back to the base!\n{}");
     }
 
     if ((m_Progress + Progress) >= m_MaxProgress)
     {
-        if (GetTeam() == -1)
+        const int PrevTeam = GetTeam();
+        if (PrevTeam != TEAM_BLUE)
         {
             for (int i = 0; i < MAX_CLIENTS; i++)
             {
@@ -162,15 +233,23 @@ void CAreaFlag::TickDefered()
                     GameServer()->CreateSound(p->GetCharacter()->GetPos(), SOUND_CTF_CAPTURE, CmaskOne(i));
             }
 
-            GameServer()->Broadcast(-1, "The Blue Team has Captured a Resource Point!");
-            GameServer()->Chat(-1, "The Blue Team has Captured a Resource Point!");
+            if (BattleIsEnabled())
+            {
+                GameServer()->Broadcast(-1, "Blue team captured checkpoint {}", m_PointIndex);
+            }
+            else
+            {
+                GameServer()->Broadcast(-1, "The Blue Team has Captured a Resource Point!");
+                GameServer()->Chat(-1, "The Blue Team has Captured a Resource Point!");
+            }
             m_ProduceTeam = TEAM_BLUE;
         }
         m_Progress = m_MaxProgress;
     }
     else if ((m_Progress + Progress) <= -m_MaxProgress)
     {
-        if (GetTeam() == -1)
+        const int PrevTeam = GetTeam();
+        if (PrevTeam != TEAM_RED)
         {
             for (int i = 0; i < MAX_CLIENTS; i++)
             {
@@ -183,14 +262,24 @@ void CAreaFlag::TickDefered()
                 if (p->GetTeam() == TEAM_BLUE)
                     GameServer()->CreateSound(p->GetCharacter()->GetPos(), SOUND_CTF_DROP, CmaskOne(i));
             }
-            GameServer()->Broadcast(-1, "The Red Team has Captured a Resource Point!");
-            GameServer()->Chat(-1, "The Red Team has Captured a Resource Point!");
+            if (BattleIsEnabled())
+            {
+                GameServer()->Broadcast(-1, "Red team captured checkpoint {}", m_PointIndex);
+            }
+            else
+            {
+                GameServer()->Broadcast(-1, "The Red Team has Captured a Resource Point!");
+                GameServer()->Chat(-1, "The Red Team has Captured a Resource Point!");
+            }
             m_ProduceTeam = TEAM_RED;
         }
         m_Progress = -m_MaxProgress;
     }
     else
         m_Progress += Progress;
+
+    if (BattleIsEnabled())
+        return;
 
     HandleProduce();
 
@@ -205,11 +294,15 @@ void CAreaFlag::TickDefered()
         if (!InArea(pBuilding->GetPos()))
             continue;
 
+        int aGained[NUM_RESOURCE];
         for (int i = 0; i < NUM_RESOURCE; i++)
         {
+            aGained[i] = m_Product[i];
             GameServer()->m_pController->m_aTeamResources[GetTeam()][i] += m_Product[i];
             m_Product[i] = 0;
         }
+
+        NotifyTeamResourceGain(GameServer(), GetTeam(), pBuilding->GetPos(), aGained, RESOURCE_NOTIFY_TEAM);
     }
 }
 
@@ -229,21 +322,28 @@ int CAreaFlag::GetProduceTeam()
 
 void CAreaFlag::InitArea()
 {
+    if (m_AreaDisabled)
+        return;
+
     Search(vec2(GetPos().x / 32.f - 1, GetPos().y / 32.f - 1), DUP);
 }
 
 void CAreaFlag::Search(vec2 StartPos, int DirType)
 {
+    if (m_AreaDisabled)
+        return;
+
     switch (DirType)
     {
     case DUP:
         for (int y = round_to_int(StartPos.y);; y--)
         {
-            if (m_pArea[GameServer()->Collision()->CalcTile(StartPos.x, y)])
+            if (IsAreaTile(round_to_int(StartPos.x), y))
                 break;
             else if (GameServer()->Collision()->GetTileIndex(round_to_int(StartPos.x), y) == TILE_RESOURCE)
             {
-                m_pArea[GameServer()->Collision()->CalcTile(StartPos.x, y)] = true;
+                if (!MarkAreaTile(round_to_int(StartPos.x), y))
+                    break;
                 Search(vec2(StartPos.x - 1, y), DLEFT);
                 Search(vec2(StartPos.x + 1, y), DRIGHT);
             }
@@ -256,11 +356,12 @@ void CAreaFlag::Search(vec2 StartPos, int DirType)
     case DDOWN:
         for (int y = round_to_int(StartPos.y);; y++)
         {
-            if (m_pArea[GameServer()->Collision()->CalcTile(StartPos.x, y)])
+            if (IsAreaTile(round_to_int(StartPos.x), y))
                 break;
             else if (GameServer()->Collision()->GetTileIndex(round_to_int(StartPos.x), y) == TILE_RESOURCE)
             {
-                m_pArea[GameServer()->Collision()->CalcTile(StartPos.x, y)] = true;
+                if (!MarkAreaTile(round_to_int(StartPos.x), y))
+                    break;
                 Search(vec2(StartPos.x - 1, y), DLEFT);
                 Search(vec2(StartPos.x + 1, y), DRIGHT);
             }
@@ -273,11 +374,12 @@ void CAreaFlag::Search(vec2 StartPos, int DirType)
     case DLEFT:
         for (int x = round_to_int(StartPos.x);; x--)
         {
-            if (m_pArea[GameServer()->Collision()->CalcTile(x, StartPos.y)])
+            if (IsAreaTile(x, round_to_int(StartPos.y)))
                 break;
             else if (GameServer()->Collision()->GetTileIndex(x, round_to_int(StartPos.y)) == TILE_RESOURCE)
             {
-                m_pArea[GameServer()->Collision()->CalcTile(x, StartPos.y)] = true;
+                if (!MarkAreaTile(x, round_to_int(StartPos.y)))
+                    break;
                 Search(vec2(x, StartPos.y - 1), DUP);
                 Search(vec2(x, StartPos.y + 1), DDOWN);
             }
@@ -290,11 +392,12 @@ void CAreaFlag::Search(vec2 StartPos, int DirType)
     case DRIGHT:
         for (int x = round_to_int(StartPos.x);; x++)
         {
-            if (m_pArea[GameServer()->Collision()->CalcTile(x, StartPos.y)])
+            if (IsAreaTile(x, round_to_int(StartPos.y)))
                 break;
             else if (GameServer()->Collision()->GetTileIndex(x, round_to_int(StartPos.y)) == TILE_RESOURCE)
             {
-                m_pArea[GameServer()->Collision()->CalcTile(x, StartPos.y)] = true;
+                if (!MarkAreaTile(x, round_to_int(StartPos.y)))
+                    break;
                 Search(vec2(x, StartPos.y - 1), DUP);
                 Search(vec2(x, StartPos.y + 1), DDOWN);
             }
@@ -348,5 +451,9 @@ void CAreaFlag::HandleProduce()
 
 bool CAreaFlag::InArea(vec2 Pos)
 {
-    return m_pArea[GameServer()->Collision()->CalcTileRaw(Pos.x, Pos.y)];
+    int Tile = AreaTileIndexRaw(Pos);
+    if (Tile < 0)
+        return false;
+
+    return m_pArea[Tile];
 }

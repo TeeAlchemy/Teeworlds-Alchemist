@@ -3,6 +3,7 @@
 #include <new>
 #include <engine/shared/config.h>
 #include "player.h"
+#include "battle.h"
 
 MACRO_ALLOC_POOL_ID_IMPL(CPlayer, MAX_CLIENTS *ENGINE_MAX_WORLDS + MAX_CLIENTS)
 
@@ -29,9 +30,38 @@ CPlayer::CPlayer(CGameContext *pGameServer, int ClientID, int Team)
 
 	m_IsBot = false;
 	m_pAI = NULL;
+	m_SelectBuilding = -1;
+	m_BuildMenuOpen = false;
+	m_LastMenuVoteKey = 0;
+	m_BuildMenuToggleTick = 0;
+	m_BuildMenuSelection = 0;
+	m_BuildMenuTextScroll = 0;
+	m_BuildMenuInputWarmup = false;
+	mem_zero(&m_BuildMenuPrevInput, sizeof(m_BuildMenuPrevInput));
+	m_VoteNeedUpdate = false;
+	m_BattleClass = -1;
+	m_BattleThrowableType = 0;
+	m_BattleThrowableCount = 0;
+	m_BattleGrenadeCount = 0;
+	m_BattleSmokeCount = 0;
+	m_BattleMagAmmo = 0;
+	m_BattleMagazines = 0;
+	m_BattleMagReload = 0;
+	m_BattleAmmoPackTick = 0;
+	m_BattleInvisEnergy = BATTLE_SNIPER_INVIS_ENERGY_MAX;
+	m_BattleInvisActive = false;
+	m_BattleNinjaRespawnTick = 0;
+	m_BattleEngineerFireStart = 0;
+	m_BattleEngineerFiring = false;
+	m_PendingClassMenu = false;
+	m_ClassMenuOpen = false;
+	m_ClassMenuSelection = 0;
+	m_ClassMenuInputWarmup = false;
+	mem_zero(&m_ClassMenuPrevInput, sizeof(m_ClassMenuPrevInput));
 
 	m_WantSpawn = true;
 	mem_zero(m_VotePage, NUM_VOTEPAGE);
+	GameServer()->GetPlayerVote(m_ClientID)->m_Page = PAGE_MENU;
 }
 
 CPlayer::~CPlayer()
@@ -108,6 +138,12 @@ void CPlayer::Tick()
 	}
 
 	HandleTuningParams();
+
+	if (m_PendingClassMenu && NeedsClassSelection() && m_IsReady && Server()->ClientIngame(m_ClientID) && !m_ClassMenuOpen)
+	{
+		m_PendingClassMenu = false;
+		GameServer()->OpenClassMenu(m_ClientID);
+	}
 }
 
 void CPlayer::PostTick()
@@ -183,12 +219,68 @@ void CPlayer::OnPredictedInput(CNetObj_PlayerInput *NewInput)
 	if ((m_PlayerFlags & PLAYERFLAG_CHATTING) && (NewInput->m_PlayerFlags & PLAYERFLAG_CHATTING))
 		return;
 
+	if (m_ClassMenuOpen || NeedsClassSelection())
+	{
+		if (m_pCharacter)
+			m_pCharacter->ResetInput();
+		return;
+	}
+
 	if (m_pCharacter)
 		m_pCharacter->OnPredictedInput(NewInput);
 }
 
 void CPlayer::OnDirectInput(CNetObj_PlayerInput *NewInput)
 {
+	if (m_ClassMenuOpen)
+	{
+		if (m_ClassMenuInputWarmup)
+		{
+			m_ClassMenuPrevInput = *NewInput;
+			m_ClassMenuInputWarmup = false;
+		}
+		else
+		{
+			GameServer()->HandleClassMenuInput(m_ClientID, NewInput, &m_ClassMenuPrevInput);
+			m_ClassMenuPrevInput = *NewInput;
+		}
+
+		if (m_pCharacter)
+			m_pCharacter->ResetInput();
+
+		m_PlayerFlags = NewInput->m_PlayerFlags;
+		return;
+	}
+
+	if (NeedsClassSelection())
+	{
+		if (m_pCharacter)
+			m_pCharacter->ResetInput();
+
+		m_PlayerFlags = NewInput->m_PlayerFlags;
+		return;
+	}
+
+	if (m_BuildMenuOpen)
+	{
+		if (m_BuildMenuInputWarmup)
+		{
+			m_BuildMenuPrevInput = *NewInput;
+			m_BuildMenuInputWarmup = false;
+		}
+		else
+		{
+			GameServer()->HandleBuildMenuInput(m_ClientID, NewInput, &m_BuildMenuPrevInput);
+			m_BuildMenuPrevInput = *NewInput;
+		}
+
+		if (m_pCharacter)
+			m_pCharacter->ResetInput();
+
+		m_PlayerFlags = NewInput->m_PlayerFlags;
+		return;
+	}
+
 	if (NewInput->m_PlayerFlags & PLAYERFLAG_CHATTING && !m_pAI)
 	{
 		// skip the input if chat is active
@@ -233,6 +325,8 @@ void CPlayer::KillCharacter(int Weapon)
 {
 	if (m_pCharacter)
 	{
+		GameServer()->CloseBuildMenu(m_ClientID);
+		GameServer()->CloseClassMenu(m_ClientID);
 		m_pCharacter->Die(m_ClientID, Weapon);
 		delete m_pCharacter;
 		m_pCharacter = 0;
@@ -284,17 +378,37 @@ void CPlayer::TryRespawn()
 {
 	vec2 SpawnPos;
 
+	if (NeedsClassSelection())
+	{
+		if (!m_IsReady || !Server()->ClientIngame(m_ClientID))
+		{
+			m_PendingClassMenu = true;
+			return;
+		}
+
+		if (!m_ClassMenuOpen)
+			GameServer()->OpenClassMenu(m_ClientID);
+	}
+
 	Server()->ChangeWorld(GetCID(), GameServer()->GetRespawnWorld());
 	if (GameServer()->m_pController->CanSpawn(m_Team, &SpawnPos))
 	{
 		m_Spawning = false;
 		int AllocMemoryCell = MAX_CLIENTS * GameServer()->GetWorldID() + m_ClientID;
-		m_pCharacter = new (AllocMemoryCell) CCharacter(&GameServer()->m_World);
-		m_pCharacter->Spawn(this, SpawnPos);
-		GameServer()->CreatePlayerSpawn(SpawnPos);
+		if (!m_pCharacter)
+		{
+			m_pCharacter = new (AllocMemoryCell) CCharacter(&GameServer()->m_World);
+			m_pCharacter->Spawn(this, SpawnPos);
+			GameServer()->CreatePlayerSpawn(SpawnPos);
+		}
 
 		m_WantSpawn = false;
 	}
+}
+
+bool CPlayer::NeedsClassSelection() const
+{
+	return BattleIsEnabled() && m_BattleClass < 0 && m_Team != TEAM_SPECTATORS;
 }
 
 const char *CPlayer::GetLanguage()

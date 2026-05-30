@@ -10,10 +10,20 @@ class CCommandProcessor
 	CCommandManager m_CommandManager;
 
 	static bool ConBuild(IConsole::IResult *pResult, void *pUserData);
+	static bool ConAircraft(IConsole::IResult *pResult, void *pUserData);
+	static bool ConHelicopter(IConsole::IResult *pResult, void *pUserData);
+	static bool ConJet(IConsole::IResult *pResult, void *pUserData);
+	static bool ConTank(IConsole::IResult *pResult, void *pUserData);
+	static bool ConCar(IConsole::IResult *pResult, void *pUserData);
 
 	static bool VotMakeBuilding(IConsole::IResult *pResult, void *pUserData);
 	static bool VotSelectBuilding(IConsole::IResult *pResult, void *pUserData);
 	static bool VotGoto(IConsole::IResult *pResult, void *pUserData);
+	static bool VotBattleClass(IConsole::IResult *pResult, void *pUserData);
+	static bool ConBattleClass(IConsole::IResult *pResult, void *pUserData);
+	static bool VotOpenClassMenu(IConsole::IResult *pResult, void *pUserData);
+	static bool VotBattleTeleport(IConsole::IResult *pResult, void *pUserData);
+	static bool ConBattleE(IConsole::IResult *pResult, void *pUserData);
 	
 
 public:

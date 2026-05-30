@@ -531,6 +531,22 @@ set_glob(GAME_SERVER GLOB_RECURSE src/game/server
   ai/dm_ai.h
   entities/vehicle/car.cpp
   entities/vehicle/car.h
+  entities/vehicle/vehicle.cpp
+  entities/vehicle/vehicle.h
+  entities/vehicle/aircraft.cpp
+  entities/vehicle/aircraft.h
+  entities/vehicle/helicopter.cpp
+  entities/vehicle/helicopter.h
+  entities/vehicle/jet.cpp
+  entities/vehicle/jet.h
+  entities/vehicle/tank.cpp
+  entities/vehicle/tank.h
+  entities/vehicle/vehicle_util.cpp
+  entities/vehicle/vehicle_util.h
+  entities/vehicle/vehicle_weapon.cpp
+  entities/vehicle/vehicle_weapon.h
+  entities/vehicle/vehicle_visual.cpp
+  entities/vehicle/vehicle_visual.h
   entities/area-flag.cpp
   entities/area-flag.h
   entities/buildings.cpp
@@ -555,11 +571,24 @@ set_glob(GAME_SERVER GLOB_RECURSE src/game/server
   ai.cpp
   ai.h
   alloc.h
+  buildmenu.cpp
+  buildmenu.h
+  battle.cpp
+  battle.h
+  battle_entities.cpp
+  classmenu.cpp
+  classmenu.h
   chatai.cpp
   chatai.h
   command_processor.cpp
   command_processor.h
   commands.h
+  door.cpp
+  door.h
+  entities/door_laser.cpp
+  entities/door_laser.h
+  entities/door_switch.cpp
+  entities/door_switch.h
   entity.cpp
   entity.h
   eventhandler.cpp

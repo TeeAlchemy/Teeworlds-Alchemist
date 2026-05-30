@@ -33,6 +33,10 @@ enum
 	ENTITY_SPAWN_BLUE,
 	ENTITY_WORKBENCH_RED,
 	ENTITY_WORKBENCH_BLUE,
+
+	// Battlefield map entities (game layer; tile index = ENTITY_OFFSET + type)
+	ENTITY_BATTLE_AAGUN,
+
 	NUM_ENTITIES,
 
 	TILE_AIR = 0,
@@ -43,6 +47,16 @@ enum
 	TILE_SAFEZONE_BLUE,
 	TILE_SHOP,
 	TILE_RESOURCE,
+
+	TILE_WATER,
+	TILE_WATER_UP,
+	TILE_WATER_DOWN,
+	TILE_WATER_LEFT,
+	TILE_WATER_RIGHT,
+	TILE_DOOR_START = 21,
+	TILE_DOOR_END,
+	TILE_DOOR_SWITCH,
+	TILE_DOOR_BLOCK,
 
 	TILEFLAG_VFLIP = 1,
 	TILEFLAG_HFLIP = 2,
@@ -85,6 +99,13 @@ public:
 	unsigned char m_Flags;
 	unsigned char m_Skip;
 	unsigned char m_Reserved;
+};
+
+struct CSwitchTile
+{
+	unsigned char m_Number;
+	unsigned char m_Type;
+	short m_Team;
 };
 
 struct CMapItemInfo
@@ -165,6 +186,8 @@ struct CMapItemLayerTilemap
 
 	int m_Image;
 	int m_Data;
+
+	int m_Switch;
 
 	int m_aName[3];
 };

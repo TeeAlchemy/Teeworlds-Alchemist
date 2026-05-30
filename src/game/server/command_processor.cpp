@@ -1,5 +1,12 @@
 #include "command_processor.h"
+#include "entities/buildings.h"
+#include "entities/area-flag.h"
+#include "battle.h"
+#include "entities/vehicle/aircraft.h"
 #include "entities/vehicle/car.h"
+#include "entities/vehicle/helicopter.h"
+#include "entities/vehicle/jet.h"
+#include "entities/vehicle/tank.h"
 
 #include <engine/server.h>
 #include <engine/shared/config.h>
@@ -16,9 +23,19 @@ CCommandProcessor::CCommandProcessor(CGameContext *pGS)
 
 	IServer *pServer = m_pGS->Server();
 	AddCommand("build", "ii", CFGFLAG_CHAT, ConBuild, pServer, "[team][type] For testing");
+	AddCommand("aircraft", "?r", CFGFLAG_CHAT, ConAircraft, pServer, "[give] Spawn aircraft or add one to team stock");
+	AddCommand("helicopter", "?r", CFGFLAG_CHAT, ConHelicopter, pServer, "[give] Spawn helicopter or add one to team stock");
+	AddCommand("jet", "?r", CFGFLAG_CHAT, ConJet, pServer, "[give] Spawn jet or add one to team stock");
+	AddCommand("tank", "?r", CFGFLAG_CHAT, ConTank, pServer, "[give] Spawn tank or add one to team stock");
+	AddCommand("car", "", CFGFLAG_CHAT, ConCar, pServer, "Spawn a car for testing");
 	AddCommand("makebuilding", "i", CFGFLAG_VOTE, VotMakeBuilding, pServer, "[building] Make building in workbench");
 	AddCommand("selectbuilding", "i", CFGFLAG_VOTE, VotSelectBuilding, pServer, "[building] Select building to construct");
 	AddCommand("goto", "i", CFGFLAG_VOTE, VotGoto, pServer, "[page] - Go to a vote page");
+	AddCommand("battleclass", "i", CFGFLAG_VOTE, VotBattleClass, pServer, "[class] Select battle class");
+	AddCommand("class", "i", CFGFLAG_CHAT, ConBattleClass, pServer, "[0-3] Select battle class");
+	AddCommand("opclassmenu", "", CFGFLAG_VOTE, VotOpenClassMenu, pServer, "Open battle class menu");
+	AddCommand("battleteleport", "i", CFGFLAG_VOTE, VotBattleTeleport, pServer, "[index] Teleport to captured checkpoint");
+	AddCommand("e", "", CFGFLAG_CHAT, ConBattleE, pServer, "Dismount vehicle or throw picked item");
 }
 
 CCommandProcessor::~CCommandProcessor()
@@ -30,6 +47,42 @@ static CGameContext *GetCommandResultGameServer(int ClientID, void *pUser)
 {
 	IServer *pServer = (IServer *)pUser;
 	return (CGameContext *)pServer->GameServer(pServer->GetClientWorldID(ClientID));
+}
+
+typedef void (*FSpawnVehicle)(CGameWorld *pWorld, vec2 Pos, int Team);
+
+static void SpawnAircraft(CGameWorld *pWorld, vec2 Pos, int Team) { new CAircraft(pWorld, Pos, Team); }
+static void SpawnHelicopter(CGameWorld *pWorld, vec2 Pos, int Team) { new CHelicopter(pWorld, Pos, Team); }
+static void SpawnJet(CGameWorld *pWorld, vec2 Pos, int Team) { new CJet(pWorld, Pos, Team); }
+static void SpawnTank(CGameWorld *pWorld, vec2 Pos, int Team) { new CTank(pWorld, Pos, Team); }
+
+static bool DebugVehicleCommand(IConsole::IResult *pResult, void *pUserData, int BuildingType, FSpawnVehicle pfnSpawn, const char *pSpawnKey, const char *pGiveKey)
+{
+	const int ClientID = pResult->GetClientID();
+	CGameContext *pGS = GetCommandResultGameServer(ClientID, pUserData);
+	CPlayer *pPlayer = pGS->GetPlayer(ClientID);
+	CCharacter *pChr = pPlayer ? pPlayer->GetCharacter() : nullptr;
+	if (!pPlayer || !pChr)
+		return true;
+
+	const int Team = pPlayer->GetTeam();
+	if (Team != TEAM_RED && Team != TEAM_BLUE)
+	{
+		pGS->Chat(ClientID, "You must be on a team to use this command.");
+		return true;
+	}
+
+	if (pResult->NumArguments() >= 1 && !str_comp(pResult->GetString(0), "give"))
+	{
+		pGS->m_pController->m_aTeamBuildings[Team][BuildingType]++;
+		pPlayer->m_SelectBuilding = BuildingType;
+		pGS->Chat(ClientID, pGiveKey);
+		return true;
+	}
+
+	pfnSpawn(&pGS->m_World, pChr->GetPos(), Team);
+	pGS->Chat(ClientID, pSpawnKey);
+	return true;
 }
 
 // Debug
@@ -47,6 +100,48 @@ bool CCommandProcessor::ConBuild(IConsole::IResult *pResult, void *pUserData)
 	return true;
 }
 
+bool CCommandProcessor::ConAircraft(IConsole::IResult *pResult, void *pUserData)
+{
+	return DebugVehicleCommand(pResult, pUserData, BUILDING_AIRCRAFT, SpawnAircraft, "Spawned an aircraft for testing.", "Added 1 aircraft to team stock. Hammer the ground inside a node to place it.");
+}
+
+bool CCommandProcessor::ConHelicopter(IConsole::IResult *pResult, void *pUserData)
+{
+	return DebugVehicleCommand(pResult, pUserData, BUILDING_HELICOPTER, SpawnHelicopter, "Spawned a helicopter for testing.", "Added 1 helicopter to team stock. Hammer the ground inside a node to place it.");
+}
+
+bool CCommandProcessor::ConJet(IConsole::IResult *pResult, void *pUserData)
+{
+	return DebugVehicleCommand(pResult, pUserData, BUILDING_JET, SpawnJet, "Spawned a jet for testing.", "Added 1 jet to team stock. Hammer the ground inside a node to place it.");
+}
+
+bool CCommandProcessor::ConTank(IConsole::IResult *pResult, void *pUserData)
+{
+	return DebugVehicleCommand(pResult, pUserData, BUILDING_TANK, SpawnTank, "Spawned a tank for testing.", "Added 1 tank to team stock. Hammer the ground inside a node to place it.");
+}
+
+bool CCommandProcessor::ConCar(IConsole::IResult *pResult, void *pUserData)
+{
+	const int ClientID = pResult->GetClientID();
+	CGameContext *pGS = GetCommandResultGameServer(ClientID, pUserData);
+	CPlayer *pPlayer = pGS->GetPlayer(ClientID);
+	CCharacter *pChr = pPlayer ? pPlayer->GetCharacter() : nullptr;
+	if (!pPlayer || !pChr)
+		return true;
+
+	const int Team = pPlayer->GetTeam();
+	if (Team != TEAM_RED && Team != TEAM_BLUE)
+	{
+		pGS->Chat(ClientID, "You must be on a team to use this command.");
+		return true;
+	}
+
+	(void)pResult;
+	new CCar(&pGS->m_World, pChr->GetPos(), Team);
+	pGS->Chat(ClientID, "Spawned a car for testing.");
+	return true;
+}
+
 bool CCommandProcessor::VotMakeBuilding(IConsole::IResult *pResult, void *pUserData)
 {
 	const int ClientID = pResult->GetClientID();
@@ -56,30 +151,15 @@ bool CCommandProcessor::VotMakeBuilding(IConsole::IResult *pResult, void *pUserD
 
 	if (pGS->GetPlayerVote(ClientID)->m_Page == PAGE_MAKE)
 	{
-		bool Yes = true;
-		for (int i = 0; i < NUM_RESOURCE; i++)
-		{
-			if (pGS->m_pController->m_aTeamResources[pGS->GetPlayer(ClientID)->GetTeam()][i] < pGS->m_pBuildingsInfo->m_aBuildingsInfo[pGS->GetPlayerVote(ClientID)->m_Select].m_Formula[i])
-			{
-				Yes = false;
-				pGS->Chat(ClientID, "Your team doesn't have enough resources!");
-				break;
-			}
-		}
-		if (Yes)
-		{
-			for (int i = 0; i < NUM_RESOURCE; i++)
-				pGS->m_pController->m_aTeamResources[pGS->GetPlayer(ClientID)->GetTeam()][i] -= pGS->m_pBuildingsInfo->m_aBuildingsInfo[pGS->GetPlayerVote(ClientID)->m_Select].m_Formula[i];
-			pGS->m_pController->m_aTeamBuildings[pGS->GetPlayer(ClientID)->GetTeam()][pGS->GetPlayerVote(ClientID)->m_Select]++;
-			pGS->ChatTeam(pGS->GetPlayer(ClientID)->GetTeam(), "'{}' made a {} for the team!", pGS->Server()->ClientName(ClientID), pGS->m_pBuildingsInfo->m_aBuildingsInfo[pGS->GetPlayerVote(ClientID)->m_Select].m_aName);
-			pGS->ClearVotesTeam(pGS->GetPlayer(ClientID)->GetTeam());
-		}
+		if (pGS->m_pController->MakeBuilding(pGS->GetPlayerVote(ClientID)->m_Select, pGS->GetPlayer(ClientID)->GetTeam(), ClientID))
+			pGS->RefreshBuildMenuTeam(pGS->GetPlayer(ClientID)->GetTeam());
 	}
 	else
 	{
 		pGS->GetPlayerVote(ClientID)->m_Page = PAGE_MAKE;
 		pGS->GetPlayerVote(ClientID)->m_Select = pResult->GetInteger(0);
-		pGS->ClearVotesTeam(pGS->GetPlayer(ClientID)->GetTeam());
+		pGS->GetPlayer(ClientID)->m_BuildMenuSelection = 0;
+		pGS->RefreshBuildMenu(ClientID);
 	}
 	return true;
 }
@@ -93,7 +173,7 @@ bool CCommandProcessor::VotSelectBuilding(IConsole::IResult *pResult, void *pUse
 
 	pGS->GetPlayer(ClientID)->m_SelectBuilding = pResult->GetInteger(0);
 	pGS->Chat(ClientID, "You selected {}! Hammer to build it!", pGS->m_pBuildingsInfo->m_aBuildingsInfo[pResult->GetInteger(0)].m_aName);
-	// new CCar(&pGS->m_World, pGS->GetPlayer(ClientID)->GetCharacter()->GetPos());
+	pGS->RefreshBuildMenu(ClientID);
 	return true;
 }
 
@@ -101,8 +181,105 @@ bool CCommandProcessor::VotGoto(IConsole::IResult *pResult, void *pUserData)
 {
 	const int ClientID = pResult->GetClientID();
 	CGameContext *pGS = GetCommandResultGameServer(ClientID, pUserData);
-	pGS->GetPlayerVote(ClientID)->m_Page = pResult->GetInteger(0);
+	pGS->ChangeVotePage(ClientID, pResult->GetInteger(0));
+	return true;
+}
+
+bool CCommandProcessor::VotBattleClass(IConsole::IResult *pResult, void *pUserData)
+{
+	const int ClientID = pResult->GetClientID();
+	CGameContext *pGS = GetCommandResultGameServer(ClientID, pUserData);
+	CPlayer *pPlayer = pGS->GetPlayer(ClientID);
+	if (!pPlayer)
+		return true;
+
+	const int Class = pResult->GetInteger(0);
+	if (Class < 0 || Class >= NUM_BATTLE_CLASS)
+	{
+		pGS->Chat(ClientID, "Invalid battle class.");
+		return true;
+	}
+
+	pPlayer->m_BattleClass = Class;
+	pPlayer->m_PendingClassMenu = false;
+	pGS->CloseClassMenu(ClientID);
 	pGS->ClearVotes(ClientID);
+	pGS->Chat(ClientID, "Selected {}.", BattleClassName(Class));
+
+	if (CCharacter *pChr = pPlayer->GetCharacter())
+		BattleApplyLoadout(pChr, Class);
+	else
+		pPlayer->TryRespawn();
+
+	return true;
+}
+
+bool CCommandProcessor::ConBattleClass(IConsole::IResult *pResult, void *pUserData)
+{
+	return VotBattleClass(pResult, pUserData);
+}
+
+bool CCommandProcessor::VotOpenClassMenu(IConsole::IResult *pResult, void *pUserData)
+{
+	(void)pResult;
+	const int ClientID = pResult->GetClientID();
+	CGameContext *pGS = GetCommandResultGameServer(ClientID, pUserData);
+	pGS->CloseBuildMenu(ClientID);
+	pGS->OpenClassMenu(ClientID);
+	return true;
+}
+
+bool CCommandProcessor::VotBattleTeleport(IConsole::IResult *pResult, void *pUserData)
+{
+	const int ClientID = pResult->GetClientID();
+	CGameContext *pGS = GetCommandResultGameServer(ClientID, pUserData);
+	CPlayer *pPlayer = pGS->GetPlayer(ClientID);
+	CCharacter *pChr = pPlayer ? pPlayer->GetCharacter() : nullptr;
+	if (!pPlayer || !pChr)
+		return true;
+
+	const int Team = pPlayer->GetTeam();
+	const int TargetIndex = pResult->GetInteger(0);
+	int Current = 0;
+	vec2 Dest = vec2(0, 0);
+	bool Found = false;
+
+	for (CAreaFlag *pFlag = (CAreaFlag *)pGS->m_World.FindFirst(CGameWorld::ENTTYPE_AREA_FLAG); pFlag; pFlag = (CAreaFlag *)pFlag->TypeNext())
+	{
+		if (pFlag->GetTeam() != Team)
+			continue;
+		if (Current == TargetIndex)
+		{
+			Dest = pFlag->GetPos();
+			Found = true;
+			break;
+		}
+		Current++;
+	}
+
+	if (!Found)
+	{
+		pGS->Chat(ClientID, "Invalid checkpoint.");
+		return true;
+	}
+
+	pChr->GetCore()->m_Pos = Dest;
+	pChr->GetCore()->m_Vel = vec2(0, 0);
+	pGS->Chat(ClientID, "Teleported to checkpoint {}.", TargetIndex + 1);
+	pGS->CloseBuildMenu(ClientID);
+	return true;
+}
+
+bool CCommandProcessor::ConBattleE(IConsole::IResult *pResult, void *pUserData)
+{
+	(void)pResult;
+	const int ClientID = pResult->GetClientID();
+	CGameContext *pGS = GetCommandResultGameServer(ClientID, pUserData);
+	CPlayer *pPlayer = pGS->GetPlayer(ClientID);
+	if (!pPlayer)
+		return true;
+
+	BattleHandleECommand(pGS, pPlayer);
 	return true;
 }
 

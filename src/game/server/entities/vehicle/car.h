@@ -1,38 +1,36 @@
 #pragma once
 
-#include <game/server/entity.h>
-#include <vector>
+#include "vehicle.h"
 
 enum
 {
-    CAR_EXTRA_IDS = 2,
-    CAR_MAX_SPEED = 25,
-    CAR_SPEED = 2,
-    CAR_ACCEL = 2,
-    
+	CAR_PART_IDS = 4,
+	CAR_LASER_IDS = 1,
+	CAR_MAX_SPEED = 25,
+	CAR_ACCEL = 2,
 };
 
-class CCar : public CEntity
+class CCar : public CVehicle
 {
-private:
-    int m_Health;
-    int m_Owner;
-    int m_Team;
-    int m_IDs[CAR_EXTRA_IDS];
-    vec2 m_Vel;
+	int m_PartIds[CAR_PART_IDS];
+	int m_LaserIds[CAR_LASER_IDS];
+	int m_GunReload;
+	int m_MgReload;
+	int m_PrevDriverFire;
+	int m_PrevDriverHook;
+
+protected:
+	void TickDriver(CCharacter *pDriver) override;
+	void TickDriverExtras(CCharacter *pDriver) override;
+	float DriverOffsetY() const override { return VehicleScale(-2.f); }
+	float MaxStepHeight() const override { return VEHICLE_TILE_HEIGHT; }
+	vec2 CollisionSize() const override { return vec2(VehicleScale(93.f), VehicleScale(16.f)); }
+	void TickIdle() override;
+	void OnDriverBoarded(CCharacter *pDriver) override;
 
 public:
-    CCar(CGameWorld *pGameWorld, vec2 Pos, int Team = -1);
-    ~CCar();
+	CCar(CGameWorld *pGameWorld, vec2 Pos, int Team = -1);
+	~CCar() override;
 
-    /* Vehicle Functions */
-    void GravityVehicle();
-
-    virtual void Tick();
-    virtual void Snap(int SnappingClient);
-    virtual void Reset();
-
-    int GetHealth() { return m_Health; }
-    int GetOwner() { return m_Owner; }
-    int GetTeam() { return m_Team; }
+	void Snap(int SnappingClient) override;
 };

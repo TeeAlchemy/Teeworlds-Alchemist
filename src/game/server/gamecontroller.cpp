@@ -5,11 +5,19 @@
 
 #include <game/generated/protocol.h>
 
-#include "entities/pickup.h"
 #include "entities/area-flag.h"
+#include "entities/vehicle/aircraft.h"
+#include "entities/vehicle/car.h"
+#include "entities/vehicle/helicopter.h"
+#include "entities/vehicle/jet.h"
+#include "entities/vehicle/tank.h"
+#include "entities/vehicle/vehicle_util.h"
 #include "entities/workbench.h"
+#include "battle.h"
+#include "door.h"
 #include "gamecontroller.h"
 #include "gamecontext.h"
+#include "player.h"
 
 #include <engine/storage.h>
 #include <engine/shared/linereader.h>
@@ -37,6 +45,9 @@ CGameControllerWorkbenches::CGameControllerWorkbenches(class CGameContext *pGame
 	m_aNumSpawnPoints[1] = 0;
 	m_aNumSpawnPoints[2] = 0;
 
+	mem_zero(m_apWorkbenches, sizeof(m_apWorkbenches));
+	m_NumFlag = 0;
+
 	for (int Team = 0; Team < 2; Team++)
 	{
 		for (int i = 0; i < NUM_RESOURCE; i++)
@@ -47,6 +58,9 @@ CGameControllerWorkbenches::CGameControllerWorkbenches(class CGameContext *pGame
 
 		m_aTeamMoney[Team] = 0;
 	}
+
+	for (unsigned int i = 0; i < sizeof(m_Switches); i++)
+		m_Switches[i] = false;
 
 	/*GameServer()->Collision()->GenerateWaypoints();
 
@@ -146,8 +160,6 @@ bool CGameControllerWorkbenches::CanSpawn(int Team, vec2 *pOutPos)
 
 bool CGameControllerWorkbenches::OnEntity(int Index, vec2 Pos)
 {
-	int Type = -1;
-	int SubType = 0;
 	switch (Index)
 	{
 	case ENTITY_SPAWN:
@@ -160,13 +172,9 @@ bool CGameControllerWorkbenches::OnEntity(int Index, vec2 Pos)
 		m_aaSpawnPoints[TEAM_BLUE + 1][m_aNumSpawnPoints[TEAM_BLUE + 1]++] = Pos;
 		break;
 	default:
+		if (BattleIsEnabled())
+			return BattleOnMapEntity(Index, Pos, GameServer(), this);
 		break;
-	}
-
-	if (Type != -1)
-	{
-		new CPickup(&GameServer()->m_World, Type, SubType, Pos);
-		return true;
 	}
 
 	return false;
@@ -185,6 +193,8 @@ void CGameControllerWorkbenches::EndRound()
 void CGameControllerWorkbenches::ResetGame()
 {
 	GameServer()->m_World.m_ResetRequested = true;
+	for (int i = 0; i < m_lDoors.size(); i++)
+		m_lDoors[i].Reset();
 }
 
 const char *CGameControllerWorkbenches::GetTeamName(int Team)
@@ -226,7 +236,8 @@ void CGameControllerWorkbenches::StartRound()
 			m_aTeamBuildings[Team][i] = 0;
 
 		m_aTeamMoney[Team] = 0;
-		m_apWorkbenches[Team]->Init();
+		if (m_apWorkbenches[Team])
+			m_apWorkbenches[Team]->Init();
 	}
 
 	Server()->DemoRecorder_HandleAutoStart();
@@ -368,6 +379,15 @@ void CGameControllerWorkbenches::OnCharacterSpawn(class CCharacter *pChr, bool R
 {
 	// default health
 	pChr->IncreaseHealth(10);
+
+	if (BattleIsEnabled())
+	{
+		if (pChr->GetPlayer()->m_BattleClass >= 0)
+			BattleApplyLoadout(pChr, pChr->GetPlayer()->m_BattleClass);
+		if (pChr->GetPlayer()->m_pAI)
+			pChr->GetPlayer()->m_pAI->Reset();
+		return;
+	}
 
 	// give default weapons
 	pChr->GiveWeapon(WEAPON_HAMMER, -1);
@@ -684,7 +704,6 @@ void CGameControllerWorkbenches::DoWincheck()
 	{
 		if (IsTeamplay())
 		{
-			// check score win condition
 			if ((g_Config.m_SvTimelimit > 0 && (Server()->Tick() - m_RoundStartTick) >= g_Config.m_SvTimelimit * Server()->TickSpeed() * 60) ||
 				GetWorkbenchHealth(TEAM_RED) <= 0 || GetWorkbenchHealth(TEAM_BLUE) <= 0)
 			{
@@ -782,7 +801,10 @@ void CGameControllerWorkbenches::LoadMapConfig()
 				int Level = 0, MaxProgress = 200;
 				vec2 Pos0, Pos1;
 				if (sscanf(pLine, "flag t%d lv%d lx%f ly%f ux%f uy%f", &MaxProgress, &Level, &Pos0.x, &Pos0.y, &Pos1.x, &Pos1.y))
-					new CAreaFlag(&GameServer()->m_World, vec2(Pos0.x * 32 + 32, Pos0.y * 32 + 32), vec2(Pos1.x * 32 + 32, Pos1.y * 32 + 32), MaxProgress, Level);
+				{
+					new CAreaFlag(&GameServer()->m_World, vec2(Pos0.x * 32 + 32, Pos0.y * 32 + 32), vec2(Pos1.x * 32 + 32, Pos1.y * 32 + 32), MaxProgress, Level, m_NumFlag);
+					m_NumFlag++;
+				}
 			}
 			if (!str_comp_num(pLine, "workbench", 9))
 			{
@@ -800,6 +822,16 @@ void CGameControllerWorkbenches::LoadMapConfig()
 		}
 		io_close(File);
 	}
+
+	for (int Team = 0; Team < 2; Team++)
+	{
+		if (!m_apWorkbenches[Team])
+		{
+			char aBuf[128];
+			str_format(aBuf, sizeof(aBuf), "missing workbench for team %d in maps/%s.cfg", Team, g_Config.m_SvMap);
+			GameServer()->Console()->Print(IConsole::OUTPUT_LEVEL_STANDARD, "game", aBuf);
+		}
+	}
 }
 
 int CGameControllerWorkbenches::GetWorkbenchHealth(int Team)
@@ -809,8 +841,197 @@ int CGameControllerWorkbenches::GetWorkbenchHealth(int Team)
 	return 0;
 }
 
-void CGameControllerWorkbenches::MakeBuilding(int Building, int Team)
+bool CGameControllerWorkbenches::MakeBuilding(int Building, int Team, int ClientID)
 {
+	if (Building < 0 || Building >= NUM_BUILDING || Building == BUILDING_WORKBENCH)
+		return false;
+
+	if (Team < TEAM_RED || Team > TEAM_BLUE)
+		return false;
+
+	for (int i = 0; i < NUM_RESOURCE; i++)
+	{
+		if (m_aTeamResources[Team][i] < GameServer()->m_pBuildingsInfo->m_aBuildingsInfo[Building].m_Formula[i])
+		{
+			if (ClientID >= 0)
+				GameServer()->Chat(ClientID, "Your team doesn't have enough resources!");
+			return false;
+		}
+	}
+
+	for (int i = 0; i < NUM_RESOURCE; i++)
+		m_aTeamResources[Team][i] -= GameServer()->m_pBuildingsInfo->m_aBuildingsInfo[Building].m_Formula[i];
+
+	m_aTeamBuildings[Team][Building]++;
+
+	if (ClientID >= 0 && GameServer()->m_apPlayers[ClientID])
+	{
+		GameServer()->ChatTeam(Team, "'{}' made a {} for the team!", Server()->ClientName(ClientID),
+			GameServer()->m_pBuildingsInfo->m_aBuildingsInfo[Building].m_aName);
+	}
+
+	return true;
+}
+
+void CGameControllerWorkbenches::InitDoors()
+{
+	if (!GameServer()->Collision()->Switches())
+	{
+		dbg_msg("Doors", "No Switch layer found");
+		return;
+	}
+
+	const int Height = GameServer()->Collision()->Layers()->GameLayer()->m_Height;
+	const int Width = GameServer()->Collision()->Layers()->GameLayer()->m_Width;
+
+	m_lDoors.clear();
+
+	int TileCount = 0;
+	for (int i = 0; i < Width; i++)
+	{
+		for (int j = 0; j < Height; j++)
+		{
+			if (GameServer()->Collision()->IsDoor(i * 32 + 16, j * 32 + 16))
+				TileCount++;
+		}
+	}
+
+	array<CDoor::CDoorNode> lPos;
+	lPos.set_size(TileCount);
+
+	int Index = 0;
+	for (int i = 0; i < Width; i++)
+	{
+		for (int j = 0; j < Height; j++)
+		{
+			const int x = i * 32 + 16;
+			const int y = j * 32 + 16;
+			if (GameServer()->Collision()->IsDoor(x, y))
+			{
+				lPos[Index].m_Pos = vec2(x, y);
+				lPos[Index].m_Type = GameServer()->Collision()->IsDoor(x, y);
+				lPos[Index].m_Team = GameServer()->Collision()->GetSwitchTeam(x, y);
+				Index++;
+			}
+		}
+	}
+
+	array<CDoor::CDoorNode> lDoor;
+	for (int i = 0; i < lPos.size(); i++)
+	{
+		if (lPos[i].m_Type == TILE_DOOR_START)
+		{
+			lDoor.add(lPos[i]);
+			lPos.remove_index(i);
+
+			const int SwitchNum = GameServer()->Collision()->GetSwitchNum(lDoor[0].m_Pos);
+			if (!SwitchNum)
+			{
+				dbg_msg("Doors", "Found invalid Switch, please fix the map");
+				return;
+			}
+
+			bool FoundSwitch = false;
+			array<CDoor::CDoorNode> lSwitch;
+			for (i = 0; i < lPos.size(); i++)
+			{
+				if (lPos[i].m_Type == TILE_DOOR_SWITCH && GameServer()->Collision()->GetSwitchNum(lPos[i].m_Pos) == SwitchNum)
+				{
+					lSwitch.add(lPos[i]);
+					FoundSwitch = true;
+				}
+			}
+			if (!FoundSwitch)
+			{
+				dbg_msg("Doors", "No doorswitch found for Switch %i", SwitchNum);
+				return;
+			}
+
+			bool FoundEnd = false;
+			for (i = 0; i < lPos.size(); i++)
+			{
+				if (lPos[i].m_Type == TILE_DOOR_END && GameServer()->Collision()->GetSwitchNum(lPos[i].m_Pos) == SwitchNum &&
+					!GameServer()->Collision()->IntersectLine(lDoor[0].m_Pos, lPos[i].m_Pos, 0x0, 0x0) &&
+					!GameServer()->Collision()->DoorBlock(lDoor[0].m_Pos, lPos[i].m_Pos))
+				{
+					lDoor.add(lPos[i]);
+					FoundEnd = true;
+				}
+			}
+			if (!FoundEnd)
+			{
+				dbg_msg("Doors", "No endpoint found for Switch %i", SwitchNum);
+				return;
+			}
+
+			int Team = lDoor[0].m_Team;
+			for (i = 1; i < lDoor.size(); i++)
+			{
+				if (Team != lDoor[i].m_Team)
+				{
+					dbg_msg("Doors", "Switch %i has doors with different teams", SwitchNum);
+					return;
+				}
+			}
+			for (i = 1; i < lSwitch.size(); i++)
+			{
+				if (Team != lSwitch[i].m_Team)
+				{
+					dbg_msg("Doors", "Switch %i has doorswitches with different teams", SwitchNum);
+					return;
+				}
+			}
+
+			CDoor Door(GameServer(), Team, SwitchNum, lDoor, lSwitch);
+			m_lDoors.add(Door);
+
+			lSwitch.clear();
+			lDoor.clear();
+			i = -1;
+		}
+	}
+
+	m_lDoors.optimize();
+
+	for (int d = 0; d < m_lDoors.size(); d++)
+		m_lDoors[d].Init();
+}
+
+void CGameControllerWorkbenches::SwitchDoor(CDoor *pDoor, CPlayer *pPlayer, vec2 Pos, bool Silent)
+{
+	if ((pDoor->m_SwitchTick + (Server()->TickSpeed() * (float)g_Config.m_SvDoorSwitchTime / 10)) < Server()->Tick())
+	{
+		if (pPlayer->GetTeam() == pDoor->m_Team || pDoor->m_Team == -1)
+		{
+			if (pDoor->Switch(Pos, Silent))
+				pDoor->m_SwitchTick = Server()->Tick();
+		}
+		else if (!Silent)
+		{
+			GameServer()->Chat(pPlayer->GetCID(), "This is your enemies door, you can't operate it!");
+			GameServer()->CreateSound(Pos, SOUND_HOOK_NOATTACH);
+			pDoor->m_SwitchTick = Server()->Tick();
+		}
+	}
+}
+
+void CGameControllerWorkbenches::SwitchDoorAt(vec2 Pos, CPlayer *pPlayer, bool Silent)
+{
+	if (!GameServer()->Collision()->Switches() || !pPlayer)
+		return;
+
+	const int SwitchNum = GameServer()->Collision()->GetSwitchNum(Pos);
+	if (!SwitchNum)
+		return;
+
+	for (int i = 0; i < m_lDoors.size(); i++)
+	{
+		if (m_lDoors[i].m_SwitchNum == SwitchNum)
+		{
+			SwitchDoor(&m_lDoors[i], pPlayer, Pos, Silent);
+			return;
+		}
+	}
 }
 
 bool CGameControllerWorkbenches::BuildBuilding(vec2 Pos, int Type, int Team, int Owner)
@@ -856,9 +1077,36 @@ bool CGameControllerWorkbenches::BuildBuilding(vec2 Pos, int Type, int Team, int
 		}
 	}
 
-	new CBuilding(&GameServer()->m_World, Team, Pos, Type);
+	if (VehicleSpotBlocked(&GameServer()->m_World, Pos))
+	{
+		GameServer()->Chat(Owner, "This spot is blocked");
+		return false;
+	}
+
+	switch (Type)
+	{
+	case BUILDING_AIRCRAFT:
+		new CAircraft(&GameServer()->m_World, Pos, Team);
+		break;
+	case BUILDING_HELICOPTER:
+		new CHelicopter(&GameServer()->m_World, Pos, Team);
+		break;
+	case BUILDING_JET:
+		new CJet(&GameServer()->m_World, Pos, Team);
+		break;
+	case BUILDING_TANK:
+		new CTank(&GameServer()->m_World, Pos, Team);
+		break;
+	case BUILDING_CAR:
+		new CCar(&GameServer()->m_World, Pos, Team);
+		break;
+	default:
+		new CBuilding(&GameServer()->m_World, Team, Pos, Type);
+		break;
+	}
 	m_aTeamBuildings[GameServer()->GetPlayer(Owner)->GetTeam()][Type]--;
-	GameServer()->ClearVotes(Owner);
+	if (GameServer()->GetPlayer(Owner) && GameServer()->GetPlayer(Owner)->m_BuildMenuOpen)
+		GameServer()->RefreshBuildMenu(Owner);
 
 	return true;
 }

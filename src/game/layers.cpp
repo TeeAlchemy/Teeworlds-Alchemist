@@ -15,11 +15,13 @@ CLayers::CLayers()
 	m_LayersStart = 0;
 	m_pGameGroup = 0;
 	m_pGameLayer = 0;
+	m_pSwitchLayer = 0;
 	m_pMap = 0;
 }
 
 void CLayers::Init(class IKernel* pKernel, int ID)
 {
+	m_pSwitchLayer = 0;
 	m_pMap = pKernel->RequestInterface<IMap>(ID);
 	m_pMap->GetType(MAPITEMTYPE_GROUP, &m_GroupsStart, &m_GroupsNum);
 	m_pMap->GetType(MAPITEMTYPE_LAYER, &m_LayersStart, &m_LayersNum);
@@ -57,6 +59,8 @@ void CLayers::Init(class IKernel* pKernel, int ID)
 
 					//break;
 				}
+				else if (pTilemap->m_Flags & 8)
+					m_pSwitchLayer = pTilemap;
 			}
 		}
 	}

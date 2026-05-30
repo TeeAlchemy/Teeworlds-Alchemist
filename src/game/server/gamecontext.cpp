@@ -25,6 +25,8 @@
 
 #include "entities/buildings.h"
 #include "entities/vehicle/car.h"
+#include "entities/vehicle/vehicle_util.h"
+#include "battle.h"
 
 enum
 {
@@ -182,8 +184,10 @@ void CGameContext::CreateExplosion(vec2 Pos, int Owner, int Weapon, bool NoDamag
 			l = 1 - clamp((l - InnerRadius) / (Radius - InnerRadius), 0.0f, 1.0f);
 			float Dmg = 6 * l;
 			if ((int)Dmg)
-				apBuildings[i]->TakeDamage((int)Dmg, Owner, Weapon);
+				apBuildings[i]->TakeDamageAt(Pos, (int)Dmg, Owner, Weapon, Radius);
 		}
+
+		VehicleApplyExplosionDamage(&m_World, Pos, Radius, InnerRadius, Owner);
 	}
 }
 
@@ -561,6 +565,10 @@ void CGameContext::OnClientEnter(int ClientID)
 
 	m_apPlayers[ClientID]->Respawn();
 	Chat(-1, "'{}' entered and joined the game", Server()->ClientName(ClientID));
+	if (BattleIsEnabled() && pPlayer->m_BattleClass < 0)
+		OpenClassMenu(ClientID);
+	else
+		Chat(ClientID, "Press F3 to open the build menu");
 
 	m_VoteUpdate = true;
 
@@ -595,9 +603,8 @@ void CGameContext::OnClientConnected(int ClientID, bool AI)
 		SendVoteSet(ClientID);
 
 	// send motd
-	CNetMsg_Sv_Motd Msg;
-	Msg.m_pMessage = g_Config.m_SvMotd;
-	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ClientID, -1);
+	if (m_apPlayers[ClientID]->m_BuildMenuOpen)
+		m_BuildMenu.SendMotd(this, ClientID, m_apPlayers[ClientID]->m_BuildMenuSelection);
 }
 
 void CGameContext::OnClientDrop(int ClientID, const char *pReason)
@@ -828,10 +835,18 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			if (!m_VoteCloseTime)
 			{
 				CNetMsg_Cl_Vote *pMsg = (CNetMsg_Cl_Vote *)pRawMsg;
-				if (pMsg->m_Vote)
-					pPlayer->m_Vote = pMsg->m_Vote;
+				if (pMsg->m_Vote == 1)
+				{
+					if (pPlayer->m_LastMenuVoteKey != 1)
+					{
+						ToggleBuildMenu(ClientID);
+						pPlayer->m_LastMenuVoteKey = 1;
+					}
+				}
 				else
-					pPlayer->m_Vote = 0;
+				{
+					pPlayer->m_LastMenuVoteKey = pMsg->m_Vote;
+				}
 				return;
 			}
 
@@ -937,6 +952,11 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			pPlayer->m_LastEmote = Server()->Tick();
 
 			SendEmoticon(ClientID, pMsg->m_Emoticon);
+
+			if (BattleIsEnabled())
+				BattleHandleEmote(this, ClientID);
+			else if (pMsg->m_Emoticon == EMOTICON_HEARTS)
+				VehicleHandleHeartsDismount(this, ClientID);
 		}
 		else if (MsgID == NETMSGTYPE_CL_KILL && !m_World.m_Paused)
 		{
@@ -1072,6 +1092,13 @@ void CGameContext::OnMessage(int MsgID, CUnpacker *pUnpacker, int ClientID)
 			pPlayer->m_IsReady = true;
 			CNetMsg_Sv_ReadyToEnter m;
 			Server()->SendPackMsg(&m, MSGFLAG_VITAL | MSGFLAG_FLUSH, ClientID, -1);
+
+			if (BattleIsEnabled() && pPlayer->m_BattleClass < 0 && pPlayer->GetTeam() != TEAM_SPECTATORS)
+			{
+				pPlayer->m_PendingClassMenu = true;
+				RefreshClassVotes(ClientID);
+				Chat(ClientID, "Choose class: press F2 or type /class 0-3 (0=Soldier 1=Engineer 2=Medic 3=Sniper)");
+			}
 		}
 	}
 }
@@ -1699,6 +1726,8 @@ void CGameContext::OnInit(int WorldID)
 		}
 	}
 
+	m_pController->InitDoors();
+
 	// initialize
 	m_pCommandProcessor = new CCommandProcessor(this);
 }
@@ -1935,182 +1964,210 @@ void CGameContext::AddVote_Space(int Num)
 void CGameContext::ClearVotes(int ClientID)
 {
 	GetPlayerVote(ClientID)->m_aVoteOptions.clear();
+}
 
-	// send vote options
-	CNetMsg_Sv_VoteClearOptions ClearMsg;
-	Server()->SendPackMsg(&ClearMsg, MSGFLAG_VITAL, ClientID, -1);
+void CGameContext::ToggleBuildMenu(int ClientID)
+{
+	CPlayer *pPlayer = GetPlayer(ClientID);
+	if (!pPlayer || !pPlayer->GetCharacter())
+		return;
 
-	InitVotes(ClientID);
+	if (Server()->Tick() < pPlayer->m_BuildMenuToggleTick + Server()->TickSpeed() / 3)
+		return;
+
+	pPlayer->m_BuildMenuToggleTick = Server()->Tick();
+
+	if (pPlayer->m_BuildMenuOpen)
+	{
+		CloseBuildMenu(ClientID);
+		pPlayer->m_LastMenuVoteKey = 1;
+	}
+	else
+		OpenBuildMenu(ClientID);
+}
+
+void CGameContext::OpenBuildMenu(int ClientID)
+{
+	CPlayer *pPlayer = GetPlayer(ClientID);
+	if (!pPlayer || !pPlayer->GetCharacter() || pPlayer->m_BuildMenuOpen)
+		return;
+
+	GetPlayerVote(ClientID)->m_Page = PAGE_MENU;
+	pPlayer->m_BuildMenuOpen = true;
+	pPlayer->m_BuildMenuSelection = 0;
+	pPlayer->m_BuildMenuTextScroll = 0;
+	pPlayer->m_BuildMenuInputWarmup = true;
+	m_BuildMenu.SendMotd(this, ClientID, 0);
+}
+
+void CGameContext::CloseBuildMenu(int ClientID)
+{
+	CPlayer *pPlayer = GetPlayer(ClientID);
+	if (!pPlayer || !pPlayer->m_BuildMenuOpen)
+		return;
+
+	pPlayer->m_BuildMenuOpen = false;
+	pPlayer->m_BuildMenuSelection = 0;
+	pPlayer->m_BuildMenuTextScroll = 0;
+	pPlayer->m_BuildMenuInputWarmup = false;
+	pPlayer->m_LastMenuVoteKey = 0;
+
+	CNetMsg_Sv_Motd Msg;
+	Msg.m_pMessage = " ";
+	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ClientID, -1);
+}
+
+void CGameContext::RefreshBuildMenu(int ClientID)
+{
+	CPlayer *pPlayer = GetPlayer(ClientID);
+	if (!pPlayer || !pPlayer->m_BuildMenuOpen)
+		return;
+
+	if (!pPlayer->GetCharacter())
+	{
+		CloseBuildMenu(ClientID);
+		return;
+	}
+
+	m_BuildMenu.Populate(this, ClientID);
+	if (pPlayer->m_BuildMenuSelection >= m_BuildMenu.NumActions())
+		pPlayer->m_BuildMenuSelection = maximum(0, m_BuildMenu.NumActions() - 1);
+
+	m_BuildMenu.SendMotd(this, ClientID, pPlayer->m_BuildMenuSelection);
+}
+
+namespace
+{
+struct CMenuInputCount
+{
+	int m_Presses;
+};
+
+CMenuInputCount CountMenuInput(int Prev, int Cur)
+{
+	CMenuInputCount Result = {0};
+	Prev &= INPUT_STATE_MASK;
+	Cur &= INPUT_STATE_MASK;
+	if (Cur == Prev)
+		return Result;
+	if (Cur < Prev && Prev - Cur <= 8)
+		return Result;
+	int i = Prev;
+
+	while (i != Cur)
+	{
+		i = (i + 1) & INPUT_STATE_MASK;
+		if (i & 1)
+			Result.m_Presses++;
+	}
+
+	return Result;
+}
+} // namespace
+
+void CGameContext::BuildMenuGoBack(int ClientID)
+{
+	CPlayer *pPlayer = GetPlayer(ClientID);
+	if (!pPlayer || !pPlayer->m_BuildMenuOpen)
+		return;
+
+	SPlayerVote *pVote = GetPlayerVote(ClientID);
+	if (pVote->m_Page == PAGE_MENU)
+	{
+		CloseBuildMenu(ClientID);
+		return;
+	}
+
+	m_BuildMenu.Populate(this, ClientID);
+	int BackPage = pVote->m_LastPage;
+	if (BackPage < 0 || BackPage >= NUM_VOTEPAGE)
+		BackPage = PAGE_MENU;
+
+	pVote->m_Page = BackPage;
+	pPlayer->m_BuildMenuSelection = 0;
+	pPlayer->m_BuildMenuTextScroll = 0;
+	RefreshBuildMenu(ClientID);
+}
+
+bool CGameContext::HandleBuildMenuInput(int ClientID, const CNetObj_PlayerInput *pInput, const CNetObj_PlayerInput *pPrevInput)
+{
+	CPlayer *pPlayer = GetPlayer(ClientID);
+	if (!pPlayer || !pPlayer->m_BuildMenuOpen || !pInput || !pPrevInput)
+		return false;
+
+	const int NextScroll = pInput->m_NextWeapon != pPrevInput->m_NextWeapon ? 1 : 0;
+	const int PrevScroll = pInput->m_PrevWeapon != pPrevInput->m_PrevWeapon ? 1 : 0;
+	const int FirePress = CountMenuInput(pPrevInput->m_Fire, pInput->m_Fire).m_Presses;
+	const int HookPress = CountMenuInput(pPrevInput->m_Hook, pInput->m_Hook).m_Presses;
+
+	if (!NextScroll && !PrevScroll && !FirePress && !HookPress)
+		return false;
+
+	m_BuildMenu.Populate(this, ClientID);
+	SPlayerVote *pVote = GetPlayerVote(ClientID);
+
+	if (HookPress && !FirePress)
+	{
+		BuildMenuGoBack(ClientID);
+		return true;
+	}
+
+	if (pVote->m_Page == PAGE_ANNOUNCE)
+	{
+		const int NumInfo = m_BuildMenu.NumInfoLines();
+		const int MaxScroll = maximum(0, NumInfo - CBuildMenu::BUILDMENU_VISIBLE_INFO);
+		if (NextScroll)
+			pPlayer->m_BuildMenuTextScroll = minimum(MaxScroll, pPlayer->m_BuildMenuTextScroll + 1);
+		else if (PrevScroll)
+			pPlayer->m_BuildMenuTextScroll = maximum(0, pPlayer->m_BuildMenuTextScroll - 1);
+
+		if (FirePress && m_BuildMenu.NumActions() > 0)
+		{
+			m_BuildMenu.ExecuteAction(this, pPlayer, 0);
+			return true;
+		}
+
+		if (NextScroll || PrevScroll)
+		{
+			RefreshBuildMenu(ClientID);
+			return true;
+		}
+
+		return false;
+	}
+
+	const int NumActions = m_BuildMenu.NumActions();
+
+	if (NumActions <= 0)
+		return HookPress != 0;
+
+	if (NextScroll)
+		pPlayer->m_BuildMenuSelection = (pPlayer->m_BuildMenuSelection + 1) % NumActions;
+	else if (PrevScroll)
+		pPlayer->m_BuildMenuSelection = (pPlayer->m_BuildMenuSelection - 1 + NumActions) % NumActions;
+
+	if (FirePress)
+	{
+		m_BuildMenu.ExecuteAction(this, pPlayer, pPlayer->m_BuildMenuSelection);
+		m_BuildMenu.Populate(this, ClientID);
+		if (pPlayer->m_BuildMenuSelection >= m_BuildMenu.NumActions())
+			pPlayer->m_BuildMenuSelection = maximum(0, m_BuildMenu.NumActions() - 1);
+		RefreshBuildMenu(ClientID);
+		return true;
+	}
+
+	if (NextScroll || PrevScroll)
+	{
+		RefreshBuildMenu(ClientID);
+		return true;
+	}
+
+	return false;
 }
 
 void CGameContext::InitVotes(int ClientID)
 {
-	CPlayer *pP = GetPlayer(ClientID);
-	if (!pP)
-		return;
-
-	CCharacter *pChr = pP->GetCharacter();
-
-	if (!pChr)
-		return;
-
-	SetVoteClientID(ClientID);
-
-	float HpP = (float(m_pController->GetWorkbenchHealth(pP->GetTeam())) / float(g_Config.m_SvWorkbenchesHealth)) * 100.f;
-	AddVote_Text("Workbench Health: {}%", HpP);
-
-	switch (GetPlayerVote(ClientID)->m_Page)
-	{
-	case PAGE_MENU:
-	{
-		AddVote_Text("☪ Menu");
-		AddVote_Space();
-		AddVote_Goto(PAGE_INVENTORY, "☞ Inventory ✪");
-		AddVote_Goto(PAGE_HOME, "☞ Base ☺");
-		AddVote_Goto(PAGE_SHOP, "☞ Free Market ㊮");
-		AddVote_Goto(PAGE_BUILD, "☞ Build ☭");
-	}
-	break;
-
-	case PAGE_INVENTORY:
-	{
-		SetVoteLastPage(PAGE_MENU);
-		AddVote_Text("☪ Inventory");
-		AddVote_Text("#WARNING: Lose all after death/quit)");
-		AddVote_Text(" ");
-		for (int i = 0; i < NUM_RESOURCE; i++)
-			AddVote_Text("➳ {} x{}", GetResourceName(i), pChr->m_Resource[i]);
-		AddVote_Space();
-		AddVote_Back();
-	}
-	break;
-
-	case PAGE_HOME:
-	{
-		SetVoteLastPage(PAGE_MENU);
-		AddVote_Text("☪ Base");
-		if (pP->m_VotePage[PAGE_HOME])
-		{
-			AddVote_Text("- You can use the workbench now");
-
-			AddVote_Text(" ");
-
-			AddVote_Text("▾ Base warehouse ▾");
-			for (int i = 0; i < NUM_RESOURCE; i++)
-				AddVote_Text("➳ {} x{}", GetResourceName(i), m_pController->m_aTeamResources[pP->GetTeam()][i]);
-
-			AddVote_Text(" ");
-
-			AddVote_Text("▾ Workbench ▾");
-			for (int i = 0; i < NUM_BUILDING; i++)
-			{
-				// None of your bisinisi(?
-				if (i == BUILDING_WORKBENCH)
-					continue;
-
-				int Num = m_pController->m_aTeamBuildings[pP->GetTeam()][i];
-				char aCmd[32];
-				str_format(aCmd, sizeof(aCmd), "ccv_makebuilding %d", i);
-				AddVote_VL(aCmd, "☞ Make {}({})", m_pBuildingsInfo->m_aBuildingsInfo[i].m_aName, Num);
-			}
-		}
-		else
-			AddVote_Text("You need to return to the base to use this!");
-
-		AddVote_Space();
-		AddVote_Back();
-	}
-	break;
-
-	case PAGE_MAKE:
-	{
-		SetVoteLastPage(PAGE_HOME);
-		AddVote_Text("☪ Make");
-		AddVote_Space();
-		AddVote_Text("Building: {}", m_pBuildingsInfo->m_aBuildingsInfo[GetPlayerVote(ClientID)->m_Select].m_aName);
-		AddVote_Text("Description: {}", m_pBuildingsInfo->m_aBuildingsInfo[GetPlayerVote(ClientID)->m_Select].m_aDesc);
-		AddVote_Text("Your team have: {}", m_pController->m_aTeamBuildings[pP->GetTeam()][GetPlayerVote(ClientID)->m_Select]);
-		AddVote_Text("㊮ Formula:");
-		AddVote_Text("---");
-		for (int i = 0; i < NUM_RESOURCE; i++)
-		{
-			if (m_pBuildingsInfo->m_aBuildingsInfo[GetPlayerVote(ClientID)->m_Select].m_Formula[i])
-				AddVote_Text("# {} {}/{}", GetResourceName(i), m_pController->m_aTeamResources[pP->GetTeam()][i], m_pBuildingsInfo->m_aBuildingsInfo[GetPlayerVote(ClientID)->m_Select].m_Formula[i]);
-		}
-		AddVote_Text("===");
-		char aCmd[32];
-		str_format(aCmd, sizeof(aCmd), "ccv_makebuilding %d", GetPlayerVote(ClientID)->m_Select);
-		AddVote_VL(aCmd, "- Make!");
-		AddVote_Space(2);
-		AddVote_Back();
-	}
-	break;
-
-	case PAGE_SHOP:
-	{
-		SetVoteLastPage(PAGE_MENU);
-		AddVote_Text("☪ Free Market");
-		if (pP->m_VotePage[PAGE_SHOP])
-		{
-			AddVote_Text("Free market, capitalism, without big hands");
-			AddVote_Text("...");
-			AddVote_Text("This place has been liberated by the Communist Party");
-			AddVote_Text("The free market has been abolished.");
-		}
-		else
-			AddVote_Text("You need to be in the market area to use this!");
-
-		AddVote_Space();
-		AddVote_Back();
-	}
-	break;
-
-	case PAGE_BUILD:
-	{
-		SetVoteLastPage(PAGE_MENU);
-		AddVote_Text("☪ Node");
-		int NumNodes = m_pController->m_aTeamBuildings[pP->GetTeam()][BUILDING_NODE];
-		if (pChr->m_CanBuild)
-		{
-			AddVote_Text("Choose the building you want to build and hammer the ground");
-			for (int i = 0; i < NUM_BUILDING; i++)
-			{
-				// None of your bisinisi(?
-				if (i == BUILDING_WORKBENCH)
-					continue;
-
-				int Num = m_pController->m_aTeamBuildings[pP->GetTeam()][i];
-				if (Num > 0)
-				{
-					char aCmd[32];
-					str_format(aCmd, sizeof(aCmd), "ccv_selectbuilding %d", i);
-					AddVote_VL(aCmd, "☞ Build {}({})", m_pBuildingsInfo->m_aBuildingsInfo[i].m_aName, Num);
-				}
-			}
-		}
-		else if (NumNodes > 0)
-		{
-			// WARNING! 0 is BUILDING_NODE, if you EDIT the value, please don't forget here.
-			AddVote_Text("Starting from building a node.");
-			AddVote_Text("Choose 'Build Node' and hammer the ground");
-			AddVote_VL("ccv_selectbuilding 0", "☞ Build {}({})", m_pBuildingsInfo->m_aBuildingsInfo[BUILDING_NODE].m_aName, NumNodes);
-		}
-		else
-		{
-			AddVote_Text("You have to make a Node first!");
-			AddVote_Text("Tip: Back to the menu and choose 'Base'");
-		}
-
-		AddVote_Space();
-		AddVote_Back();
-	}
-	break;
-
-	default:
-		break;
-	}
-
-	SetVoteClientID(-1);
+	RefreshBuildMenu(ClientID);
 }
 
 void CGameContext::ClearVotesTeam(int Team)
@@ -2125,11 +2182,136 @@ void CGameContext::ClearVotesTeam(int Team)
 	}
 }
 
+void CGameContext::RefreshBuildMenuTeam(int Team)
+{
+	for (int i = 0; i < MAX_CLIENTS; i++)
+	{
+		if (!GetPlayer(i))
+			continue;
+
+		if (GetPlayer(i)->GetTeam() == Team)
+			RefreshBuildMenu(i);
+	}
+}
+
 void CGameContext::ChangeVotePage(int ClientID, int Page)
 {
 	if (GetPlayerVote(ClientID)->m_Page != Page)
 	{
 		GetPlayerVote(ClientID)->m_Page = Page;
-		ClearVotes(ClientID);
+		if (CPlayer *pPlayer = GetPlayer(ClientID))
+		{
+			pPlayer->m_BuildMenuSelection = 0;
+			pPlayer->m_BuildMenuTextScroll = 0;
+		}
+		RefreshBuildMenu(ClientID);
 	}
+}
+
+void CGameContext::OpenClassMenu(int ClientID)
+{
+	CPlayer *pPlayer = GetPlayer(ClientID);
+	if (!pPlayer || pPlayer->m_ClassMenuOpen)
+		return;
+
+	if (!pPlayer->m_IsReady || !Server()->ClientIngame(ClientID))
+	{
+		pPlayer->m_PendingClassMenu = true;
+		return;
+	}
+
+	pPlayer->m_PendingClassMenu = false;
+	pPlayer->m_ClassMenuOpen = true;
+	pPlayer->m_ClassMenuSelection = 0;
+	pPlayer->m_ClassMenuInputWarmup = true;
+	RefreshClassVotes(ClientID);
+	m_ClassMenu.SendMotd(this, ClientID, 0);
+	Chat(ClientID, "Class menu: 1/2 scroll, fire confirm. Or press F2 to vote.");
+}
+
+void CGameContext::RefreshClassVotes(int ClientID)
+{
+	CPlayer *pPlayer = GetPlayer(ClientID);
+	if (!pPlayer)
+		return;
+
+	CNetMsg_Sv_VoteClearOptions ClearMsg;
+	Server()->SendPackMsg(&ClearMsg, MSGFLAG_VITAL, ClientID, -1);
+	ClearVotes(ClientID);
+
+	m_VoteClientID = ClientID;
+	for (int i = 0; i < NUM_BATTLE_CLASS; i++)
+	{
+		char aDesc[64];
+		str_format(aDesc, sizeof(aDesc), "Class: %s", BattleClassName(i));
+		char aCmd[32];
+		str_format(aCmd, sizeof(aCmd), "ccv_battleclass %d", i);
+		AddVote(aDesc, aCmd, ClientID);
+	}
+}
+
+void CGameContext::CloseClassMenu(int ClientID)
+{
+	CPlayer *pPlayer = GetPlayer(ClientID);
+	if (!pPlayer || !pPlayer->m_ClassMenuOpen)
+		return;
+
+	pPlayer->m_ClassMenuOpen = false;
+	pPlayer->m_ClassMenuSelection = 0;
+	pPlayer->m_ClassMenuInputWarmup = false;
+	pPlayer->m_PendingClassMenu = false;
+
+	CNetMsg_Sv_Motd Msg;
+	Msg.m_pMessage = " ";
+	Server()->SendPackMsg(&Msg, MSGFLAG_VITAL, ClientID, -1);
+}
+
+void CGameContext::RefreshClassMenu(int ClientID)
+{
+	CPlayer *pPlayer = GetPlayer(ClientID);
+	if (!pPlayer || !pPlayer->m_ClassMenuOpen)
+		return;
+
+	if (pPlayer->m_ClassMenuSelection >= m_ClassMenu.NumActions())
+		pPlayer->m_ClassMenuSelection = maximum(0, m_ClassMenu.NumActions() - 1);
+
+	m_ClassMenu.SendMotd(this, ClientID, pPlayer->m_ClassMenuSelection);
+}
+
+bool CGameContext::HandleClassMenuInput(int ClientID, const CNetObj_PlayerInput *pInput, const CNetObj_PlayerInput *pPrevInput)
+{
+	CPlayer *pPlayer = GetPlayer(ClientID);
+	if (!pPlayer || !pPlayer->m_ClassMenuOpen || !pInput || !pPrevInput)
+		return false;
+
+	const int NextScroll = pInput->m_NextWeapon != pPrevInput->m_NextWeapon ? 1 : 0;
+	const int PrevScroll = pInput->m_PrevWeapon != pPrevInput->m_PrevWeapon ? 1 : 0;
+	const int FirePress = CountMenuInput(pPrevInput->m_Fire, pInput->m_Fire).m_Presses;
+
+	if (!NextScroll && !PrevScroll && !FirePress)
+		return false;
+
+	m_ClassMenu.Populate(this, ClientID);
+	const int NumActions = m_ClassMenu.NumActions();
+	if (NumActions <= 0)
+		return false;
+
+	if (NextScroll)
+		pPlayer->m_ClassMenuSelection = (pPlayer->m_ClassMenuSelection + 1) % NumActions;
+	else if (PrevScroll)
+		pPlayer->m_ClassMenuSelection = (pPlayer->m_ClassMenuSelection - 1 + NumActions) % NumActions;
+
+	if (FirePress)
+	{
+		m_ClassMenu.ExecuteAction(this, pPlayer, pPlayer->m_ClassMenuSelection);
+		return true;
+	}
+
+	if (NextScroll || PrevScroll)
+	{
+		RefreshClassMenu(ClientID);
+		return true;
+	}
+
+	return false;
 }

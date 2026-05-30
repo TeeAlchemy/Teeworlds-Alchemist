@@ -15,6 +15,7 @@
 CCollision::CCollision()
 {
 	m_pTiles = 0;
+	m_pSwitch = 0;
 	m_Width = 0;
 	m_Height = 0;
 	m_pLayers = 0;
@@ -32,6 +33,9 @@ void CCollision::Init(class CLayers *pLayers)
 	m_Width = m_pLayers->GameLayer()->m_Width;
 	m_Height = m_pLayers->GameLayer()->m_Height;
 	m_pTiles = static_cast<CTile *>(m_pLayers->Map()->GetData(m_pLayers->GameLayer()->m_Data));
+	m_pSwitch = 0;
+	if (m_pLayers->SwitchLayer() && m_pLayers->SwitchLayer()->m_Switch)
+		m_pSwitch = static_cast<CSwitchTile *>(m_pLayers->Map()->GetData(m_pLayers->SwitchLayer()->m_Switch));
 
 	for (int i = 0; i < m_Width * m_Height; i++)
 	{
@@ -180,11 +184,42 @@ bool CCollision::TestBox(vec2 Pos, vec2 Size)
 	return false;
 }
 
-void CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elasticity)
+static float MinWallEscapeSpeed(vec2 Size)
+{
+	return 3.5f * maximum(Size.x, Size.y) / 28.f;
+}
+
+static bool TryStepUp(CCollision *pCollision, vec2 &Pos, vec2 NewPos, vec2 Size, float MaxStepHeight)
+{
+	if (MaxStepHeight <= 0.f || pCollision->TestBox(vec2(NewPos.x, Pos.y), Size))
+		return false;
+
+	for (float Lift = 1.f; Lift <= MaxStepHeight; Lift += 1.f)
+	{
+		if (!pCollision->TestBox(vec2(NewPos.x, Pos.y - Lift), Size))
+		{
+			Pos.x = NewPos.x;
+			Pos.y = Pos.y - Lift;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elasticity, float MaxStepHeight)
 {
 	// do the move
 	vec2 Pos = *pInoutPos;
 	vec2 Vel = *pInoutVel;
+
+	if (TestBox(Pos, Size) && length(Vel) >= MinWallEscapeSpeed(Size))
+	{
+		Pos += Vel;
+		*pInoutPos = Pos;
+		*pInoutVel = Vel;
+		return;
+	}
 
 	float Distance = length(Vel);
 	int Max = (int)Distance;
@@ -214,9 +249,14 @@ void CCollision::MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elas
 
 				if (TestBox(vec2(NewPos.x, Pos.y), Size))
 				{
-					NewPos.x = Pos.x;
-					Vel.x *= -Elasticity;
-					Hits++;
+					if (!TryStepUp(this, Pos, NewPos, Size, MaxStepHeight))
+					{
+						NewPos.x = Pos.x;
+						Vel.x *= -Elasticity;
+						Hits++;
+					}
+					else
+						NewPos = Pos;
 				}
 
 				// neither of the tests got a collision.
@@ -564,4 +604,82 @@ int CCollision::GetTileIndex(int x, int y)
 		return 0;
 
 	return m_pTiles[CalcTile(x, y)].m_Reserved;
+}
+
+int CCollision::GetTileIndex(int Index)
+{
+	if (m_pTiles == 0 || Index < 0 || Index >= m_Width * m_Height)
+		return 0;
+
+	return m_pTiles[Index].m_Reserved;
+}
+
+int CCollision::GetIndex(vec2 Pos)
+{
+	const int nx = clamp((int)Pos.x / 32, 0, m_Width - 1);
+	const int ny = clamp((int)Pos.y / 32, 0, m_Height - 1);
+	return ny * m_Width + nx;
+}
+
+vec2 CCollision::GetPos(int Index)
+{
+	const int x = Index % m_Width;
+	const int y = Index / m_Width;
+	return vec2(x * 32.f + 16.f, y * 32.f + 16.f);
+}
+
+bool CCollision::IsWaterTile(int Index) const
+{
+	if (Index < 0)
+		return false;
+	const int Tile = m_pTiles[Index].m_Reserved;
+	return Tile >= TILE_WATER && Tile <= TILE_WATER_RIGHT;
+}
+
+int CCollision::IsDoor(int x, int y)
+{
+	if (!m_pSwitch)
+		return 0;
+
+	const int nx = clamp(x / 32, 0, m_Width - 1);
+	const int ny = clamp(y / 32, 0, m_Height - 1);
+	const int Type = m_pSwitch[ny * m_Width + nx].m_Type;
+	if (Type >= TILE_DOOR_START && Type <= TILE_DOOR_BLOCK)
+		return Type;
+	return 0;
+}
+
+int CCollision::GetSwitchNum(vec2 Pos)
+{
+	if (!m_pSwitch)
+		return 0;
+
+	const int nx = clamp((int)Pos.x / 32, 0, m_Width - 1);
+	const int ny = clamp((int)Pos.y / 32, 0, m_Height - 1);
+	return m_pSwitch[ny * m_Width + nx].m_Number;
+}
+
+int CCollision::GetSwitchTeam(int x, int y)
+{
+	if (!m_pSwitch)
+		return -1;
+
+	const int nx = clamp(x / 32, 0, m_Width - 1);
+	const int ny = clamp(y / 32, 0, m_Height - 1);
+	return m_pSwitch[ny * m_Width + nx].m_Team - 2;
+}
+
+bool CCollision::DoorBlock(vec2 Pos0, vec2 Pos1)
+{
+	const float Distance = distance(Pos0, Pos1);
+	const int End = (int)Distance + 1;
+
+	for (int i = 0; i < End; i++)
+	{
+		const float a = Distance > 0.f ? i / Distance : 0.f;
+		const vec2 Pos = mix(Pos0, Pos1, a);
+		if (IsDoor((int)Pos.x, (int)Pos.y) == TILE_DOOR_BLOCK)
+			return true;
+	}
+	return false;
 }

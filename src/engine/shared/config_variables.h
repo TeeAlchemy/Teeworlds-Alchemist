@@ -156,5 +156,17 @@ MACRO_CONFIG_INT(SvSqlPoolSize, sv_sql_pool_size, 1, 1, 20, CFGFLAG_SERVER, "SQL
 MACRO_CONFIG_INT(SvSqlTimeout, sv_sql_timeout, 1, 1, 20, CFGFLAG_SERVER, "SQL Timeout")
 
 MACRO_CONFIG_INT(SvWorkbenchesHealth, sv_workbenches_health, 500, 1, 10000, CFGFLAG_SERVER, "Set the health for Workbenches(Need restart!)")
+MACRO_CONFIG_INT(SvBattle, sv_battle, 0, 0, 1, CFGFLAG_SERVER, "Enable Battle class/vehicle rules in Workbenches")
+
+MACRO_CONFIG_INT(SvDoorSwitchTime, sv_door_switch_time, 12, 0, 100, CFGFLAG_SERVER, "Door switch cooldown in tenths of a second")
+MACRO_CONFIG_INT(SvWaterGravity, sv_water_gravity, 30, -10000, 10000, CFGFLAG_SERVER, "Water gravity")
+MACRO_CONFIG_INT(SvWaterMaxX, sv_water_maxx, 600, -10000, 10000, CFGFLAG_SERVER, "Water max horizontal speed")
+MACRO_CONFIG_INT(SvWaterMaxY, sv_water_maxy, 450, -10000, 10000, CFGFLAG_SERVER, "Water max vertical speed")
+MACRO_CONFIG_INT(SvWaterFriction, sv_water_friction, 90, -10000, 10000, CFGFLAG_SERVER, "Water friction")
+MACRO_CONFIG_INT(SvWaterOxygen, sv_water_oxygen, 1, 0, 1, CFGFLAG_SERVER, "Enable water oxygen")
+MACRO_CONFIG_INT(SvWaterOxygenDrain, sv_water_oxy_drain, 1300, -100000, 100000, CFGFLAG_SERVER, "Water oxygen drain interval")
+MACRO_CONFIG_INT(SvWaterOxygenRegen, sv_water_oxy_regen, 250, -100000, 100000, CFGFLAG_SERVER, "Water oxygen regen interval")
+MACRO_CONFIG_INT(SvWaterOxygenEmoteid, sv_water_oxy_emoteid, 3, 0, 100000, CFGFLAG_SERVER, "Water drowning emote")
+MACRO_CONFIG_INT(SvWaterGain, sv_water_gain, 100, 0, 100000, CFGFLAG_SERVER, "Water flow acceleration")
 
 #endif

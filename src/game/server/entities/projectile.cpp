@@ -4,6 +4,8 @@
 #include <game/server/gamecontext.h>
 #include "buildings.h"
 #include "projectile.h"
+#include <game/server/entities/vehicle/vehicle.h>
+#include <game/server/entities/vehicle/vehicle_util.h>
 
 CProjectile::CProjectile(CGameWorld *pGameWorld, int Type, int Owner, vec2 Pos, vec2 Dir, int Span,
 						 int Damage, bool Explosive, float Force, int SoundImpact, int Weapon, int Team)
@@ -72,9 +74,11 @@ void CProjectile::Tick()
 	CBuilding *TargetBuilding = 0;
 	TargetBuilding = GameServer()->m_World.IntersectBuilding(PrevPos, CurPos, 6.0f, CurPos, OwnerChar);
 
+	CVehicle *TargetVehicle = VehicleIntersectLine(&GameServer()->m_World, PrevPos, CurPos, 6.0f, CurPos, OwnerChar);
+
 	m_LifeSpan--;
 
-	if (TargetChr || Collide || m_LifeSpan < 0 || GameLayerClipped(CurPos) || (TargetBuilding && TargetBuilding->GetTeam() != m_Team))
+	if (TargetChr || TargetVehicle || Collide || m_LifeSpan < 0 || GameLayerClipped(CurPos) || (TargetBuilding && TargetBuilding->GetTeam() != m_Team))
 	{
 		if (m_LifeSpan >= 0 || m_Weapon == WEAPON_GRENADE)
 			GameServer()->CreateSound(CurPos, m_SoundImpact);
@@ -83,18 +87,26 @@ void CProjectile::Tick()
 			GameServer()->CreateExplosion(CurPos, m_Owner, m_Weapon, false);
 
 		if ((TargetChr && TargetChr->GetPlayer()->GetTeam() != m_Team)
-				|| (TargetBuilding && TargetBuilding->GetTeam() != m_Team))
+				|| (TargetBuilding && TargetBuilding->GetTeam() != m_Team)
+				|| (TargetVehicle && TargetVehicle->GetTeam() != m_Team))
 		{
-			if (TargetChr && !TargetBuilding)
+			if (TargetChr && !TargetBuilding && !TargetVehicle)
 				TargetChr->TakeDamage(m_Direction * max(0.001f, m_Force), m_Damage, m_Owner, m_Weapon);
-			else if (!TargetChr && TargetBuilding)
-				TargetBuilding->TakeDamage(m_Damage, m_Owner, m_Weapon);
+			else if (!TargetChr && TargetBuilding && !TargetVehicle)
+				TargetBuilding->TakeDamageAt(CurPos, m_Damage, m_Owner, m_Weapon);
+			else if (!TargetChr && !TargetBuilding && TargetVehicle)
+				TargetVehicle->TakeDamage(m_Damage, m_Owner);
 			else
 			{
-				if (distance(m_Pos, TargetChr->GetPos()) < distance(m_Pos, TargetBuilding->GetPos()))
+				const float ChrDist = TargetChr ? distance(m_Pos, TargetChr->GetPos()) : 1e30f;
+				const float BuildingDist = TargetBuilding ? distance(m_Pos, TargetBuilding->GetDamageCenter()) : 1e30f;
+				const float VehicleDist = TargetVehicle ? distance(m_Pos, TargetVehicle->GetPos()) : 1e30f;
+				if (ChrDist <= BuildingDist && ChrDist <= VehicleDist)
 					TargetChr->TakeDamage(m_Direction * max(0.001f, m_Force), m_Damage, m_Owner, m_Weapon);
-				else if (TargetBuilding)
-					TargetBuilding->TakeDamage(m_Damage, m_Owner, m_Weapon);
+				else if (BuildingDist <= VehicleDist)
+					TargetBuilding->TakeDamageAt(CurPos, m_Damage, m_Owner, m_Weapon);
+				else
+					TargetVehicle->TakeDamage(m_Damage, m_Owner);
 			}
 		}
 

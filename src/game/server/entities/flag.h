@@ -1,7 +1,5 @@
-/* (c) Magnus Auvinen. See licence.txt in the root of the distribution for more information. */
-/* If you are missing that file, acquire a complete release at teeworlds.com.                */
-#ifndef GAME_SERVER_ENTITIES_FLAG_H
-#define GAME_SERVER_ENTITIES_FLAG_H
+#ifndef GAME_SERVER_ENTITIES_CTF_FLAG_H
+#define GAME_SERVER_ENTITIES_CTF_FLAG_H
 
 #include <game/server/entity.h>
 
@@ -18,11 +16,16 @@ public:
 	int m_DropTick;
 	int m_GrabTick;
 
-	CFlag(CGameWorld *pGameWorld, int Team);
+	CFlag(CGameWorld *pGameWorld, int Team, vec2 StandPos);
 
 	virtual void Reset();
+	virtual void Tick();
 	virtual void TickPaused();
 	virtual void Snap(int SnappingClient);
+
+	void Drop();
+	void ReturnToStand();
+	bool IsAtStand() const { return m_AtStand != 0; }
 };
 
 #endif

@@ -160,6 +160,7 @@ void CBuildIndicator::Snap(int SnappingClient)
 
     case BUILDING_HEALTH:
     case BUILDING_ARMOR:
+    case BUILDING_WEAPON_PACK:
     {
         vec2 Vertices[4] = {
             vec2(GetPos().x - Info.m_Radius, GetPos().y - Info.m_Radius),
@@ -186,8 +187,10 @@ void CBuildIndicator::Snap(int SnappingClient)
             pWeapon->m_Y = round_to_int(GetPos().y);
             if (BuildingType == BUILDING_HEALTH)
                 pWeapon->m_Type = POWERUP_HEALTH;
-            else
+            else if (BuildingType == BUILDING_ARMOR)
                 pWeapon->m_Type = POWERUP_ARMOR;
+            else
+                pWeapon->m_Type = POWERUP_WEAPON;
             pWeapon->m_Subtype = -1;
         }
     }

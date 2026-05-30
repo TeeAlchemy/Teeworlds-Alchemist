@@ -25,8 +25,16 @@ enum
 
     BUILDING_HEALTH,
     BUILDING_ARMOR,
+    BUILDING_WEAPON_PACK,
 
     BUILDING_GATHERER,
+
+    BUILDING_AIRCRAFT,
+
+    BUILDING_HELICOPTER,
+    BUILDING_JET,
+    BUILDING_TANK,
+    BUILDING_CAR,
 
     NUM_BUILDING,
 };
@@ -79,7 +87,10 @@ public:
     virtual void Reset();
     virtual void Snap(int SnappingClient);
 
+    virtual vec2 GetDamageCenter() const { return GetPos(); }
+    virtual bool IsDamageableAt(vec2 HitPos, float HitRadius = 0.f) const { return true; }
     bool TakeDamage(int Dmg, int From, int Weapon);
+    bool TakeDamageAt(vec2 HitPos, int Dmg, int From, int Weapon, float HitRadius = 0.f);
     bool IncreaseHealth(int Amount);
     bool Powered() { return m_Power; }
 
@@ -90,7 +101,7 @@ public:
     int GetTeam() { return m_Team; }
     int GetTeamLaser() { return GetTeam() ? LASERTYPE_FREEZE : LASERTYPE_SHOTGUN; }
     int GetTeamArmor() { return GetTeam() ? POWERUP_ARMOR_LASER : POWERUP_ARMOR_SHOTGUN; }
-    int GetHealth() { return m_Health; }
+    int GetHealth() const { return m_Health; }
     void SetHealth(int Health) { m_Health = Health; }
 
     float m_Width;
@@ -127,6 +138,7 @@ private:
     int m_MaxAimRange;
     int m_VeteranShots;
     int m_RegenTick[MAX_CLIENTS];
+    int m_SupplyTick;
     bool m_Power;
 };
 

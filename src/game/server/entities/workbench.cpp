@@ -3,6 +3,8 @@
 
 #include "workbench.h"
 
+const float CWorkbench::ms_FlagHitRadius = 28.f;
+
 CWorkbench::CWorkbench(CGameWorld *pGameWorld, int Team, vec2 V1, vec2 V2)
     : CBuilding(pGameWorld, Team, vec2((V2.x + V1.x) / 2, V2.y), BUILDING_WORKBENCH)
 {
@@ -23,6 +25,21 @@ void CWorkbench::Reset()
 {
 }
 
+vec2 CWorkbench::GetFlagPos() const
+{
+    return vec2(GetPos().x, m_Vertex[0].y + abs(g_Config.m_SvWorkbenchesHealth - GetHealth()) * m_Step);
+}
+
+bool CWorkbench::IsDamageableAt(vec2 HitPos, float HitRadius) const
+{
+    return distance(HitPos, GetFlagPos()) <= ms_FlagHitRadius + HitRadius;
+}
+
+vec2 CWorkbench::GetDamageCenter() const
+{
+    return GetFlagPos();
+}
+
 void CWorkbench::Snap(int SnappingClient)
 {
     if (NetworkClipped(SnappingClient))
@@ -31,8 +48,8 @@ void CWorkbench::Snap(int SnappingClient)
     CNetObj_Flag *pFlag = static_cast<CNetObj_Flag *>(Server()->SnapNewItem(NETOBJTYPE_FLAG, GetID(), sizeof(CNetObj_Flag)));
     if (pFlag)
     {
-        pFlag->m_X = round_to_int(GetPos().x);
-        pFlag->m_Y = round_to_int(m_Vertex[0].y + abs(g_Config.m_SvWorkbenchesHealth - GetHealth()) * m_Step);
+        pFlag->m_X = round_to_int(GetFlagPos().x);
+        pFlag->m_Y = round_to_int(GetFlagPos().y);
         pFlag->m_Team = GetTeam();
     }
 }

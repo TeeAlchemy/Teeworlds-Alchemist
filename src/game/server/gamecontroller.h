@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "entities/workbench.h"
+#include "door.h"
 #include "resources.h"
 
 /*
@@ -164,15 +165,19 @@ public:
     void LoadMapConfig();
 
     int m_NumFlag;
-
 	int m_aTeamResources[2][NUM_RESOURCE];
 	int m_aTeamBuildings[2][NUM_BUILDING];
 	int m_aTeamMoney[2];
 	//int m_aTeamBuildingTick[2];
 	//array<int> m_aTeamBuildingQueue[2];
 	//void HandleTeamBuilding();
+	bool m_Switches[255];
+	array<CDoor> m_lDoors;
+	void InitDoors();
+	void SwitchDoor(CDoor *pDoor, class CPlayer *pPlayer, vec2 Pos, bool Silent);
+	void SwitchDoorAt(vec2 Pos, class CPlayer *pPlayer, bool Silent);
 	int GetWorkbenchHealth(int Team);
-	void MakeBuilding(int Building, int Team);
+	bool MakeBuilding(int Building, int Team, int ClientID = -1);
 	bool BuildBuilding(vec2 Pos, int Type, int Team, int Owner);
 
 	int RoundStartTick() { return m_RoundStartTick; }

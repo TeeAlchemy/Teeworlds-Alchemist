@@ -12,6 +12,7 @@ class CCollision
 	int m_Width;
 	int m_Height;
 	class CLayers *m_pLayers;
+	class CSwitchTile *m_pSwitch;
 
 	int GetTile(int x, int y);
 
@@ -59,6 +60,7 @@ public:
 
 	CCollision();
 	void Init(class CLayers *pLayers);
+	class CLayers *Layers() { return m_pLayers; }
 	bool CheckPoint(float x, float y, bool IncludeDeath = false) { return IsTileSolid(round(x), round(y), IncludeDeath); }
 	bool CheckPoint(vec2 Pos) { return CheckPoint(Pos.x, Pos.y); }
 	int GetCollisionAt(float x, float y) { return GetTile(round_to_int(x), round_to_int(y)); }
@@ -67,11 +69,20 @@ public:
 	int IntersectLine(vec2 Pos0, vec2 Pos1, vec2 *pOutCollision, vec2 *pOutBeforeCollision, bool IncludeDeath = false);
 	int FastIntersectLine(vec2 Pos0, vec2 Pos1);
 	void MovePoint(vec2 *pInoutPos, vec2 *pInoutVel, float Elasticity, int *pBounces);
-	void MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elasticity);
+	void MoveBox(vec2 *pInoutPos, vec2 *pInoutVel, vec2 Size, float Elasticity, float MaxStepHeight = 0.f);
 	bool TestBox(vec2 Pos, vec2 Size);
 
 	int GetTileIndex(int x, int y);
+	int GetTileIndex(int Index);
 	int GetTileIndex(vec2 Pos) { return GetTileIndex(round_to_int(Pos.x), round_to_int(Pos.y)); }
+	int GetIndex(vec2 Pos);
+	vec2 GetPos(int Index);
+	bool IsWaterTile(int Index) const;
+	CSwitchTile *Switches() { return m_pSwitch; }
+	int IsDoor(int x, int y);
+	int GetSwitchNum(vec2 Pos);
+	int GetSwitchTeam(int x, int y);
+	bool DoorBlock(vec2 Pos0, vec2 Pos1);
 	int CalcTileRaw(int x, int y) 
 	{
 		int Nx = clamp(x / 32, 0, m_Width - 1);

@@ -2,6 +2,8 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 
 #include "entities/buildings.h"
+#include "entities/vehicle/aircraft.h"
+#include "entities/workbench.h"
 #include "gameworld.h"
 #include "entity.h"
 #include "gamecontext.h"
@@ -219,6 +221,44 @@ CCharacter *CGameWorld::IntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, v
 	return pClosest;
 }
 
+CCharacter *CGameWorld::LaserIntersectCharacter(vec2 Pos0, vec2 Pos1, float Radius, vec2 &NewPos, CCharacter *pNotThis[MAX_CLIENTS])
+{
+	float ClosestLen = distance(Pos0, Pos1) * 100.0f;
+	CCharacter *pClosest = 0;
+
+	CCharacter *p = (CCharacter *)FindFirst(ENTTYPE_CHARACTER);
+	for (; p; p = (CCharacter *)p->TypeNext())
+	{
+		bool Found = false;
+		for (int i = 0; i < MAX_CLIENTS; i++)
+		{
+			if (pNotThis && p == pNotThis[i])
+			{
+				Found = true;
+				break;
+			}
+		}
+
+		if (Found)
+			continue;
+
+		vec2 IntersectPos = closest_point_on_line(Pos0, Pos1, p->m_Pos);
+		float Len = distance(p->m_Pos, IntersectPos);
+		if (Len < p->m_ProximityRadius + Radius)
+		{
+			Len = distance(Pos0, IntersectPos);
+			if (Len < ClosestLen)
+			{
+				NewPos = IntersectPos;
+				ClosestLen = Len;
+				pClosest = p;
+			}
+		}
+	}
+
+	return pClosest;
+}
+
 CCharacter *CGameWorld::ClosestCharacter(vec2 Pos, float Radius, CEntity *pNotThis, bool IncludeOnVehicle)
 {
 	// Find other players
@@ -265,6 +305,27 @@ bool Intersect(vec2 p1, vec2 p2, vec2 p3, vec2 p4, vec2* out)
 	return false;
 }
 
+static bool IntersectSegmentCircle(vec2 Pos0, vec2 Pos1, vec2 Center, float Radius, vec2 *pOutCollision)
+{
+	vec2 Seg = Pos1 - Pos0;
+	float SegLenSq = dot(Seg, Seg);
+	if (SegLenSq <= 0.0001f)
+	{
+		if (distance(Pos0, Center) > Radius)
+			return false;
+		*pOutCollision = Pos0;
+		return true;
+	}
+
+	float t = clamp(dot(Center - Pos0, Seg) / SegLenSq, 0.0f, 1.0f);
+	vec2 Closest = Pos0 + Seg * t;
+	if (distance(Closest, Center) > Radius)
+		return false;
+
+	*pOutCollision = Closest;
+	return true;
+}
+
 CBuilding* CGameWorld::IntersectBuilding(vec2 Pos0, vec2 Pos1, float Radius, vec2& NewPos, CEntity* pNotThis)
 {
 	// Find other players
@@ -276,6 +337,23 @@ CBuilding* CGameWorld::IntersectBuilding(vec2 Pos0, vec2 Pos1, float Radius, vec
 	{
 		if (pBuilding == pNotThis)
 			continue;
+
+		if (pBuilding->GetType() == BUILDING_WORKBENCH)
+		{
+			CWorkbench *pWorkbench = static_cast<CWorkbench *>(pBuilding);
+			vec2 Col;
+			if (!IntersectSegmentCircle(Pos0, Pos1, pWorkbench->GetFlagPos(), CWorkbench::ms_FlagHitRadius + Radius, &Col))
+				continue;
+
+			float Len = distance(Col, Pos0);
+			if (Len < ClosestLen)
+			{
+				NewPos = Col;
+				ClosestLen = Len;
+				pClosest = pBuilding;
+			}
+			continue;
+		}
 
 		vec2 Pos[4] = {
 				vec2(pBuilding->m_Pos.x - pBuilding->Width() / 2, pBuilding->m_Pos.y + 16),

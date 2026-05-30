@@ -4,6 +4,7 @@
 #include "flying-pickup.h"
 #include "fakelaser.h"
 #include "buildings.h"
+#include <game/server/battle.h>
 
 /*
 placeholder("Node");placeholder("Can provide electricity and transport buildings.")
@@ -17,6 +18,10 @@ placeholder("TurretShotgun");placeholder("Auto shoot the nearest enemy with a sh
 placeholder("HealthBox");placeholder("How lovely, shoot heart for you.")
 placeholder("ArmorBox");placeholder("How strong, shoot armor for you.")
 placeholder("Gatherer");placeholder("Build it at a resource point can auto collect.")
+placeholder("Aircraft");placeholder("Flyer. Right click rise, hearts to exit.")
+placeholder("Helicopter");placeholder("Right click rise. Fire=grenade, Space=missile. Hearts exit.")
+placeholder("Jet");placeholder("Fast flyer. Right click rise, hearts to exit.")
+placeholder("Tank");placeholder("Ground tank. Arrows move, hearts to exit.")
 */
 CBuildingInfo::CBuildingInfo(CGameContext *pGameServer)
 {
@@ -32,7 +37,13 @@ CBuildingInfo::CBuildingInfo(CGameContext *pGameServer)
     Register(BUILDING_TURRET_SHOTGUN, {"TurretShotgun", "Auto shoot the nearest enemy with a shotgun.", 30, 45.f, 50.f, 140.f, {40, 25, 15, 50, 20, 5, 10}});
     Register(BUILDING_HEALTH, {"HealthBox", "How lovely, shoot heart for you.", 50, 25.f, 50.f, 50.f, {50, 40, 30, 40, 20, 1, 5}});
     Register(BUILDING_ARMOR, {"ArmorBox", "How strong, shoot armor for you.", 50, 25.f, 50.f, 50.f, {50, 40, 30, 40, 20, 1, 5}});
+    Register(BUILDING_WEAPON_PACK, {"WeaponPack", "Restore battle ammo, grenade and smoke.", 40, 25.f, 50.f, 50.f, {60, 50, 40, 50, 25, 2, 5}});
     Register(BUILDING_GATHERER, {"Gatherer", "Build it at a resource point can auto collect.", 80, 32.f, 25.f, 75.f, {70, 40, 70, 60, 20, 5, 10}});
+    Register(BUILDING_AIRCRAFT, {"Aircraft", "Flyer. Right click rise, hearts to exit.", 50, 32.f, 50.f, 32.f, {60, 40, 50, 40, 25, 8, 15}});
+    Register(BUILDING_HELICOPTER, {"Helicopter", "Right click rise. Fire=grenade, Space=missile. Hearts exit.", 60, 32.f, 52.f, 32.f, {70, 50, 60, 50, 30, 10, 20}});
+    Register(BUILDING_JET, {"Jet", "Fast flyer. Right click rise, hearts to exit.", 45, 32.f, 56.f, 28.f, {80, 60, 70, 60, 40, 12, 25}});
+    Register(BUILDING_TANK, {"Tank", "Ground tank. Arrows move, hearts to exit.", 100, 40.f, 62.f, 40.f, {100, 80, 80, 100, 50, 15, 20}});
+    Register(BUILDING_CAR, {"Car", "Ground car. Arrows move, hearts to exit.", 80, 36.f, 58.f, 36.f, {80, 60, 70, 80, 40, 10, 15}});
 }
 
 void CBuildingInfo::Register(int ID, SBuildingInfo Data)
@@ -49,6 +60,7 @@ CBuilding::CBuilding(CGameWorld *pGameWorld, int Team, vec2 Pos, int Type)
     m_BuildingType = Type;
     m_VeteranTTLBonus = 1.f;
     m_Power = false;
+    m_SupplyTick = 0;
     m_Health = GameServer()->m_pBuildingsInfo->m_aBuildingsInfo[Type].m_Health;
     m_Radius = GameServer()->m_pBuildingsInfo->m_aBuildingsInfo[Type].m_Radius;
     m_Width = GameServer()->m_pBuildingsInfo->m_aBuildingsInfo[Type].m_Width;
@@ -82,6 +94,7 @@ CBuilding::CBuilding(CGameWorld *pGameWorld, int Team, vec2 Pos, int Type)
 
     case BUILDING_HEALTH:
     case BUILDING_ARMOR:
+    case BUILDING_WEAPON_PACK:
         m_NumIDs = NUMID_PICKUP;
         break;
 
@@ -349,6 +362,31 @@ void CBuilding::TickDefered()
         if (!m_Power)
             break;
 
+        if (BattleIsEnabled() && m_BuildingType == BUILDING_HEALTH)
+        {
+            if (m_SupplyTick > 0)
+            {
+                m_SupplyTick--;
+                break;
+            }
+
+            for (CCharacter *pChr = (CCharacter *)GameWorld()->FindFirst(CGameWorld::ENTTYPE_CHARACTER); pChr; pChr = (CCharacter *)pChr->TypeNext())
+            {
+                if (!pChr->IsAlive() || distance(pChr->GetPos(), m_Pos) > 64.f)
+                    continue;
+                if (pChr->GetPlayer()->GetTeam() != m_Team)
+                    continue;
+
+                vec2 Dir = normalize(pChr->GetPos() - m_Pos);
+                if (length(Dir) < 1e-3f)
+                    Dir = vec2(0.f, -1.f);
+                BattleSpawnHeart(GameWorld(), -1, m_Pos, Dir, m_Team);
+                m_SupplyTick = Server()->TickSpeed() / 4;
+                break;
+            }
+            break;
+        }
+
         CCharacter *pChr[MAX_CLIENTS];
         int Num = GameServer()->m_World.FindEntities(m_Pos, 340.f, (CEntity **)pChr, 64, CGameWorld::ENTTYPE_CHARACTER);
         for (int i = 0; i < Num; i++)
@@ -369,6 +407,34 @@ void CBuilding::TickDefered()
     }
     break;
 
+    case BUILDING_WEAPON_PACK:
+    {
+        if (!m_Power || !BattleIsEnabled())
+            break;
+
+        CCharacter *pChr[MAX_CLIENTS];
+        int Num = GameServer()->m_World.FindEntities(m_Pos, 64.f, (CEntity **)pChr, 64, CGameWorld::ENTTYPE_CHARACTER);
+        for (int i = 0; i < Num; i++)
+        {
+            int CID = pChr[i]->GetPlayer()->GetCID();
+            if (!pChr[i]->IsAlive() || pChr[i]->GetPlayer()->GetTeam() != m_Team)
+                continue;
+
+            if (m_RegenTick[CID] > 0)
+            {
+                m_RegenTick[CID]--;
+                continue;
+            }
+
+            BattleRestorePlayerAmmo(pChr[i]);
+            pChr[i]->GetPlayer()->m_BattleGrenadeCount = maximum(pChr[i]->GetPlayer()->m_BattleGrenadeCount, 1);
+            pChr[i]->GetPlayer()->m_BattleSmokeCount = maximum(pChr[i]->GetPlayer()->m_BattleSmokeCount, 1);
+            GameServer()->CreateSound(m_Pos, SOUND_PICKUP_HEALTH);
+            m_RegenTick[CID] = Server()->TickSpeed() * 2;
+        }
+    }
+    break;
+
     case BUILDING_GATHERER:
         break;
 
@@ -384,10 +450,7 @@ void CBuilding::TickDefered()
                 continue;
 
             if (pChr->m_CanBuild == false)
-            {
-                pChr->GetPlayer()->m_VoteNeedUpdate = true;
                 pChr->m_CanBuild = true;
-            }
         }
     }
     break;
@@ -553,6 +616,7 @@ void CBuilding::Snap(int SnappingClient)
 
     case BUILDING_HEALTH:
     case BUILDING_ARMOR:
+    case BUILDING_WEAPON_PACK:
     {
         vec2 Vertices[4] = {
             vec2(GetPos().x - m_Radius, GetPos().y - m_Radius),
@@ -579,8 +643,10 @@ void CBuilding::Snap(int SnappingClient)
             pWeapon->m_Y = round_to_int(GetPos().y);
             if (m_BuildingType == BUILDING_HEALTH)
                 pWeapon->m_Type = POWERUP_HEALTH;
-            else
+            else if (m_BuildingType == BUILDING_ARMOR)
                 pWeapon->m_Type = POWERUP_ARMOR;
+            else
+                pWeapon->m_Type = POWERUP_WEAPON;
             pWeapon->m_Subtype = -1;
         }
     }
@@ -614,6 +680,14 @@ void CBuilding::Snap(int SnappingClient)
     }
 }
 
+bool CBuilding::TakeDamageAt(vec2 HitPos, int Dmg, int From, int Weapon, float HitRadius)
+{
+    if (!IsDamageableAt(HitPos, HitRadius))
+        return false;
+
+    return TakeDamage(Dmg, From, Weapon);
+}
+
 bool CBuilding::TakeDamage(int Dmg, int From, int Weapon)
 {
     if (From >= 0 && GameServer()->m_apPlayers[From] && GameServer()->m_apPlayers[From]->GetTeam() == m_Team)
@@ -626,11 +700,11 @@ bool CBuilding::TakeDamage(int Dmg, int From, int Weapon)
 
     // create healthmod indicator
     if (Server()->Tick() < m_DamageTakenTick + 25)
-        GameServer()->CreateDamageInd(m_Pos, m_DamageTaken * 0.25f, Dmg);
+        GameServer()->CreateDamageInd(GetDamageCenter(), m_DamageTaken * 0.25f, Dmg);
     else
     {
         m_DamageTaken = 0;
-        GameServer()->CreateDamageInd(m_Pos, 0, Dmg);
+        GameServer()->CreateDamageInd(GetDamageCenter(), 0, Dmg);
     }
 
     if (Dmg)

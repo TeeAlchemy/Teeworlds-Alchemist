@@ -2,6 +2,7 @@
 /* If you are missing that file, acquire a complete release at teeworlds.com.                */
 #include <game/generated/protocol.h>
 #include <game/server/gamecontext.h>
+#include <game/server/battle.h>
 #include "pickup.h"
 
 CPickup::CPickup(CGameWorld *pGameWorld, int Type, int SubType, vec2 Pos)
@@ -66,6 +67,13 @@ void CPickup::Tick()
 			case POWERUP_WEAPON:
 				if(m_Subtype >= 0 && m_Subtype < NUM_WEAPONS)
 				{
+					if (BattleIsEnabled() && BattlePickupThrowable(pChr, m_Subtype))
+					{
+						RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;
+						GameServer()->CreateSound(m_Pos, SOUND_PICKUP_GRENADE);
+						break;
+					}
+
 					if(pChr->GiveWeapon(m_Subtype, 10))
 					{
 						RespawnTime = g_pData->m_aPickups[m_Type].m_Respawntime;

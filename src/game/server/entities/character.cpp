@@ -8,6 +8,10 @@
 #include "character.h"
 #include "laser.h"
 #include "projectile.h"
+#include "vehicle/vehicle.h"
+#include "vehicle/vehicle_util.h"
+#include <game/server/battle.h>
+#include <game/server/resources.h>
 
 // input count
 struct CInputCount
@@ -75,6 +79,11 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 	m_Alive = true;
 
 	m_IsBot = false;
+	m_InWater = false;
+	m_HittingDoor = false;
+	m_OldPos = Pos;
+	m_PrevPos = Pos;
+	m_PushDirection = vec2(0.f, 0.f);
 
 	GameServer()->m_pController->OnCharacterSpawn(this, pPlayer->m_IsBot);
 
@@ -86,8 +95,12 @@ bool CCharacter::Spawn(CPlayer *pPlayer, vec2 Pos)
 
 	mem_zero(m_Resource, NUM_RESOURCE);
 	m_CanBuild = false;
+	m_OnVehicle = false;
+	m_VehicleSeat = VEHICLE_SEAT_NONE;
+	m_VehicleDismountTick = 0;
+	m_BattleInvisibleUntil = 0;
 
-	GameServer()->ClearVotes(GetPlayer()->GetCID());
+	GameServer()->GetPlayerVote(GetPlayer()->GetCID())->m_Page = PAGE_MENU;
 	return true;
 }
 
@@ -122,6 +135,9 @@ bool CCharacter::IsGrounded()
 
 void CCharacter::HandleNinja()
 {
+	if (BattleIsEnabled() && GetPlayer()->m_BattleClass == BATTLE_SNIPER)
+		return;
+
 	if (m_ActiveWeapon != WEAPON_NINJA)
 		return;
 
@@ -202,7 +218,12 @@ void CCharacter::HandleNinja()
 void CCharacter::DoWeaponSwitch()
 {
 	// make sure we can switch
-	if (m_ReloadTimer != 0 || m_QueuedWeapon == -1 || m_aWeapons[WEAPON_NINJA].m_Got)
+	if (m_ReloadTimer != 0 || m_QueuedWeapon == -1)
+		return;
+
+	// Ninja pickup blocks switching until it expires; battle sniper keeps ninja as a normal weapon slot.
+	const bool BattleSniperNinja = BattleIsEnabled() && GetPlayer()->m_BattleClass == BATTLE_SNIPER;
+	if (m_aWeapons[WEAPON_NINJA].m_Got && !BattleSniperNinja)
 		return;
 
 	// switch Weapon
@@ -252,10 +273,16 @@ void CCharacter::HandleWeaponSwitch()
 
 void CCharacter::FireWeapon()
 {
+	if (m_OnVehicle)
+		return;
+
 	if (m_ReloadTimer != 0)
 		return;
 
 	DoWeaponSwitch();
+	if (BattleIsEnabled() && BattleFireWeapon(this))
+		return;
+
 	vec2 Direction = normalize(vec2(m_LatestInput.m_TargetX, m_LatestInput.m_TargetY));
 
 	bool FullAuto = false;
@@ -320,6 +347,12 @@ void CCharacter::FireWeapon()
 				else
 					GameServer()->CreateHammerHit(ProjStartPos);
 
+				if (VehicleTryHammerBoardGunner(this, pTarget))
+				{
+					m_NumObjectsHit = 2;
+					continue;
+				}
+
 				vec2 Dir;
 				if (length(pTarget->m_Pos - m_Pos) > 0.0f)
 					Dir = normalize(pTarget->m_Pos - m_Pos);
@@ -345,9 +378,11 @@ void CCharacter::FireWeapon()
 			}
 			else
 			{
-				apBuildings[0]->TakeDamage(1, m_pPlayer->GetCID(), m_ActiveWeapon);
-				GameServer()->CreateHammerHit(m_Pos);
-				m_NumObjectsHit = 1;
+				if (apBuildings[0]->TakeDamageAt(ProjStartPos, 1, m_pPlayer->GetCID(), m_ActiveWeapon, GetProximityRadius() * 0.5f))
+				{
+					GameServer()->CreateHammerHit(m_Pos);
+					m_NumObjectsHit = 1;
+				}
 			}
 		}
 		else if (IsGrounded() && GetPlayer()->m_SelectBuilding >= 0)
@@ -364,6 +399,9 @@ void CCharacter::FireWeapon()
 		// if we Hit anything, we have to wait for the reload
 		if (m_NumObjectsHit)
 			m_ReloadTimer = Server()->TickSpeed() / 3;
+
+		if (BattleIsEnabled())
+			BattleHammer(this);
 	}
 	break;
 
@@ -489,10 +527,13 @@ void CCharacter::HandleWeapons()
 
 bool CCharacter::GiveWeapon(int Weapon, int Ammo)
 {
-	if (m_aWeapons[Weapon].m_Ammo < g_pData->m_Weapons.m_aId[Weapon].m_Maxammo || !m_aWeapons[Weapon].m_Got)
+	if (Ammo < 0 || m_aWeapons[Weapon].m_Ammo < g_pData->m_Weapons.m_aId[Weapon].m_Maxammo || !m_aWeapons[Weapon].m_Got)
 	{
 		m_aWeapons[Weapon].m_Got = true;
-		m_aWeapons[Weapon].m_Ammo = min(g_pData->m_Weapons.m_aId[Weapon].m_Maxammo, Ammo);
+		if (Ammo < 0)
+			m_aWeapons[Weapon].m_Ammo = Ammo;
+		else
+			m_aWeapons[Weapon].m_Ammo = min(g_pData->m_Weapons.m_aId[Weapon].m_Maxammo, Ammo);
 		return true;
 	}
 	return false;
@@ -569,8 +610,43 @@ void CCharacter::Tick()
 		m_pPlayer->m_ForceBalanced = false;
 	}
 
+	if (m_pPlayer->NeedsClassSelection())
+	{
+		ResetInput();
+		m_Core.m_Vel = vec2(0.f, 0.f);
+		m_PrevInput = m_Input;
+		return;
+	}
+
+	if (m_OnVehicle)
+	{
+		m_Core.m_Input = m_Input;
+		m_Core.m_Direction = m_Input.m_Direction;
+
+		if (GameServer()->Collision()->GetCollisionAt(m_Pos.x + GetProximityRadius() / 3.f, m_Pos.y - GetProximityRadius() / 3.f) & CCollision::COLFLAG_DEATH ||
+			GameServer()->Collision()->GetCollisionAt(m_Pos.x + GetProximityRadius() / 3.f, m_Pos.y + GetProximityRadius() / 3.f) & CCollision::COLFLAG_DEATH ||
+			GameServer()->Collision()->GetCollisionAt(m_Pos.x - GetProximityRadius() / 3.f, m_Pos.y - GetProximityRadius() / 3.f) & CCollision::COLFLAG_DEATH ||
+			GameServer()->Collision()->GetCollisionAt(m_Pos.x - GetProximityRadius() / 3.f, m_Pos.y + GetProximityRadius() / 3.f) & CCollision::COLFLAG_DEATH ||
+			GameLayerClipped(m_Pos))
+		{
+			Die(m_pPlayer->GetCID(), WEAPON_WORLD);
+		}
+
+		HandleTile();
+		m_Pos = m_Core.m_Pos;
+		m_PrevInput = m_Input;
+		return;
+	}
+
+	m_Core.m_Input = m_Input;
+
+	if (BattleIsEnabled() && BattleHook(this))
+		m_Input.m_Hook = 0;
+
 	m_Core.m_Input = m_Input;
 	m_Core.Tick(true, m_pPlayer->GetNextTuningParams());
+
+	HandleWaterTile();
 
 	// handle death-tiles and leaving gamelayer
 	if (GameServer()->Collision()->GetCollisionAt(m_Pos.x + GetProximityRadius() / 3.f, m_Pos.y - GetProximityRadius() / 3.f) & CCollision::COLFLAG_DEATH ||
@@ -587,6 +663,9 @@ void CCharacter::Tick()
 	// handle Weapons
 	HandleWeapons();
 
+	if (BattleIsEnabled())
+		BattleTickCharacter(this);
+
 	// Previnput
 	m_PrevInput = m_Input;
 	return;
@@ -594,6 +673,25 @@ void CCharacter::Tick()
 
 void CCharacter::TickDefered()
 {
+	if (m_OnVehicle)
+	{
+		m_Pos = m_Core.m_Pos;
+		m_Core.Quantize();
+		m_ReckoningTick = Server()->Tick();
+		m_SendCore = m_Core;
+		m_ReckoningCore = m_Core;
+
+		if (GetPlayer()->m_VoteNeedUpdate)
+		{
+			if (GetPlayer()->m_BuildMenuOpen)
+				GameServer()->RefreshBuildMenu(GetPlayer()->GetCID());
+			GetPlayer()->m_VoteNeedUpdate = false;
+		}
+
+		m_CanBuild = false;
+		return;
+	}
+
 	// advance the dummy
 	{
 		CWorldCore TempWorld;
@@ -602,6 +700,18 @@ void CCharacter::TickDefered()
 		// m_ReckoningCore.Move(&TempWorld.m_Tuning);
 		m_ReckoningCore.Quantize();
 	}
+
+	if (m_HittingDoor)
+	{
+		m_Core.m_Vel += m_PushDirection * length(m_Core.m_Vel);
+		if (m_Core.m_Jumped & 3)
+			m_Core.m_Jumped &= ~2;
+	}
+
+	if (!m_HittingDoor)
+		m_OldPos = m_Core.m_Pos;
+
+	m_HittingDoor = false;
 
 	// lastsentcore
 	vec2 StartPos = m_Core.m_Pos;
@@ -679,7 +789,8 @@ void CCharacter::TickDefered()
 
 	if (GetPlayer()->m_VoteNeedUpdate)
 	{
-		GameServer()->ClearVotes(GetPlayer()->GetCID());
+		if (GetPlayer()->m_BuildMenuOpen)
+			GameServer()->RefreshBuildMenu(GetPlayer()->GetCID());
 		GetPlayer()->m_VoteNeedUpdate = false;
 	}
 
@@ -716,16 +827,18 @@ void CCharacter::HandleTile()
 		if (PerTick(25))
 		{
 			IncreaseHealth(1);
+			int aSubmitted[NUM_RESOURCE];
+			mem_zero(aSubmitted, sizeof(aSubmitted));
 			for (int i = 0; i < NUM_RESOURCE; i++)
 			{
 				if (m_Resource[i] > 0)
 				{
+					aSubmitted[i] = m_Resource[i];
 					GameServer()->m_pController->m_aTeamResources[GetPlayer()->GetTeam()][i] += m_Resource[i];
-					GameServer()->Chat(GetPlayer()->GetCID(), "You submitted {} x{}", GetResourceName(i), m_Resource[i]);
 					m_Resource[i] = 0;
 				}
 			}
-			GameServer()->ClearVotes(GetPlayer()->GetCID());
+			NotifyResourceGain(GameServer(), GetPlayer()->GetCID(), GetPos(), aSubmitted, RESOURCE_NOTIFY_SUBMIT, "You submitted:\n{}");
 		}
 		GetPlayer()->m_VotePage[PAGE_HOME] = true;
 		break;
@@ -742,10 +855,78 @@ void CCharacter::HandleTile()
 			if (GameServer()->GetPlayerVote(GetPlayer()->GetCID())->m_Page == PAGE_HOME || GameServer()->GetPlayerVote(GetPlayer()->GetCID())->m_Page == PAGE_SHOP || GameServer()->GetPlayerVote(GetPlayer()->GetCID())->m_Page == PAGE_MAKE)
 				GameServer()->GetPlayerVote(GetPlayer()->GetCID())->m_Page = PAGE_MENU;
 
-			GameServer()->ClearVotes(GetPlayer()->GetCID());
+			if (GetPlayer()->m_BuildMenuOpen)
+				GameServer()->RefreshBuildMenu(GetPlayer()->GetCID());
 		}
 		break;
 	}
+}
+
+void CCharacter::HandleWaterTile()
+{
+	const int TileIndex = GameServer()->Collision()->GetIndex(m_Core.m_Pos);
+	if (TileIndex < 0)
+		return;
+
+	const int Tile = GameServer()->Collision()->GetTileIndex(TileIndex);
+	if (Tile >= TILE_WATER && Tile <= TILE_WATER_RIGHT)
+	{
+		if (!m_InWater)
+			GameServer()->CreateSound(m_Pos, SOUND_PLAYER_SPAWN);
+
+		m_Core.m_Vel.y += g_Config.m_SvWaterGravity / 100.0f;
+
+		if (m_Core.m_Vel.x > g_Config.m_SvWaterMaxX / 100.0f || m_Core.m_Vel.x < -g_Config.m_SvWaterMaxX / 100.0f)
+			m_Core.m_Vel.x *= g_Config.m_SvWaterFriction / 100.0f;
+
+		if (m_Core.m_Vel.y > g_Config.m_SvWaterMaxY / 100.0f || m_Core.m_Vel.y < -g_Config.m_SvWaterMaxY / 100.0f)
+			m_Core.m_Vel.y *= g_Config.m_SvWaterFriction / 100.0f;
+
+		if (m_Core.m_Jumped & 3)
+			m_Core.m_Jumped &= ~2;
+
+		if (Tile == TILE_WATER_UP)
+			m_Core.m_Vel.y -= g_Config.m_SvWaterGain / 100.0f;
+		else if (Tile == TILE_WATER_DOWN)
+			m_Core.m_Vel.y += g_Config.m_SvWaterGain / 100.0f;
+		else if (Tile == TILE_WATER_LEFT)
+			m_Core.m_Vel.x -= g_Config.m_SvWaterGain / 100.0f;
+		else if (Tile == TILE_WATER_RIGHT)
+			m_Core.m_Vel.x += g_Config.m_SvWaterGain / 100.0f;
+
+		m_InWater = true;
+	}
+	else
+	{
+		if (m_InWater)
+			GameServer()->CreateSound(m_Pos, SOUND_PLAYER_SPAWN);
+		m_InWater = false;
+	}
+
+	if (g_Config.m_SvWaterOxygen)
+	{
+		if (m_InWater)
+		{
+			if (!(Server()->Tick() % maximum(1, (int)(g_Config.m_SvWaterOxygenDrain / 1000.0f * 50.0f))))
+			{
+				if (m_Armor)
+					m_Armor--;
+				else
+				{
+					TakeDamage(vec2(0, 0), 1, m_pPlayer->GetCID(), WEAPON_WORLD);
+					GameServer()->SendEmoticon(m_pPlayer->GetCID(), g_Config.m_SvWaterOxygenEmoteid);
+				}
+			}
+		}
+		else
+		{
+			if (!(Server()->Tick() % maximum(1, (int)(g_Config.m_SvWaterOxygenRegen / 1000.0f * 50.0f))))
+				if (m_Armor < 10)
+					m_Armor++;
+		}
+	}
+
+	m_Pos = m_Core.m_Pos;
 }
 
 bool CCharacter::IncreaseHealth(int Amount)
@@ -764,8 +945,44 @@ bool CCharacter::IncreaseArmor(int Amount)
 	return true;
 }
 
+void CCharacter::BattleClearWeapons()
+{
+	for (int i = 0; i < NUM_WEAPONS; i++)
+	{
+		m_aWeapons[i].m_Got = false;
+		m_aWeapons[i].m_Ammo = 0;
+	}
+}
+
+void CCharacter::BattleRemoveWeapon(int Weapon)
+{
+	if (Weapon < 0 || Weapon >= NUM_WEAPONS)
+		return;
+	m_aWeapons[Weapon].m_Got = false;
+	m_aWeapons[Weapon].m_Ammo = 0;
+}
+
+void CCharacter::BattleSetReload(int Ticks)
+{
+	m_ReloadTimer = Ticks;
+}
+
+void CCharacter::BattleActivateShortNinja(vec2 Dir)
+{
+	m_Ninja.m_ActivationDir = Dir;
+	m_Ninja.m_CurrentMoveTime = g_pData->m_Weapons.m_Ninja.m_Movetime * Server()->TickSpeed() / 1000 / 2;
+	m_Ninja.m_OldVelAmount = length(m_Core.m_Vel);
+	GameServer()->CreateSound(m_Pos, SOUND_NINJA_FIRE);
+}
+
 void CCharacter::Die(int Killer, int Weapon)
 {
+	BattleOnCharacterDeath(GameServer(), this);
+	VehicleOnCharacterDie(GameServer(), m_pPlayer->GetCID());
+	m_OnVehicle = false;
+	m_VehicleSeat = VEHICLE_SEAT_NONE;
+	m_VehicleDismountTick = Server()->Tick();
+
 	// we got to wait 0.5 secs before respawning
 	m_pPlayer->m_RespawnTick = Server()->Tick() + Server()->TickSpeed() / 2;
 	int ModeSpecial = 0;
@@ -904,12 +1121,20 @@ void CCharacter::Snap(int SnappingClient)
 	if (NetworkClipped(SnappingClient))
 		return;
 
+	if (BattleIsInvisibleTo(SnappingClient, this))
+		return;
+
 	CNetObj_Character *pCharacter = Server()->SnapNewItem<CNetObj_Character>(m_pPlayer->GetCID());
 	if (!pCharacter)
 		return;
 
 	// write down the m_Core
-	if (!m_ReckoningTick || GameServer()->m_World.m_Paused)
+	if (m_OnVehicle)
+	{
+		pCharacter->m_Tick = 0;
+		m_Core.Write(pCharacter);
+	}
+	else if (!m_ReckoningTick || GameServer()->m_World.m_Paused)
 	{
 		// no dead reckoning when paused because the client doesn't know
 		// how far to perform the reckoning
@@ -953,6 +1178,21 @@ void CCharacter::Snap(int SnappingClient)
 	{
 		if (250 - ((Server()->Tick() - m_LastAction) % (250)) < 5)
 			pCharacter->m_Emote = EMOTE_BLINK;
+	}
+
+	if (m_OnVehicle)
+	{
+		if (CVehicle *pVehicle = VehicleFindByOccupant(&GameServer()->m_World, m_pPlayer->GetCID()))
+		{
+			const int MaxHealth = maximum(1, pVehicle->GetMaxHealth());
+			const int ScaledHealth = maximum(0, minimum(10, (pVehicle->GetHealth() * 10 + MaxHealth - 1) / MaxHealth));
+			if (m_pPlayer->GetCID() == SnappingClient || SnappingClient == -1 ||
+				(!g_Config.m_SvStrictSpectateMode && m_pPlayer->GetCID() == GameServer()->m_apPlayers[SnappingClient]->m_SpectatorID))
+			{
+				pCharacter->m_Health = ScaledHealth;
+				pCharacter->m_Armor = 0;
+			}
+		}
 	}
 
 	pCharacter->m_PlayerFlags = GetPlayer()->m_PlayerFlags;

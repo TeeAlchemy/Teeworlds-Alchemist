@@ -21,8 +21,48 @@
             "value": "==="
         },
         {
+            "key": "You have collected the resources within the resource point\nBring them back to the base!\n{}",
+            "value": "你带走了该资源点内的资源\n快把它们带回基地！\n{}"
+        },
+        {
             "key": "You have collected the resources within the resource point\nBring them back to the base!",
             "value": "你带走了该资源点内的资源\n快把它们带回基地！"
+        },
+        {
+            "key": "Press F3 to open the build menu",
+            "value": "按 F3 打开建造菜单"
+        },
+        {
+            "key": "=== Build Menu ===",
+            "value": "=== 建造菜单 ==="
+        },
+        {
+            "key": "Press F3 to close, weapon keys 1-5 to select",
+            "value": "按 F3 关闭，按武器键 1-5 选择"
+        },
+        {
+            "key": "F3 close | scroll select | fire confirm | hook back",
+            "value": "F3 关闭 | 滚轮选择 | 左键确认 | 右键返回"
+        },
+        {
+            "key": "scroll to read | hook back",
+            "value": "滚轮阅读 | 右键返回"
+        },
+        {
+            "key": "☞ Announcement 📢",
+            "value": "☞ 公告 📢"
+        },
+        {
+            "key": "☪ Announcement",
+            "value": "☪ 公告"
+        },
+        {
+            "key": "No announcement",
+            "value": "暂无公告"
+        },
+        {
+            "key": "No actions available on this page",
+            "value": "当前页面没有可用操作"
         },
         {
             "key": "➳ {} x{}",
@@ -151,6 +191,102 @@
         {
             "key": "Gatherer",
             "value": "收集者"
+        },
+        {
+            "key": "Aircraft",
+            "value": "飞行器"
+        },
+        {
+            "key": "Helicopter",
+            "value": "直升机"
+        },
+        {
+            "key": "Hovering aircraft. Jump up, fire down, hook to exit.",
+            "value": "悬停飞行器。右键上升，松开后缓慢下降，爱心表情下车。"
+        },
+        {
+            "key": "Right click rise. Fire=grenade, Space=missile. Hearts exit.",
+            "value": "右键上升。左键榴弹（停留0.2秒后发射），空格导弹，爱心表情下车。"
+        },
+        {
+            "key": "Jet",
+            "value": "喷气式飞机"
+        },
+        {
+            "key": "High-speed jet. Jump up, fire down, hook to exit.",
+            "value": "高速喷气机。右键上升，松开后缓慢下降，爱心表情下车。"
+        },
+        {
+            "key": "Fast flyer. Right click rise, hearts to exit.",
+            "value": "高速飞行载具。右键上升，松开后缓慢下降，爱心表情下车。"
+        },
+        {
+            "key": "Tank",
+            "value": "坦克"
+        },
+        {
+            "key": "Heavy ground tank. Use direction keys, hook to exit.",
+            "value": "重型地面坦克。方向键移动，爱心表情下车。"
+        },
+        {
+            "key": "Ground tank. Arrows move, hearts to exit.",
+            "value": "重型地面坦克。方向键移动，爱心表情下车。"
+        },
+        {
+            "key": "Spawned a helicopter for testing.",
+            "value": "已生成一架测试用直升机。"
+        },
+        {
+            "key": "Added 1 helicopter to team stock. Hammer the ground inside a node to place it.",
+            "value": "已为团队增加 1 架直升机库存，请在节点范围内锤地放置。"
+        },
+        {
+            "key": "Spawned a jet for testing.",
+            "value": "已生成一架测试用喷气机。"
+        },
+        {
+            "key": "Added 1 jet to team stock. Hammer the ground inside a node to place it.",
+            "value": "已为团队增加 1 架喷气机库存，请在节点范围内锤地放置。"
+        },
+        {
+            "key": "Spawned a tank for testing.",
+            "value": "已生成一辆测试用坦克。"
+        },
+        {
+            "key": "Added 1 tank to team stock. Hammer the ground inside a node to place it.",
+            "value": "已为团队增加 1 辆坦克库存，请在节点范围内锤地放置。"
+        },
+        {
+            "key": "You boarded the helicopter gunner seat!",
+            "value": "你已登上直升机炮手位！用瞄准方向开火，爱心表情下车。"
+        },
+        {
+            "key": "You boarded the tank gunner seat!",
+            "value": "你已登上坦克炮手位！用瞄准方向开火，爱心表情下车。"
+        },
+        {
+            "key": "A flying vehicle. Jump up, fire down, hook to exit.",
+            "value": "飞行载具。右键上升，松开后缓慢下降，爱心表情下车。"
+        },
+        {
+            "key": "Flyer. Right click rise, hearts to exit.",
+            "value": "飞行载具。右键上升，松开后缓慢下降，爱心表情下车。"
+        },
+        {
+            "key": "Spawned an aircraft for testing.",
+            "value": "已生成一架测试用飞行器。"
+        },
+        {
+            "key": "Spawned a car for testing.",
+            "value": "已生成一辆测试用汽车。"
+        },
+        {
+            "key": "Added 1 aircraft to team stock. Hammer the ground inside a node to place it.",
+            "value": "已为团队增加 1 架飞行器库存，请在节点范围内锤地放置。"
+        },
+        {
+            "key": "You must be on a team to use this command.",
+            "value": "你必须加入队伍后才能使用该指令。"
         },
         {
             "key": "Gold",
@@ -417,6 +553,18 @@
             "value": "你需要回到基地才能查看该选项！"
         },
         {
+            "key": "You received:\n{}",
+            "value": "你获得了：\n{}"
+        },
+        {
+            "key": "You received {} x{}",
+            "value": "你获得了 {} x{}"
+        },
+        {
+            "key": "You submitted:\n{}",
+            "value": "你提交了：\n{}"
+        },
+        {
             "key": "You submitted {} x{}",
             "value": "你提交了 {} x{}"
         },
@@ -427,6 +575,14 @@
         {
             "key": "Your team doesn't have enough resources!",
             "value": "你的队伍没有足够的资源！"
+        },
+        {
+            "key": "Your team received:\n{}",
+            "value": "你的队伍获得了：\n{}"
+        },
+        {
+            "key": "Your team received {} x{}",
+            "value": "你的队伍获得了 {} x{}"
         },
         {
             "key": "Your team have: {}",

@@ -22,6 +22,8 @@
 class CChatAI;
 
 #include "votepage.h"
+#include "buildmenu.h"
+#include "classmenu.h"
 
 /*
 	Tick
@@ -341,6 +343,22 @@ public:
 	void ClearVotes(int ClientID);
 	void ClearVotesTeam(int Team);
 	void ChangeVotePage(int ClientID, int Page);
+
+	CBuildMenu m_BuildMenu;
+	void OpenBuildMenu(int ClientID);
+	void ToggleBuildMenu(int ClientID);
+	void CloseBuildMenu(int ClientID);
+	void RefreshBuildMenu(int ClientID);
+	bool HandleBuildMenuInput(int ClientID, const CNetObj_PlayerInput *pInput, const CNetObj_PlayerInput *pPrevInput);
+	void BuildMenuGoBack(int ClientID);
+	void RefreshBuildMenuTeam(int Team);
+
+	CClassMenu m_ClassMenu;
+	void OpenClassMenu(int ClientID);
+	void CloseClassMenu(int ClientID);
+	void RefreshClassMenu(int ClientID);
+	void RefreshClassVotes(int ClientID);
+	bool HandleClassMenuInput(int ClientID, const CNetObj_PlayerInput *pInput, const CNetObj_PlayerInput *pPrevInput);
 
 	int m_VoteClientID;
 

@@ -25,6 +25,7 @@ public:
 	int GetCID() const { return m_ClientID; };
 	int GetClientVersion() const;
 	int GetPlayerWorldID() const;
+	bool NeedsClassSelection() const;
 
 	void Tick();
 	void PostTick();
@@ -137,6 +138,33 @@ public:
 
 	bool m_WantSpawn;
 	bool m_VoteNeedUpdate;
+	bool m_BuildMenuOpen;
+	int m_LastMenuVoteKey;
+	int m_BuildMenuToggleTick;
+	int m_BuildMenuSelection;
+	int m_BuildMenuTextScroll;
+	bool m_BuildMenuInputWarmup;
+	CNetObj_PlayerInput m_BuildMenuPrevInput;
+
+	int m_BattleClass;
+	int m_BattleThrowableType;
+	int m_BattleThrowableCount;
+	int m_BattleGrenadeCount;
+	int m_BattleSmokeCount;
+	int m_BattleMagAmmo;
+	int m_BattleMagazines;
+	int m_BattleMagReload;
+	int m_BattleAmmoPackTick;
+	int m_BattleInvisEnergy;
+	bool m_BattleInvisActive;
+	int m_BattleNinjaRespawnTick;
+	int m_BattleEngineerFireStart;
+	bool m_BattleEngineerFiring;
+	bool m_PendingClassMenu;
+	bool m_ClassMenuOpen;
+	int m_ClassMenuSelection;
+	bool m_ClassMenuInputWarmup;
+	CNetObj_PlayerInput m_ClassMenuPrevInput;
 
 	bool PressVote(bool F3);
 };

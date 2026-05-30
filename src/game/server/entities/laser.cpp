@@ -4,6 +4,8 @@
 #include <game/server/gamecontext.h>
 #include "buildings.h"
 #include "laser.h"
+#include <game/server/entities/vehicle/vehicle.h>
+#include <game/server/entities/vehicle/vehicle_util.h>
 
 CLaser::CLaser(CGameWorld *pGameWorld, vec2 Pos, vec2 Direction, float StartEnergy, int Owner)
 : CEntity(pGameWorld, CGameWorld::ENTTYPE_LASER, Pos)
@@ -25,22 +27,30 @@ bool CLaser::HitCharacter(vec2 From, vec2 To)
 	CCharacter *pOwnerChar = GameServer()->GetPlayerChar(m_Owner);
 	CCharacter *pHit = GameServer()->m_World.IntersectCharacter(m_Pos, To, 0.f, At, pOwnerChar);
 	CBuilding* pHitBuilding = GameServer()->m_World.IntersectBuilding(m_Pos, To, 0.f, At, pOwnerChar);
-	if (!pHit && !pHitBuilding)
+	CVehicle *pHitVehicle = VehicleIntersectLine(&GameServer()->m_World, m_Pos, To, 0.f, At, pOwnerChar);
+	if (!pHit && !pHitBuilding && !pHitVehicle)
 		return false;
 
 	m_From = From;
 	m_Pos = At;
 	m_Energy = -1;
-	if (pHit && !pHitBuilding)
+	if (pHit && !pHitBuilding && !pHitVehicle)
 		pHit->TakeDamage(vec2(0.f, 0.f), GameServer()->Tuning()->m_LaserDamage, m_Owner, WEAPON_RIFLE);
-	else if (!pHit && pHitBuilding)
-		pHitBuilding->TakeDamage(GameServer()->Tuning()->m_LaserDamage / 2, m_Owner, WEAPON_RIFLE);
+	else if (!pHit && pHitBuilding && !pHitVehicle)
+		pHitBuilding->TakeDamageAt(At, GameServer()->Tuning()->m_LaserDamage / 2, m_Owner, WEAPON_RIFLE);
+	else if (!pHit && !pHitBuilding && pHitVehicle)
+		pHitVehicle->TakeDamage(GameServer()->Tuning()->m_LaserDamage / 2, m_Owner);
 	else
 	{
-		if (distance(m_Pos, pHit->GetPos()) < distance(m_Pos, pHitBuilding->GetPos()))
+		const float ChrDist = pHit ? distance(m_Pos, pHit->GetPos()) : 1e30f;
+		const float BuildingDist = pHitBuilding ? distance(m_Pos, pHitBuilding->GetDamageCenter()) : 1e30f;
+		const float VehicleDist = pHitVehicle ? distance(m_Pos, pHitVehicle->GetPos()) : 1e30f;
+		if (ChrDist <= BuildingDist && ChrDist <= VehicleDist)
 			pHit->TakeDamage(vec2(0.f, 0.f), GameServer()->Tuning()->m_LaserDamage, m_Owner, WEAPON_RIFLE);
+		else if (BuildingDist <= VehicleDist)
+			pHitBuilding->TakeDamageAt(At, GameServer()->Tuning()->m_LaserDamage / 2, m_Owner, WEAPON_RIFLE);
 		else
-			pHitBuilding->TakeDamage(GameServer()->Tuning()->m_LaserDamage / 2, m_Owner, WEAPON_RIFLE);
+			pHitVehicle->TakeDamage(GameServer()->Tuning()->m_LaserDamage / 2, m_Owner);
 	}
 	return true;
 }
